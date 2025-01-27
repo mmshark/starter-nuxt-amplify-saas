@@ -5,13 +5,17 @@ import "@aws-amplify/ui-vue/styles.css";
 import { Amplify } from 'aws-amplify';
 import outputs from '../amplify_outputs.json';
 
+definePageMeta({
+  layout: 'app-auth'
+});
+
 Amplify.configure(outputs);
 
 const route = useRoute();
 const router = useRouter();
 const redirect = route.query.redirect || '/app';
 
-const validStates = ['signIn', 'signUp', 'forgotPassword'];
+const validStates = ['signIn', 'signUp', 'forgotPassword', ''];
 const initialState = validStates.find(
   state => state.toLowerCase() === (route.query.s || 'signIn').toLowerCase()
 ) || 'signIn';

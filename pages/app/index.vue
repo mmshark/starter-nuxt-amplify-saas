@@ -10,6 +10,7 @@
 <script setup>
 definePageMeta({
   middleware: ['authenticated'],
+  layout: 'app'
 })
 
 import { Authenticator, useAuthenticator } from '@aws-amplify/ui-vue';
