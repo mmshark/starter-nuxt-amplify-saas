@@ -1,14 +1,27 @@
 <template>
-    <div>
-      App Page
-    </div>
-  </template>
-  
-  <script setup>
-  
-  </script>
-  
-  <style scoped>
-  
-  </style>
-  
+  <div>
+    App Page
+  </div>
+  <div>
+    <button @click="signOut">Sign Out</button>
+  </div>
+</template>
+
+<script setup>
+definePageMeta({
+  middleware: ['authenticated'],
+})
+
+import { Authenticator, useAuthenticator } from '@aws-amplify/ui-vue';
+const auth = useAuthenticator();
+const router = useRouter();
+
+const signOut = async () => {
+  await auth.signOut();
+  router.push('/');
+}
+</script>
+
+<style scoped>
+
+</style>
