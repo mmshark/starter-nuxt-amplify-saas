@@ -60,21 +60,32 @@
       <div class="w-[calc(100%-3rem)] mx-auto h-[1px] bg-surface-200 dark:bg-surface-700" />
 
       <!-- User info / Avatar -->
-      <div class="p-6 flex items-center gap-3 cursor-pointer">
-        <Avatar
-          image="https://fqjltiegiezfetthbags.supabase.co/storage/v1/render/image/public/block.images/blocks/avatars/circle/avatar-f-1.png"
-          size="large"
-          shape="circle"
-          class="!w-9 !h-9"
-        />
-        <div>
-          <div class="text-sm font-semibold text-surface-900 dark:text-surface-0">
-            Amy Elsner
+      <div class="p-6 flex items-center gap-3">
+        <div class="flex items-center gap-3 flex-1 cursor-pointer">
+          <Avatar
+            image="https://fqjltiegiezfetthbags.supabase.co/storage/v1/render/image/public/block.images/blocks/avatars/circle/avatar-f-1.png"
+            size="large"
+            shape="circle"
+            class="!w-9 !h-9"
+          />
+          <div>
+            <div class="text-sm font-semibold text-surface-900 dark:text-surface-0">
+              Amy Elsner
+            </div>
+            <span class="text-xs text-surface-600 dark:text-surface-400 leading-none">
+              Description
+            </span>
           </div>
-          <span class="text-xs text-surface-600 dark:text-surface-400 leading-none">
-            Description
-          </span>
         </div>
+        <Button 
+          icon="pi pi-sign-out"
+          text
+          rounded
+          class="!p-2"
+          severity="secondary"
+          aria-label="Logout"
+          @click="signOut"
+        />
       </div>
     </div>
   </div>
@@ -107,5 +118,14 @@ function handleClickSubNav(item) {
   if (item.link) {
     navigateTo(item.link)
   }
+}
+
+import { Authenticator, useAuthenticator } from '@aws-amplify/ui-vue';
+const auth = useAuthenticator();
+const router = useRouter();
+
+const signOut = async () => {
+  await auth.signOut();
+  router.push('/');
 }
 </script>
