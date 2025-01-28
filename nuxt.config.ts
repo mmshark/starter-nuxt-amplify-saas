@@ -1,4 +1,4 @@
-import Aura from '@primevue/themes/aura';
+import Aura from '@primevue/themes/aura'
 
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
@@ -15,6 +15,7 @@ export default defineNuxtConfig({
       ]
     }
   },
+  css: ['primeicons/primeicons.css'],
   primevue: {
     options: {
       theme: {
