@@ -5,6 +5,9 @@
   <div>
     <NuxtLink to="/app">Go to App</NuxtLink>
   </div>
+  <div>
+    <PlanCards price-switcher />
+  </div>
 </template>
 
 <script setup>
