@@ -2,7 +2,9 @@
   <div>
     <stripe-pricing-table 
       :pricing-table-id="pricingTableId"
-      :publishable-key="publishableKey">
+      :publishable-key="publishableKey"
+      :client-reference-id="clientReferenceId"
+      :customer-email="customerEmail">
     </stripe-pricing-table>
   </div>
 </template>
@@ -14,7 +16,15 @@ const props = defineProps({
     required: true
   },
   publishableKey: {
-    type: String, 
+    type: String,
+    required: true
+  },
+  customerEmail: {
+    type: String,
+    required: true
+  },
+  clientReferenceId: {
+    type: String,
     required: true
   }
 })
