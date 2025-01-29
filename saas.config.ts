@@ -45,6 +45,8 @@ export const sidebarNavs = {
         },
         {
           label: 'Security',
+          title: 'Security Settings',
+          description: 'Manage your password and two-factor authentication',
           link: '/app/settings/security'
         },
         {
