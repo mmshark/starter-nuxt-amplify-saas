@@ -36,7 +36,7 @@
               :item="item"
               :isSelected="selectedNav.label === item.label"
               :selectedSubNav="selectedSubNav"
-              @click-nav="handleClickNav(item)"
+              @click-nav="() => handleClickNav(item)"
               @click-sub-nav="handleClickSubNav"
             />
           </template>
@@ -50,7 +50,7 @@
             :item="item"
             :isSelected="selectedNav.label === item.label"
             :selectedSubNav="selectedSubNav"
-            @click-nav="handleClickNav(item)"
+            @click-nav="() => handleClickNav(item)"
             @click-sub-nav="handleClickSubNav"
           />
         </template>
@@ -63,17 +63,17 @@
       <div class="p-6 flex items-center gap-3">
         <div class="flex items-center gap-3 flex-1 cursor-pointer">
           <Avatar
-            image="https://fqjltiegiezfetthbags.supabase.co/storage/v1/render/image/public/block.images/blocks/avatars/circle/avatar-f-1.png"
+            :label="avatarInitials"
             size="large"
             shape="circle"
             class="!w-9 !h-9"
           />
           <div>
             <div class="text-sm font-semibold text-surface-900 dark:text-surface-0">
-              Amy Elsner
+              {{ showName }}
             </div>
             <span class="text-xs text-surface-600 dark:text-surface-400 leading-none">
-              Description
+              {{ showEmail }}
             </span>
           </div>
         </div>
@@ -92,40 +92,69 @@
 </template>
 
 <script setup>
-import Avatar from 'primevue/avatar'
-import { ref } from 'vue'
 import { sidebarNavs } from '~/saas.config'
+import Avatar from 'primevue/avatar'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthenticator } from '@aws-amplify/ui-vue'
+import { fetchUserAttributes } from 'aws-amplify/auth'
+
+const emit = defineEmits(['update:selectedNav', 'update:selectedSubNav'])
 
 const props = defineProps({
   selectedNav: {
     type: Object,
-    required: true,
-    modelValue: true
+    required: true
+  },
+  selectedSubNav: {
+    type: Object,
+    default: null
   }
 })
 
-const selectedSubNav = ref(null)
+const auth = useAuthenticator()
+const router = useRouter()
 
 function handleClickNav(item) {
-  props.selectedNav.label = item.label
+  emit('update:selectedNav', item)
   if (item.link) {
     navigateTo(item.link)
   }
 }
 
 function handleClickSubNav(item) {
-  selectedSubNav.value = item.label
+  emit('update:selectedSubNav', item)
   if (item.link) {
     navigateTo(item.link)
   }
 }
 
-import { Authenticator, useAuthenticator } from '@aws-amplify/ui-vue';
-const auth = useAuthenticator();
-const router = useRouter();
-
 const signOut = async () => {
-  await auth.signOut();
-  router.push('/');
+  await auth.signOut()
+  router.push('/')
 }
+
+const showName = ref(null)
+const showEmail = ref(null)
+
+const avatarInitials = computed(() => {
+  if (showName.value && showName.value !== showEmail.value) {
+    return showName.value
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+  }
+  return showEmail.value ? showEmail.value[0].toUpperCase() : ''
+})
+
+onMounted(async () => {
+  try {
+    const { email, given_name, family_name } = await fetchUserAttributes()
+    showName.value = (given_name || family_name) ? `${given_name || ''} ${family_name || ''}`.trim() : email
+    showEmail.value = email
+  } catch (error) {
+    console.error('Error fetching user info:', error)
+  }
+})
 </script>

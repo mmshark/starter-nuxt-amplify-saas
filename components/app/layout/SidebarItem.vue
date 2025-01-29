@@ -92,7 +92,7 @@ const props = defineProps({
     default: false
   },
   selectedSubNav: {
-    type: String,
+    type: Object,
     default: null
   }
 })
@@ -120,8 +120,8 @@ function getActiveLinePath(index, selectedIndex) {
 }
 
 const selectedSubIndex = computed(() =>
-  props.item?.subMenu
-    ? props.item.subMenu.findIndex((sub) => sub.label === props.selectedSubNav)
+  props.item?.subMenu && props.selectedSubNav?.label
+    ? props.item.subMenu.findIndex((sub) => sub.label === props.selectedSubNav.label)
     : -1
 )
 
@@ -131,7 +131,7 @@ const itemClass = (isSelected) =>
     : 'border-transparent hover:border-surface-200 dark:hover:border-surface-800 hover:bg-surface-0 dark:hover:bg-surface-950 text-surface-600 dark:text-surface-400'
 
 const subItemClass = (subItem) => {
-  return subItem.label === props.selectedSubNav
+  return props.selectedSubNav?.label === subItem.label
     ? 'text-surface-900 dark:text-surface-0'
     : 'text-surface-500 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-0'
 }
