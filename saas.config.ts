@@ -39,6 +39,8 @@ export const sidebarNavs = {
       subMenu: [
         {
           label: 'Profile',
+          title: 'Profile Settings',
+          description: 'Manage your account profile and preferences',
           link: '/app/settings/profile'
         },
         {

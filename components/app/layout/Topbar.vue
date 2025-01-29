@@ -17,12 +17,6 @@
       >
         <i class="pi pi-bars text-3xl" />
       </a>
-      <div class="flex-1">
-        <h1 class="text-lg font-medium text-surface-900 dark:text-surface-0">
-          {{ selectedNav.label }}
-        </h1>
-        <p class="text-surface-500">Description</p>
-      </div>
     </div>
     <div class="flex items-center gap-2">
       <IconField>

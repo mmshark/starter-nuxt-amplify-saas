@@ -8,6 +8,7 @@
     <div class="flex-1 flex flex-col gap-6">
       <AppLayoutTopbar :selectedNav="selectedNav" />
       <div class="flex-1">
+        <AppLayoutPageTitle :selectedNav="selectedNav" :selectedSubNav="selectedSubNav" />
         <slot />
       </div>
     </div>
