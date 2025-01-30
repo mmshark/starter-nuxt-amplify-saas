@@ -1,59 +1,87 @@
 <template>
-  <div>
-    <div v-if="priceSwitcher" class="flex justify-center mb-8">
-      <div class="flex items-center gap-4">
-        <span :class="{ 'font-bold': !isYearly }">Monthly</span>
-        <button 
-          @click="isYearly = !isYearly"
-          class="relative inline-flex h-6 w-11 items-center rounded-full bg-slate-300"
-        >
-          <span 
-            class="inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out"
-            :class="isYearly ? 'translate-x-6' : 'translate-x-1'"
-          />
-        </button>
-        <span :class="{ 'font-bold': isYearly }">Yearly</span>
-      </div>
+  <div class="bg-surface-0 dark:bg-surface-950 px-6 py-20 md:px-12 lg:px-20">
+    <!-- Headline / Titles -->
+    <div class="text-primary-600 dark:text-primary-400 text-2xl mb-6 text-center">
+      Save up to 25% today
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
-      <PlanVanilaCard 
-        v-for="plan in plans" 
-        :key="plan.id" 
+    <div class="text-surface-900 dark:text-surface-0 font-bold text-6xl text-center mb-6">
+      Pricing Plans
+    </div>
+
+    <!-- Price Switcher (the snippet you provided) -->
+    <div class="flex items-center justify-center mb-12">
+      <ul
+        class="rounded-full bg-surface-0 dark:bg-surface-800 p-1.5 m-0 list-none flex column-gap-2 overflow-x-auto select-none shadow border border-surface"
+      >
+        <li
+          :class="[
+            'px-4 py-2 rounded-full cursor-pointer font-medium flex items-center transition-color duration-150',
+            { 'bg-primary-500 text-surface-0': selectedInterval === 'month' },
+            {
+              'bg-transparent text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700':
+                selectedInterval !== 'month'
+            }
+          ]"
+          @click="selectedInterval = 'month'"
+        >
+          Monthly
+        </li>
+        <li
+          :class="[
+            'px-4 py-2 rounded-full cursor-pointer font-medium flex items-center transition-color duration-150',
+            { 'bg-primary-500 text-surface-0': selectedInterval === 'year' },
+            {
+              'bg-transparent text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700':
+                selectedInterval !== 'year'
+            }
+          ]"
+          @click="selectedInterval = 'year'"
+        >
+          Yearly
+        </li>
+      </ul>
+    </div>
+
+    <!-- Plan Cards -->
+    <div class="flex flex-col lg:flex-row justify-center gap-8 lg:gap-4 xl:gap-12 mx-auto w-fit">
+      <PlanVanilaCard
+        v-for="plan in sortedPlans"
+        :key="plan.id"
         :plan="plan"
-        :show-price="priceSwitcher ? (isYearly ? 'year' : 'month') : 'all'"
+        :is-yearly="isYearly"
       />
     </div>
   </div>
 </template>
 
 <script setup>
-import { generateClient } from 'aws-amplify/api';
-import { Amplify } from 'aws-amplify';
-import outputs from '../../../amplify_outputs.json';
-import { ref, onMounted } from 'vue';
+import { ref, computed } from 'vue';
+import PlanVanilaCard from './card.vue';
 
-Amplify.configure(outputs);
-const client = generateClient();
-const plans = ref([]);
-const isYearly = ref(false);
-
-defineProps({
-  priceSwitcher: {
-    type: Boolean,
-    default: false
+// Props: array of plan objects
+const props = defineProps({
+  plans: {
+    type: Array,
+    required: true
   }
 });
 
-const fetchPlans = async () => {
-  try {
-    const plansData = await client.models.Plan.list();
-    plans.value = plansData.data.sort((a, b) => a.id.localeCompare(b.id));
-  } catch (error) {
-    console.error('Error fetching plans:', error);
-  }
-};
-
-onMounted(() => {
-  fetchPlans();
+// Sort plans by metadata.index if available
+const sortedPlans = computed(() => {
+  return [...props.plans].sort((a, b) => {
+    const indexA = a.metadata?.index ? parseInt(a.metadata.index) : Number.MAX_SAFE_INTEGER;
+    const indexB = b.metadata?.index ? parseInt(b.metadata.index) : Number.MAX_SAFE_INTEGER;
+    return indexA - indexB;
+  });
 });
+
+// Tab state: 'month' or 'year'
+const selectedInterval = ref('month');
+
+// Convert the selected interval into a boolean
+const isYearly = computed(() => selectedInterval.value === 'year');
 </script>
+
+<style scoped>
+/* Adjust styles as needed */
+</style>

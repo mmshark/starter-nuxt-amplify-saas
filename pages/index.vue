@@ -12,10 +12,13 @@
 
     <div class="mb-8">
       <p>Plan Vanila Cards</p>
-      <PlanVanilaCards price-switcher />
+      <PlanVanilaCards 
+        v-if="plans?.body"
+        :plans="plans.body"
+      />
     </div>
 
-    <div>
+    <!-- <div>
       <p>Plan Stripe Cards</p>
       <PlanStripeCards 
         pricing-table-id="prctbl_1QmE1UIOUVeEvI6sJki3lK0x"
@@ -23,25 +26,24 @@
         :customer-email="user?.signInDetails?.loginId"
         :client-reference-id="user?.userId">
       </PlanStripeCards>
-    </div>
+    </div> -->
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
-import { Amplify } from 'aws-amplify';
 import { getCurrentUser } from 'aws-amplify/auth';
-import outputs from '../amplify_outputs.json';
 
-Amplify.configure(outputs);
 const user = ref(null);
+const plans = ref(null);
 
 onMounted(async () => {
   try {
-    user.value = await getCurrentUser();
-    console.log("User:", user.value);
+    // user.value = await getCurrentUser();
+
+    const response = await fetch('/api/subscriptions/catalog');
+    plans.value = await response.json();
   } catch (error) {
-    console.error("Error getting current user:", error);
+    console.error("Error:", error);
   }
 });
 </script>

@@ -8,8 +8,7 @@ export default defineEventHandler(async (event) => {
     const products = await stripe.products.list({ active: true });
     const prices = await stripe.prices.list();
 
-    console.log(products)
-    console.log(prices)
+    console.log(JSON.stringify(products, null, 2));
 
     const subscriptionPlans = products.data.map(product => {
       const monthlyPrice = prices.data.find(p => p.product === product.id && p.recurring?.interval === 'month');
@@ -20,6 +19,8 @@ export default defineEventHandler(async (event) => {
         name: product.name,
         description: product.description,
         attributes: product.attributes,
+        metadata: product.metadata,
+        marketing_features: product.marketing_features,
         monthlyPrice: monthlyPrice ? {
           amount: monthlyPrice.unit_amount / 100,
           currency: monthlyPrice.currency

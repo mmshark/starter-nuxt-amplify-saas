@@ -1,49 +1,126 @@
 <template>
-  <div class="border border-slate-200 rounded-lg p-8 max-w-[320px] text-center transition-transform hover:-translate-y-1 hover:shadow-lg">
-    <h3 class="text-2xl font-semibold mb-2">{{ plan.name }}</h3>
-    <p class="text-slate-500 mb-6">{{ plan.description }}</p>
-    
-    <div class="mb-6">
-      <div v-if="showPrice === 'month' || showPrice === 'all'" class="my-2">
-        <span class="text-4xl font-bold">${{ plan.monthly_price }}</span>
-        <span class="text-slate-500">/month</span>
+  <!-- Outer wrapper: apply special border if "preferred" -->
+  <div
+    class="flex-1 w-full flex flex-col rounded-xl overflow-hidden min-h-[28rem] max-w-[26rem]"
+    :class="isPreferred ? 'border-4 border-primary-500' : ''"
+  >
+    <!-- Top section - style changes if plan is "preferred" -->
+    <div
+      :class="[
+        isPreferred
+          ? 'bg-surface-700 dark:bg-surface-50 text-surface-0 dark:text-surface-900'
+          : 'bg-surface-200 dark:bg-surface-700 text-surface-900 dark:text-surface-0'
+      ] + ' text-center py-4 px-6'"
+    >
+      <!-- Show a badge only if plan is preferred -->
+      <div
+        v-if="isPreferred"
+        class="uppercase rounded-full text-sm bg-primary-500 w-fit mx-auto px-3 py-1.5 text-surface-0 font-bold mb-4"
+      >
+        {{ plan.metadata?.preferred }}
       </div>
-      <div v-if="showPrice === 'year' || showPrice === 'all'" class="my-2">
-        <span class="text-4xl font-bold">${{ plan.yearly_price }}</span>
-        <span class="text-slate-500">/year</span>
+
+      <!-- Plan name -->
+      <div class="text-2xl font-bold mb-4">
+        {{ plan.name }}
+      </div>
+
+      <!-- Price display -->
+      <div class="flex items-center justify-center gap-2">
+        <span class="font-bold text-[2.5rem]">
+          {{ displayedPrice }}
+        </span>
+        <span class="text-2xl text-surface-400">
+          /{{ isYearly ? 'year' : 'month' }}
+        </span>
       </div>
     </div>
 
-    <ul class="list-none p-0 m-0 mb-6">
-      <li v-for="feature in plan.features" :key="feature" class="py-2 text-slate-600">
-        {{ feature }}
-      </li>
-    </ul>
+    <!-- Bottom section -->
+    <div
+      :class="[
+        isPreferred
+          ? 'bg-surface-800 dark:bg-surface-200'
+          : 'bg-surface-100 dark:bg-surface-800'
+      ] + ' p-6 flex flex-col grow'"
+    >
+      <!-- Plan description (if any) -->
+      <div
+        class="font-bold leading-6 mb-6"
+        :class="isPreferred ? 'text-surface-400 dark:text-surface-500' : 'text-surface-400'"
+      >
+        {{ plan.description || 'Subtitle of the plan maybe two lines.' }}
+      </div>
 
-    <button class="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg cursor-pointer transition-colors">
-      Select {{ plan.name }}
-    </button>
+      <div class="w-full h-px bg-surface-300 dark:bg-surface-700 mb-4" />
+
+      <!-- Marketing Features list -->
+      <ul class="list-none p-0 flex flex-col gap-4 flex-1">
+        <li
+          v-for="(feature, index) in plan.marketing_features"
+          :key="index"
+          class="flex items-center gap-2"
+        >
+          <i class="pi pi-check-circle text-green-500 text-lg" />
+          <span :class="[
+            'leading-6',
+            isPreferred ? 'text-surface-200 dark:text-surface-700' : 'text-surface-800 dark:text-surface-100'
+          ]">
+            {{ feature.name }}
+          </span>
+        </li>
+      </ul>
+
+      <div class="w-full h-px bg-surface-300 dark:bg-surface-700 mt-4" />
+
+      <!-- CTA / Button (adapt if the plan is free, buy, contact, etc.) -->
+      <Button
+        v-if="plan.monthlyPrice.amount === 0 && plan.yearlyPrice.amount === 0"
+        severity="secondary"
+        class="px-5 py-3 !bg-surface-500 hover:!bg-surface-400 !text-surface-0 mt-4"
+        label="Try Free"
+      />
+      <Button
+        v-else-if="isPreferred"
+        class="px-5 py-3 mt-4"
+        label="Buy Now"
+      />
+      <Button
+        v-else
+        outlined
+        severity="info"
+        class="px-5 py-3 border !border-blue-500 !text-blue-400 hover:!bg-blue-500/10 font-bold mt-4"
+        label="Contact Us"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
+import Button from 'primevue/button';
+import { computed } from 'vue';
+
 const props = defineProps({
   plan: {
     type: Object,
     required: true,
-    validator: (plan) => {
-      return plan.name && 
-             plan.description &&
-             plan.monthly_price &&
-             plan.yearly_price &&
-             Array.isArray(plan.features)
-    }
   },
-  showPrice: {
-    type: String,
-    required: false,
-    default: 'all',
-    validator: (value) => ['month', 'year', 'all'].includes(value)
-  }
-})
+  isYearly: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+// Compute if plan is preferred based on metadata
+const isPreferred = computed(() => !!props.plan.metadata?.preferred);
+
+// Compute the price based on monthly vs. yearly toggle
+const displayedPrice = computed(() => {
+  const { monthlyPrice, yearlyPrice } = props.plan || {};
+  return props.isYearly ? yearlyPrice.amount : monthlyPrice.amount;
+});
 </script>
+
+<style scoped>
+/* Add or adjust styling as needed */
+</style>
