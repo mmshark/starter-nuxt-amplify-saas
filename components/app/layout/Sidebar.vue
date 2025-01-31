@@ -70,10 +70,10 @@
           />
           <div>
             <div class="text-sm font-semibold text-surface-900 dark:text-surface-0">
-              {{ showName }}
+              {{ fullName }}
             </div>
             <span class="text-xs text-surface-600 dark:text-surface-400 leading-none">
-              {{ showEmail }}
+              {{ email }}
             </span>
           </div>
         </div>
@@ -94,10 +94,10 @@
 <script setup>
 import { sidebarNavs } from '~/saas.config'
 import Avatar from 'primevue/avatar'
-import { ref, onMounted, computed } from 'vue'
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthenticator } from '@aws-amplify/ui-vue'
-import { fetchUserAttributes } from 'aws-amplify/auth'
+import { useUser } from '~/utils/useUser'
 
 const emit = defineEmits(['update:selectedNav', 'update:selectedSubNav'])
 
@@ -114,6 +114,7 @@ const props = defineProps({
 
 const auth = useAuthenticator()
 const router = useRouter()
+const { fullName, email, avatarInitials, fetchUser } = useUser()
 
 function handleClickNav(item) {
   emit('update:selectedNav', item)
@@ -134,27 +135,7 @@ const signOut = async () => {
   router.push('/')
 }
 
-const showName = ref(null)
-const showEmail = ref(null)
-
-const avatarInitials = computed(() => {
-  if (showName.value && showName.value !== showEmail.value) {
-    return showName.value
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-  }
-  return showEmail.value ? showEmail.value[0].toUpperCase() : ''
-})
-
 onMounted(async () => {
-  try {
-    const { email, given_name, family_name } = await fetchUserAttributes()
-    showName.value = (given_name || family_name) ? `${given_name || ''} ${family_name || ''}`.trim() : email
-    showEmail.value = email
-  } catch (error) {
-    console.error('Error fetching user info:', error)
-  }
+  await fetchUser()
 })
 </script>

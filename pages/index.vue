@@ -11,37 +11,23 @@
     </div>
 
     <div class="mb-8">
-      <p>Plan Vanila Cards</p>
-      <PlanVanilaCards 
-        v-if="plans?.body"
-        :plans="plans.body"
-      />
+      <PlanVanilaCards :plans="plans"/>
     </div>
-
-    <!-- <div>
-      <p>Plan Stripe Cards</p>
-      <PlanStripeCards 
-        pricing-table-id="prctbl_1QmE1UIOUVeEvI6sJki3lK0x"
-        publishable-key="pk_test_51QmDrCIOUVeEvI6skZG6L0cGgLcoD8EJXKcMQL1ebLoX3jOu8FnSr5poK3Pkra8GgVbkijMiNk0DKI0p0kPEhXdm00RGd9HBDG"
-        :customer-email="user?.signInDetails?.loginId"
-        :client-reference-id="user?.userId">
-      </PlanStripeCards>
-    </div> -->
   </div>
 </template>
 
 <script setup>
 import { getCurrentUser } from 'aws-amplify/auth';
+import { usePlans } from '~/utils/usePlans';
 
 const user = ref(null);
-const plans = ref(null);
+const { plans, error, fetchPlans } = usePlans();
 
 onMounted(async () => {
   try {
-    // user.value = await getCurrentUser();
-
-    const response = await fetch('/api/subscriptions/plans');
-    plans.value = await response.json();
+    await fetchPlans({
+      sortByIndex: true
+    });
   } catch (error) {
     console.error("Error:", error);
   }

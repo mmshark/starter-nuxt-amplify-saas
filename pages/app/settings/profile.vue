@@ -10,7 +10,7 @@
               shape="circle"
             />
             <div>
-              <h2 class="text-lg font-medium text-surface-900 dark:text-surface-0">{{ showName }}</h2>
+              <h2 class="text-lg font-medium text-surface-900 dark:text-surface-0">{{ fullName }}</h2>
               <p class="text-surface-500">Update your photo and personal details</p>
             </div>
           </div>
@@ -18,7 +18,7 @@
           <form @submit.prevent="updateProfile" class="flex flex-col gap-4">
             <div class="flex flex-col gap-2">
               <label class="text-sm text-surface-600 dark:text-surface-400">Email</label>
-              <InputText v-model="showEmail" disabled />
+              <InputText v-model="email" disabled />
             </div>
 
             <div class="flex flex-col gap-2">
@@ -31,7 +31,7 @@
               <InputText v-model="lastName" placeholder="Enter your last name" />
             </div>
 
-            <Button type="submit" label="Save Changes" class="w-fit mt-4" />
+            <Button type="submit" label="Save Changes" class="w-fit mt-4" :loading="loading" />
           </form>
         </div>
       </div>
@@ -40,53 +40,32 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { fetchUserAttributes, updateUserAttributes } from 'aws-amplify/auth'
+import { useUser } from '~/utils/useUser'
 
 definePageMeta({
   middleware: ['authenticated'],
   layout: 'app'
 })
 
-const firstName = ref('')
-const lastName = ref('')
-const showName = ref('')
-const showEmail = ref('')
-
-const avatarInitials = computed(() => {
-  if (showName.value && showName.value !== showEmail.value) {
-    return showName.value
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-  }
-  return showEmail.value ? showEmail.value[0].toUpperCase() : ''
-})
+const {
+  firstName,
+  lastName,
+  email,
+  loading,
+  fullName,
+  avatarInitials,
+  fetchUser,
+  updateUser
+} = useUser()
 
 onMounted(async () => {
-  try {
-    const { email, given_name, family_name } = await fetchUserAttributes()
-    firstName.value = given_name || ''
-    lastName.value = family_name || ''
-    showName.value = (given_name || family_name) ? `${given_name || ''} ${family_name || ''}`.trim() : email
-    showEmail.value = email
-  } catch (error) {
-    console.error('Error fetching user info:', error)
-  }
+  await fetchUser()
 })
 
 async function updateProfile() {
-  try {
-    await updateUserAttributes({
-      userAttributes: {
-        given_name: firstName.value,
-        family_name: lastName.value
-      }
-    })
-    showName.value = `${firstName.value} ${lastName.value}`.trim()
-  } catch (error) {
-    console.error('Error updating profile:', error)
-  }
+  await updateUser({
+    firstName: firstName.value,
+    lastName: lastName.value
+  })
 }
 </script>
