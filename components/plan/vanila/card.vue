@@ -26,7 +26,7 @@
       </div>
 
       <!-- Price display -->
-      <div class="flex items-center justify-center gap-2">
+      <div v-if="displayedPrice !== null" class="flex items-center justify-center gap-2">
         <span class="font-bold text-[2.5rem]">
           {{ displayedPrice }}
         </span>
@@ -73,24 +73,24 @@
 
       <div class="w-full h-px bg-surface-300 dark:bg-surface-700 mt-4" />
 
-      <!-- CTA / Button (adapt if the plan is free, buy, contact, etc.) -->
+      <!-- CTA / Button -->
       <Button
-        v-if="plan.monthlyPrice.amount === 0 && plan.yearlyPrice.amount === 0"
+        v-if="displayedPrice === null"
+        outlined
+        severity="info"
+        class="px-5 py-3 border !border-blue-500 !text-blue-400 hover:!bg-blue-500/10 font-bold mt-4"
+        label="Contact Us"
+      />
+      <Button
+        v-else-if="displayedPrice === 0"
         severity="secondary"
         class="px-5 py-3 !bg-surface-500 hover:!bg-surface-400 !text-surface-0 mt-4"
         label="Try Free"
       />
       <Button
-        v-else-if="isPreferred"
+        v-else
         class="px-5 py-3 mt-4"
         label="Buy Now"
-      />
-      <Button
-        v-else
-        outlined
-        severity="info"
-        class="px-5 py-3 border !border-blue-500 !text-blue-400 hover:!bg-blue-500/10 font-bold mt-4"
-        label="Contact Us"
       />
     </div>
   </div>
@@ -117,7 +117,15 @@ const isPreferred = computed(() => !!props.plan.metadata?.preferred);
 // Compute the price based on monthly vs. yearly toggle
 const displayedPrice = computed(() => {
   const { monthlyPrice, yearlyPrice } = props.plan || {};
+  if (!monthlyPrice || !yearlyPrice) return null;
   return props.isYearly ? yearlyPrice.amount : monthlyPrice.amount;
+});
+
+// Compute if the plan is free
+const isFreePrice = computed(() => {
+  const { monthlyPrice, yearlyPrice } = props.plan || {};
+  if (!monthlyPrice || !yearlyPrice) return false;
+  return monthlyPrice.amount === 0 && yearlyPrice.amount === 0;
 });
 </script>
 

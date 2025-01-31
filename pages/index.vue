@@ -40,7 +40,7 @@ onMounted(async () => {
   try {
     // user.value = await getCurrentUser();
 
-    const response = await fetch('/api/subscriptions/catalog');
+    const response = await fetch('/api/subscriptions/plans');
     plans.value = await response.json();
   } catch (error) {
     console.error("Error:", error);
