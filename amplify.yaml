@@ -10,6 +10,12 @@ frontend:
   phases:
     build:
       commands:
+        - sharedPath="/amplify/shared/${AWS_APP_ID}/"
+        - sharedSecrets=$(aws ssm get-parameters-by-path --path $sharedPath --query "Parameters[*].{key:Name,value:Value}" --with-decryption --recursive)
+        - echo ${sharedSecrets} | jq --arg sharedPath "${sharedPath}" -r 'map("\(.key|ltrimstr($sharedPath))=\(.value)")|.[]' >> .env
+        - secretsPath="/amplify/${AWS_APP_ID}/"
+        - branchSecrets=$(aws ssm get-parameters-by-path  --path $secretsPath --query "Parameters[*].{key:Name,value:Value}" --with-decryption --recursive)
+        - echo ${branchSecrets} | jq --arg secretsPath "${secretsPath}" --arg branch "${AWS_BRANCH}" -r 'map(select(.key|contains("/" + $branch + "-branch-"))|"\(.key|sub($secretsPath + $branch + "-branch-\\w+/";""))=\(.value)")|.[]' >> .env
         - pnpx nuxi generate
         - pnpm run build
   artifacts:
