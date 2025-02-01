@@ -1,35 +1,19 @@
 import { defineEventHandler } from 'h3';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing STRIPE_SECRET_KEY environment variable');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2020-08-27' });
 
 export default defineEventHandler(async (event) => {
   try {
     const products = await stripe.products.list({ active: true });
-    const prices = await stripe.prices.list();
 
-    const subscriptionPlans = products.data.map(product => {
-      const monthlyPrice = prices.data.find(p => p.product === product.id && p.recurring?.interval === 'month');
-      const yearlyPrice = prices.data.find(p => p.product === product.id && p.recurring?.interval === 'year');
-      
-      return {
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        attributes: product.attributes ?? {},
-        metadata: product.metadata ?? {},
-        marketing_features: product.marketing_features ?? [],
-        features: product.features?.service ?? [],
-        monthlyPrice: monthlyPrice ? {
-          amount: (monthlyPrice.unit_amount ?? 0) / 100,
-          currency: monthlyPrice.currency
-        } : null,
-        yearlyPrice: yearlyPrice ? {
-          amount: (yearlyPrice.unit_amount ?? 0) / 100,
-          currency: yearlyPrice.currency
-        } : null
-      };
-    });
+    const subscriptionPlans = await Promise.all(products.data.map(async product => {
+      const prices = await stripe.prices.list({ product: product.id });
+      return { ...product, prices: prices.data };
+    }));
 
     return {
       status: 200,

@@ -63,7 +63,7 @@ export const usePlans = () => {
 
         if (filters?.sortByIndex) {
           filteredPlans = filteredPlans.sort((a, b) => 
-            parseInt(a.metadata?.index || '0') - parseInt(b.metadata?.index || '0')
+            parseInt(a.metadata?.index || '9999') - parseInt(b.metadata?.index || '9999')
           );
         }
 

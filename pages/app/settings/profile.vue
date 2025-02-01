@@ -40,10 +40,7 @@
 </template>
 
 <script setup>
-import { useUser } from '~/utils/useUser'
-
 definePageMeta({
-  middleware: ['authenticated'],
   layout: 'app'
 })
 

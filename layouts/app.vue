@@ -1,5 +1,5 @@
 <template>
-  <authenticator
+  <Authenticator
     :initial-state="initialState"
     :social-providers="['amazon', 'apple', 'facebook', 'google']"
   >
@@ -14,17 +14,20 @@
           <AppLayoutTopbar :selectedNav="selectedNav" />
           <div class="flex-1">
             <AppLayoutPageTitle :selectedNav="selectedNav" :selectedSubNav="selectedSubNav" />
-            <slot />
+            <NuxtPage />
           </div>
         </div>
       </div>
     </template>
-  </authenticator>
+  </Authenticator>
 </template>
 
 <script setup>
-import { Authenticator } from "@aws-amplify/ui-vue";
-import { sidebarNavs } from '~/saas.config'
-const selectedNav = ref(sidebarNavs.topNavs[0])
-const selectedSubNav = ref(sidebarNavs.topNavs[0].subMenu?.[0] || null)
+import { Authenticator } from '@aws-amplify/ui-vue';
+import { sidebarNavs } from '~/saas.config';
+
+const initialState = 'signIn'; // Set the desired initial state for authentication
+
+const selectedNav = ref(sidebarNavs.topNavs[0]);
+const selectedSubNav = ref(sidebarNavs.topNavs[0].subMenu?.[0] || null);
 </script>

@@ -139,15 +139,6 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { usePlans } from '~/utils/usePlans'
-
-// PrimeVue components
-import Menubar from 'primevue/menubar'
-import Button from 'primevue/button'
-import Card from 'primevue/card'
-
-// Fetch your pricing plans, as in original code
 const { plans, error, fetchPlans } = usePlans()
 
 // Example Menubar model for top navigation

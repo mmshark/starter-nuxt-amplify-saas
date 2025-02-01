@@ -9,7 +9,6 @@
 
 <script setup>
 definePageMeta({
-  middleware: ['authenticated'],
   layout: 'app'
 })
 

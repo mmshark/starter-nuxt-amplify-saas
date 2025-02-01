@@ -2,19 +2,19 @@
  * Utility for managing user subscriptions
  * 
  * @returns {Object} Subscription data and methods
- * @property {Ref<Object|null>} currentPlan - Current active subscription plan
- * @property {Function} getCurrentPlan - Fetch current subscription
+ * @property {Ref<Object|null>} activeSubscription - Current active subscription plan
+ * @property {Function} fetchActiveSubscription - Fetch current subscription
  * @property {Function} cancelSubscription - Cancel active subscription
  * @property {Function} changePlan - Change subscription plan
  * 
  * @example
  * Basic usage:
  * ```ts
- * const { currentPlan, getCurrentPlan, cancelSubscription, changePlan } = useSubscription();
+ * const { activeSubscription, fetchActiveSubscription, cancelSubscription, changePlan } = useSubscription();
  * 
  * // Fetch current subscription on mount
  * onMounted(async () => {
- *   await getCurrentPlan();
+ *   await fetchActiveSubscription();
  * });
  * 
  * // Change to a new plan
@@ -35,50 +35,65 @@
  * ```
  */
 export const useSubscription = () => {
-  const currentPlan = ref(null);
+  const activeSubscription = ref<any>(null);
 
-  // Get current subscription
-  const getCurrentPlan = async () => {
+  // Fetch the current active subscription plan
+  const fetchActiveSubscription = async () => {
     try {
       const res = await fetch('/api/subscriptions/active');
+      if (!res.ok) {
+        throw new Error(`Failed to fetch current plan: ${res.statusText}`);
+      }
       const data = await res.json();
-      currentPlan.value = data.status === 200 ? data.body : null;
-      return currentPlan.value;
+      activeSubscription.value = data.status === 200 ? data.body : null;
+      return activeSubscription.value;
     } catch (error) {
       console.error("Error fetching current plan:", error);
+      activeSubscription.value = null;
       return null;
     }
   };
 
-  // Cancel subscription
+  // Cancel the active subscription
   const cancelSubscription = async () => {
     try {
-      const res = await fetch('/api/subscriptions/cancel', { method: 'POST' });
-      if (res.ok) {
-        await getCurrentPlan();
-        return true;
+      const res = await fetch('/api/subscriptions/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!res.ok) {
+        console.error(`Cancel subscription failed: ${res.statusText}`);
+        return false;
       }
-      return false;
+      await fetchActiveSubscription();
+      return true;
     } catch (error) {
       console.error("Error cancelling subscription:", error);
       return false;
     }
   };
 
-  // Change subscription plan
+  // Change the subscription plan
   const changePlan = async (planId: string) => {
-    if (currentPlan.value?.plan === planId) return false;
-    
+    // Avoid changing if already on the requested plan.
+    if (activeSubscription.value?.plan === planId) return false;
+
     try {
       const res = await fetch('/api/subscriptions/change', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ planId })
       });
-      if (res.ok) {
-        await getCurrentPlan();
-        return true;
+      if (!res.ok) {
+        console.error(`Change plan failed: ${res.statusText}`);
+        return false;
       }
-      return false;
+      await fetchActiveSubscription();
+      return true;
     } catch (error) {
       console.error("Error changing plan:", error);
       return false;
@@ -86,8 +101,8 @@ export const useSubscription = () => {
   };
 
   return {
-    currentPlan,
-    getCurrentPlan,
+    activeSubscription,
+    fetchActiveSubscription,
     cancelSubscription,
     changePlan
   };

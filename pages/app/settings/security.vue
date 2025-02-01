@@ -70,11 +70,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
 import { updatePassword, confirmSignUp } from 'aws-amplify/auth'
 
 definePageMeta({
-  middleware: ['authenticated'],
   layout: 'app'
 })
 

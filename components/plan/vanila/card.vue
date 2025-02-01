@@ -28,7 +28,7 @@
       <!-- Price display -->
       <div v-if="displayedPrice !== null" class="flex items-center justify-center gap-2">
         <span class="font-bold text-[2.5rem]">
-          {{ displayedPrice }}
+          {{ displayedPrice / 100 }}
         </span>
         <span class="text-2xl text-surface-400">
           /{{ isYearly ? 'year' : 'month' }}
@@ -115,10 +115,16 @@ const props = defineProps({
 const isPreferred = computed(() => !!props.plan.metadata?.preferred);
 
 // Compute the price based on monthly vs. yearly toggle
+const monthlyPrice = computed(() => {
+  return props.plan.prices?.find(price => price.recurring?.interval === 'month');
+});
+const yearlyPrice = computed(() => {
+  return props.plan.prices?.find(price => price.recurring?.interval === 'year');
+});
+
 const displayedPrice = computed(() => {
-  const { monthlyPrice, yearlyPrice } = props.plan || {};
-  if (!monthlyPrice || !yearlyPrice) return null;
-  return props.isYearly ? yearlyPrice.amount : monthlyPrice.amount;
+  if (!monthlyPrice.value || !yearlyPrice.value) return null;
+  return props.isYearly ? yearlyPrice.value.unit_amount : monthlyPrice.value.unit_amount;
 });
 
 // Compute if the plan is free

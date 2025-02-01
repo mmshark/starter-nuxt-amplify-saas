@@ -94,10 +94,7 @@
 <script setup>
 import { sidebarNavs } from '~/saas.config'
 import Avatar from 'primevue/avatar'
-import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useAuthenticator } from '@aws-amplify/ui-vue'
-import { useUser } from '~/utils/useUser'
 
 const emit = defineEmits(['update:selectedNav', 'update:selectedSubNav'])
 
