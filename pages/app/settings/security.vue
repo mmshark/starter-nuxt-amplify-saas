@@ -1,146 +1,233 @@
 <template>
   <div class="p-6">
-    <div class="flex flex-col gap-4">
-      <div class="flex flex-col gap-6 max-w-3xl">
-        <!-- Password Change Section -->
-        <div class="p-6 bg-surface-0 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700">
-          <div class="mb-6">
-            <h2 class="text-lg font-medium text-surface-900 dark:text-surface-0">Change Password</h2>
-            <p class="text-surface-500">Update your password to keep your account secure</p>
+    <Card class="max-w-3xl">
+      <template #title>
+        <h2 class="text-lg font-medium text-surface-900 dark:text-surface-0">
+          Security Settings
+        </h2>
+      </template>
+      <template #content>
+        <div class="flex flex-col gap-6">
+          <!-- Password Change Section -->
+          <div>
+            <h3 class="text-lg font-medium mb-2">Change Password</h3>
+            <p class="text-surface-500 mb-4">
+              Update your password to keep your account secure
+            </p>
+            <Form
+              v-slot="$form"
+              :initialValues="passwordValues"
+              @submit="onPasswordSubmit"
+              class="flex flex-col gap-4"
+            >
+              <FormField
+                v-slot="$field"
+                name="currentPassword"
+                class="flex flex-col gap-2"
+              >
+                <label class="text-sm">Current Password</label>
+                <Password
+                  v-bind="$field.props"
+                  toggleMask
+                  placeholder="Enter current password"
+                  :feedback="false"
+                />
+                <Message
+                  v-if="$field.invalid"
+                  severity="error"
+                  size="small"
+                  variant="simple"
+                >
+                  {{ $field.error?.message }}
+                </Message>
+              </FormField>
+
+              <FormField
+                v-slot="$field"
+                name="newPassword"
+                class="flex flex-col gap-2"
+              >
+                <label class="text-sm">New Password</label>
+                <Password
+                  v-bind="$field.props"
+                  toggleMask
+                  placeholder="Enter new password"
+                />
+                <Message
+                  v-if="$field.invalid"
+                  severity="error"
+                  size="small"
+                  variant="simple"
+                >
+                  {{ $field.error?.message }}
+                </Message>
+              </FormField>
+
+              <FormField
+                v-slot="$field"
+                name="confirmPassword"
+                class="flex flex-col gap-2"
+              >
+                <label class="text-sm">Confirm New Password</label>
+                <Password
+                  v-bind="$field.props"
+                  toggleMask
+                  placeholder="Confirm new password"
+                  :feedback="false"
+                />
+                <Message
+                  v-if="$field.invalid"
+                  severity="error"
+                  size="small"
+                  variant="simple"
+                >
+                  {{ $field.error?.message }}
+                </Message>
+              </FormField>
+
+              <Button type="submit" label="Update Password" class="w-fit" />
+            </Form>
           </div>
 
-          <form @submit.prevent="handleUpdatePassword" class="flex flex-col gap-4">
-            <div class="flex flex-col gap-2">
-              <label class="text-sm text-surface-600 dark:text-surface-400">Current Password</label>
-              <Password v-model="currentPassword" toggleMask placeholder="Enter current password" :feedback="false" />
+          <!-- MFA Section -->
+          <Divider />
+          <div>
+            <h3 class="text-lg font-medium mb-2">
+              Multi-Factor Authentication
+            </h3>
+            <p class="text-surface-500 mb-4">
+              Add an extra layer of security to your account
+            </p>
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="font-medium">Two-factor authentication</h4>
+                <p class="text-sm text-surface-500">
+                  Secure your account with TOTP two-factor authentication
+                </p>
+              </div>
+              <Button
+                :label="mfaEnabled ? 'Disable MFA' : 'Enable MFA'"
+                :severity="mfaEnabled ? 'danger' : 'primary'"
+                @click="toggleMFA"
+              />
             </div>
-
-            <div class="flex flex-col gap-2">
-              <label class="text-sm text-surface-600 dark:text-surface-400">New Password</label>
-              <Password v-model="newPassword" toggleMask placeholder="Enter new password" />
-            </div>
-
-            <div class="flex flex-col gap-2">
-              <label class="text-sm text-surface-600 dark:text-surface-400">Confirm New Password</label>
-              <Password v-model="confirmPassword" toggleMask placeholder="Confirm new password" :feedback="false" />
-            </div>
-
-            <Button type="submit" label="Update Password" class="w-fit mt-4" />
-          </form>
+          </div>
         </div>
-
-        <!-- MFA Section -->
-        <div class="p-6 bg-surface-0 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700">
-          <div class="mb-6">
-            <h2 class="text-lg font-medium text-surface-900 dark:text-surface-0">Multi-Factor Authentication</h2>
-            <p class="text-surface-500">Add an extra layer of security to your account</p>
-          </div>
-
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="font-medium text-surface-900 dark:text-surface-0">Two-factor authentication</h3>
-              <p class="text-sm text-surface-500">Secure your account with TOTP two-factor authentication</p>
-            </div>
-            <Button 
-              :label="mfaEnabled ? 'Disable MFA' : 'Enable MFA'" 
-              :severity="mfaEnabled ? 'danger' : 'primary'"
-              @click="toggleMFA" 
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+      </template>
+    </Card>
 
     <!-- MFA Setup Dialog -->
-    <Dialog v-model:visible="showMFADialog" modal header="Setup MFA" :style="{ width: '400px' }">
+    <Dialog
+      v-model:visible="showMFADialog"
+      modal
+      header="Setup MFA"
+      :style="{ width: '400px' }"
+    >
       <div v-if="qrCode" class="flex flex-col items-center gap-4">
-        <img :src="qrCode" alt="QR Code" class="w-48 h-48" />
-        <p class="text-sm text-surface-600">Scan this QR code with your authenticator app</p>
+        <Image :src="qrCode" alt="QR Code" width="200" preview />
+        <p class="text-sm text-surface-600">
+          Scan this QR code with your authenticator app
+        </p>
         <div class="flex flex-col gap-2 w-full">
-          <label class="text-sm text-surface-600">Enter verification code</label>
+          <label>Verification Code</label>
           <InputText v-model="verificationCode" placeholder="Enter 6-digit code" />
         </div>
       </div>
       <template #footer>
         <Button label="Verify" @click="verifyMFA" />
-        <Button label="Cancel" severity="secondary" @click="cancelMFA" class="ml-2" />
+        <Button
+          label="Cancel"
+          severity="secondary"
+          @click="cancelMFA"
+          class="ml-2"
+        />
       </template>
     </Dialog>
   </div>
 </template>
 
 <script setup>
-import { updatePassword, confirmSignUp } from 'aws-amplify/auth'
-
 definePageMeta({
   layout: 'app'
-})
+});
 
-const currentPassword = ref('')
-const newPassword = ref('')
-const confirmPassword = ref('')
-const mfaEnabled = ref(false)
-const showMFADialog = ref(false)
-const qrCode = ref(null)
-const verificationCode = ref('')
+// Password form state
+const passwordValues = ref({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+});
 
-async function handleUpdatePassword() {
-  if (newPassword.value !== confirmPassword.value) {
-    // Show error message - passwords don't match
-    return
+async function onPasswordSubmit({ values }) {
+  if (values.newPassword !== values.confirmPassword) {
+    alert("New passwords do not match.");
+    return;
   }
-
   try {
     await updatePassword({
-      oldPassword: currentPassword.value,
-      newPassword: newPassword.value
-    })
-    // Show success message
-    currentPassword.value = ''
-    newPassword.value = ''
-    confirmPassword.value = ''
+      oldPassword: values.currentPassword,
+      newPassword: values.newPassword
+    });
+    alert("Password updated successfully.");
+    // Reset form values
+    passwordValues.value = {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    };
   } catch (error) {
-    console.error('Error updating password:', error)
-    // Show error message
+    console.error("Error updating password:", error);
+    alert("Error updating password.");
   }
 }
 
+// MFA state
+const mfaEnabled = ref(false);
+const showMFADialog = ref(false);
+const qrCode = ref(null);
+const verificationCode = ref('');
+
 async function toggleMFA() {
   if (mfaEnabled.value) {
-    // Handle disable MFA
+    // Handle MFA disable logic here.
     try {
       // Implement MFA disable logic
-      mfaEnabled.value = false
+      mfaEnabled.value = false;
+      alert("MFA has been disabled.");
     } catch (error) {
-      console.error('Error disabling MFA:', error)
+      console.error("Error disabling MFA:", error);
+      alert("Error disabling MFA.");
     }
   } else {
-    showMFADialog.value = true
+    showMFADialog.value = true;
     try {
-      // Get QR code from backend
-      // qrCode.value = await getMFAQRCode()
+      // Simulate retrieving a QR code (replace with actual API call)
+      qrCode.value = "https://via.placeholder.com/200";
     } catch (error) {
-      console.error('Error getting QR code:', error)
+      console.error("Error getting QR code:", error);
+      alert("Error getting QR code.");
     }
   }
 }
 
 async function verifyMFA() {
   try {
-    // Verify MFA setup
+    // Simulate MFA verification; replace with actual logic
     await confirmSignUp({
       confirmationCode: verificationCode.value
-    })
-    mfaEnabled.value = true
-    showMFADialog.value = false
+    });
+    mfaEnabled.value = true;
+    showMFADialog.value = false;
+    alert("MFA enabled successfully.");
   } catch (error) {
-    console.error('Error verifying MFA:', error)
+    console.error("Error verifying MFA:", error);
+    alert("Error verifying MFA.");
   }
 }
 
 function cancelMFA() {
-  showMFADialog.value = false
-  verificationCode.value = ''
-  qrCode.value = null
+  showMFADialog.value = false;
+  verificationCode.value = "";
+  qrCode.value = null;
 }
 </script>
