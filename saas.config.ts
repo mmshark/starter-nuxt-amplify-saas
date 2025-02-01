@@ -50,8 +50,8 @@ export const sidebarNavs = {
           link: '/app/settings/security'
         },
         {
-          label: 'Preferences',
-          link: '/app/settings/preferences'
+          label: 'Subscription',
+          link: '/app/settings/subscription'
         }
       ]
     },
