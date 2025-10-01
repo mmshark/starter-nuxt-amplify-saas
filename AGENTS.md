@@ -38,8 +38,6 @@ starter-nuxt-amplify-saas/
 │   ├── uix/                # UI components & theme
 │   ├── i18n/               # Internationalization
 │   └── debug/              # Development utilities
-├── scripts/                # Operational scripts
-│   └── billing-stripe-sync.ts # Sync plans to Stripe
 └── package.json            # Workspace root with top-level scripts
 ```
 
@@ -114,8 +112,7 @@ pnpm saas:dev
 1. **Reproduce**: Under `pnpm saas:dev`
 2. **Locate**: Find the smallest layer/app owning the logic
 3. **Fix**: Edit code
-4. **Validate**: Manual testing (no automated tests configured)
-5. **Document**: Update relevant README if behavior changes
+4. **Document**: Update relevant README if behavior changes
 
 ## Security & Guardrails
 
@@ -199,10 +196,40 @@ pnpm saas:dev
 
 ## References
 
+### Internal Documentation
 - **Project setup & deployment**: `README.md`
 - **Layer documentation**: `layers/*/README.md`
 - **Build configs**: `apps/*/amplify.yml`
 - **Instance configuration**: `apps/saas/app/app.config.ts`
+
+### External Documentation & Resources
+
+#### Nuxt Framework
+- **Nuxt 4 Documentation**: https://nuxt.com/docs
+- **Nuxt UI Components**: https://ui.nuxt.com/components
+- **Nuxt UI Pro**: https://ui.nuxt.com/pro (design system & templates)
+- **Nuxt Layers**: https://nuxt.com/docs/guide/going-further/layers
+
+#### AWS Amplify
+- **AWS Amplify Gen 2 Documentation**: https://docs.amplify.aws/
+- **Amplify JS API Reference**: https://aws-amplify.github.io/amplify-js/api/index.html
+- **Amplify Auth**: https://docs.amplify.aws/react/build-a-backend/auth/
+- **Amplify Data (GraphQL)**: https://docs.amplify.aws/react/build-a-backend/data/
+- **Amplify Storage**: https://docs.amplify.aws/react/build-a-backend/storage/
+
+#### Stripe Integration
+- **Stripe API Documentation**: https://docs.stripe.com/api
+- **Stripe Customer Portal**: https://docs.stripe.com/billing/subscriptions/integrating-customer-portal
+- **Stripe Webhooks**: https://docs.stripe.com/webhooks
+
+#### Testing
+- **Playwright Documentation**: https://playwright.dev/docs/intro
+- **Playwright API**: https://playwright.dev/docs/api/class-playwright
+
+#### TypeScript & Tooling
+- **TypeScript Handbook**: https://www.typescriptlang.org/docs/
+- **Zod Validation**: https://zod.dev/
+- **TailwindCSS**: https://tailwindcss.com/docs
 
 ---
 

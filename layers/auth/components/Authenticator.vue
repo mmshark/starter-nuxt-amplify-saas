@@ -158,6 +158,9 @@ async function onSignUpSubmit(event: FormSubmitEvent<z.infer<typeof signUpSchema
       options: {
         userAttributes: {
           'custom:display_name': event.data.name
+        },
+        autoSignIn: {
+          authFlowType: 'USER_AUTH'
         }
       }
     })
@@ -186,10 +189,26 @@ async function onVerifySubmit(event: FormSubmitEvent<z.infer<typeof verifySchema
   loading.value = true
   try {
     const { Auth } = useNuxtApp().$Amplify
-    await Auth.confirmSignUp({
+    const { nextStep } = await Auth.confirmSignUp({
       username: userEmail.value,
       confirmationCode: event.data.code
     })
+    if (nextStep?.signUpStep === 'COMPLETE_AUTO_SIGN_IN') {
+      try {
+        const { nextStep: signInNextStep } = await Auth.autoSignIn()
+        if (signInNextStep?.signInStep === 'DONE') {
+          toast.add({
+            title: 'Success',
+            description: 'Account verified and signed in',
+            color: 'green'
+          })
+          emit('signedIn')
+          return
+        }
+      } catch (e) {
+        // Ignore auto sign-in errors (e.g., "USER_AUTH not ended for this client") and fall back below
+      }
+    }
     toast.add({
       title: 'Success',
       description: 'Account verified successfully',
