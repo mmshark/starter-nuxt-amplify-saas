@@ -35,3 +35,6 @@ utils/graphql
 
 # Local files
 .local*
+
+# Local test results
+test-results*
