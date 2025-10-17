@@ -151,11 +151,11 @@ const handleClick = async () => {
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'active': return 'green'
-    case 'trialing': return 'blue'
-    case 'past_due': return 'yellow'
-    case 'canceled': return 'red'
-    default: return 'gray'
+    case 'active': return 'success'
+    case 'trialing': return 'info'
+    case 'past_due': return 'warning'
+    case 'canceled': return 'error'
+    default: return 'neutral'
   }
 }
 

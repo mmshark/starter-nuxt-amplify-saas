@@ -199,11 +199,11 @@ const handleLoadMore = () => {
 
 const getInvoiceStatusColor = (status: string) => {
   switch (status) {
-    case 'paid': return 'green'
-    case 'pending': return 'yellow'
-    case 'failed': return 'red'
-    case 'draft': return 'gray'
-    default: return 'gray'
+    case 'paid': return 'success'
+    case 'pending': return 'warning'
+    case 'failed': return 'error'
+    case 'draft': return 'neutral'
+    default: return 'neutral'
   }
 }
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import * as z from 'zod'
+import type { FormSubmitEvent } from '@nuxt/ui'
 
 definePageMeta({
   layout: 'auth',
@@ -70,27 +71,27 @@ async function onEmailSubmit(event: FormSubmitEvent<z.infer<typeof emailSchema>>
   loading.value = true
   try {
     const result = await resetPassword(event.data.email)
-    
+
     if (result.success) {
       userEmail.value = event.data.email
       step.value = 'confirm'
       toast.add({
         title: 'Code Sent',
         description: 'Please check your email for the verification code',
-        color: 'green'
+        color: 'success'
       })
     } else {
       toast.add({
         title: 'Error',
         description: result.error || 'Failed to send reset code',
-        color: 'red'
+        color: 'error'
       })
     }
   } catch (error: any) {
     toast.add({
       title: 'Error',
       description: error.message || 'Failed to send reset code',
-      color: 'red'
+      color: 'error'
     })
   } finally {
     loading.value = false
@@ -105,12 +106,12 @@ async function onConfirmSubmit(event: FormSubmitEvent<z.infer<typeof confirmSche
       event.data.code,
       event.data.password
     )
-    
+
     if (result.success) {
       toast.add({
         title: 'Success',
         description: 'Your password has been reset successfully',
-        color: 'green'
+        color: 'success'
       })
       // Redirect to login page
       await navigateTo('/auth/login')
@@ -118,14 +119,14 @@ async function onConfirmSubmit(event: FormSubmitEvent<z.infer<typeof confirmSche
       toast.add({
         title: 'Error',
         description: result.error || 'Failed to reset password',
-        color: 'red'
+        color: 'error'
       })
     }
   } catch (error: any) {
     toast.add({
       title: 'Error',
       description: error.message || 'Failed to reset password',
-      color: 'red'
+      color: 'error'
     })
   } finally {
     loading.value = false
