@@ -50,6 +50,16 @@
     "overrides": {
       "vue": "3.5.21",
       "@vue/server-renderer": "3.5.21"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@tailwindcss/oxide",
+      "better-sqlite3",
+      "core-js",
+      "esbuild",
+      "maplibre-gl",
+      "unrs-resolver",
+      "vue-demi"
+    ]
   }
 }

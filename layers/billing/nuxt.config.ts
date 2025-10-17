@@ -10,7 +10,12 @@ export default defineNuxtConfig({
       }
     }
   },
-  
+
+  extends: [
+    '@starter-nuxt-amplify-saas/uix',
+    '@starter-nuxt-amplify-saas/i18n'
+  ],
+
   // Configuración i18n específica de billing - se auto-merge con la layer base
   i18n: {
     locales: [

@@ -10,11 +10,11 @@
     "./composables/*": "./composables/*"
   },
   "scripts": {
-    "dev": "nuxi dev .playground",
-    "dev:prepare": "nuxt prepare .playground",
-    "build": "nuxt build .playground",
-    "generate": "nuxt generate .playground",
-    "preview": "nuxt preview .playground",
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "sandbox:stripe:listen": "stripe listen --forward-to localhost:3000/api/billing/webhook",
     "sandbox:stripe:seed": "stripe fixtures --api-key $STRIPE_SECRET_KEY",
@@ -23,6 +23,8 @@
   "dependencies": {
     "@starter-nuxt-amplify-saas/auth": "workspace:*",
     "@starter-nuxt-amplify-saas/backend": "workspace:*",
+    "@starter-nuxt-amplify-saas/uix": "workspace:*",
+    "@starter-nuxt-amplify-saas/i18n": "workspace:*",
     "@stripe/stripe-js": "^4.9.0",
     "jsonwebtoken": "^9.0.2",
     "stripe": "^17.1.0",
@@ -32,6 +34,7 @@
   "devDependencies": {
     "@nuxt/eslint": "latest",
     "@types/jsonwebtoken": "^9.0.5",
+    "@vueuse/core": "^13.9.0",
     "eslint": "^9.31.0",
     "nuxt": "^4.0.0",
     "tsx": "^4.20.3",
