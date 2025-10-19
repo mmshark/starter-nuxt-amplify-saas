@@ -29,3 +29,32 @@ tasks:
       - clean.test
       - clean.logs
       - clean.node
+
+  amplify.checks:
+    desc: "Check the Amplify project"
+    cmds:
+      - 'test -n "$AWS_PROFILE" || (echo "Error: AWS_PROFILEX is not set" && exit 1)'
+      - 'test -n "$SANDBOX_STACK_NAME" || (echo "Error: SANDBOX_STACK_NAME environment variable is not set" && exit 1)'
+      # - 'test -n "$STRIPE_SECRET_KEY" || (echo "Error: STRIPE_SECRET_KEY environment variable is not set" && exit 1)'
+
+  amplify.bootstrap:
+    desc: "Bootstrap the Amplify project"
+    deps:
+      - amplify.checks
+    cmds:
+      - corepack enable
+      - pnpm install
+      - pnpm backend:sandbox:delete
+      - pnpm backend:sandbox:init
+      - pnpm amplify:sandbox:generate-outputs
+      - pnpm amplify:sandbox:generate-graphql-client-code
+
+  amplify.seed:
+    desc: "Seed the Amplify sandbox"
+    deps:
+      - amplify.checks
+    cmds:
+      - pnpm backend:sandbox:seed
+
+
+
