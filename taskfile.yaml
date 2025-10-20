@@ -5,10 +5,12 @@ tasks:
 
   clean.nuxt:
     desc: "Clean Nuxt related files"
+    silent: true
     cmds:
       - find . -type d \( -name ".nuxt" -o -name ".playground" -o -name ".output" -o -name "dist" \) -exec rm -rf {} +
   clean.amplify:
     desc: "Clean Amplify related files"
+    silent: true
     cmds:
       - find . -type d \( -name ".amplify" \) -exec rm -rf {} +
       - find . -type d \( -name "amplify_outputs*" \) -exec rm -rf {} +
@@ -16,14 +18,17 @@ tasks:
       - find . -type d \( -name "utils/graphql*" \) -exec rm -rf {} +
   clean.test:
     desc: "Clean test related files"
+    silent: true
     cmds:
       - find . -type d \( -name "test-results" \) -exec rm -rf {} +
   clean.logs:
     desc: "Clean logs"
+    silent: true
     cmds:
       - find . -type f \( -name "*.log" \) -exec rm -rf {} +
   clean.node:
     desc: "Clean node_modules"
+    silent: true
     cmds:
       - find . -type d \( -name "node_modules" \) -exec rm -rf {} +
   clean:
@@ -48,7 +53,7 @@ tasks:
   amplify.install:
     desc: "Install the Amplify project node modules"
     cmds:
-      - clean
+      - task: clean
       - corepack enable
       - pnpm install
 
