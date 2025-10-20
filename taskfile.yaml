@@ -92,3 +92,9 @@ tasks:
       - pnpm backend:sandbox:seed
       - pnpm backend:sandbox:seed:plans
       - pnpm backend:sandbox:seed:users
+
+  amplify.saas.dev:
+    desc: "Start the SaaS development server"
+    cmds:
+      - task: amplify.checks
+      - pnpm saas:dev
