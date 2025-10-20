@@ -1,6 +1,6 @@
 import Stripe from 'stripe'
 import { generateClient } from 'aws-amplify/data/server'
-import type { Schema } from '@starter-nuxt-amplify-saas/backend/amplify/data/resource'
+import type { Schema } from '@starter-nuxt-amplify-saas/backend/schema'
 import { withAmplifyPublic } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
 
 export default defineEventHandler(async (event) => {

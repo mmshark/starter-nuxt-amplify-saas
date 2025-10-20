@@ -9,7 +9,7 @@ import {
 } from 'aws-amplify/adapter-core'
 import { parseAmplifyConfig } from 'aws-amplify/utils'
 import { generateClient } from 'aws-amplify/data/server'
-import type { Schema } from '@starter-nuxt-amplify-saas/backend/amplify/data/resource'
+import type { Schema } from '@starter-nuxt-amplify-saas/backend/schema'
 import type { LibraryOptions } from '@aws-amplify/core'
 
 import outputs from '../../amplify_outputs.json'

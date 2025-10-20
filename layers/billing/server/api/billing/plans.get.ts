@@ -1,4 +1,3 @@
-import type { Schema } from '@starter-nuxt-amplify-saas/backend/amplify/data/resource'
 import { withAmplifyPublic, getServerPublicDataClient } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
 
 export default defineEventHandler(async (event) => {

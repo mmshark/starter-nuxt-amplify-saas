@@ -36,7 +36,6 @@
   },
   "dependencies": {
     "aws-amplify": "^6.15.3",
-    "zod": "3.25.17",
-    "@starter-nuxt-amplify-saas/billing": "workspace:*"
+    "zod": "3.25.17"
   }
 }

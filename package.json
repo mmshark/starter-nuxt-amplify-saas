@@ -47,10 +47,6 @@
   },
   "packageManager": "pnpm@10.13.1",
   "pnpm": {
-    "overrides": {
-      "vue": "3.5.21",
-      "@vue/server-renderer": "3.5.21"
-    },
     "onlyBuiltDependencies": [
       "@parcel/watcher",
       "@tailwindcss/oxide",

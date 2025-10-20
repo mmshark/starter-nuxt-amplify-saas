@@ -3,7 +3,7 @@ import * as Auth from 'aws-amplify/auth'
 import { uploadData, getUrl } from 'aws-amplify/storage'
 import { generateClient } from 'aws-amplify/data'
 import outputs from '../amplify_outputs.json'
-import type { Schema } from '@starter-nuxt-amplify-saas/backend/amplify/data/resource'
+import type { Schema } from '@starter-nuxt-amplify-saas/backend/schema'
 
 export default defineNuxtPlugin({
   name: 'amplify.client',

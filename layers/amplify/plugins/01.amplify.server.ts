@@ -17,7 +17,7 @@ import {
 } from 'aws-amplify/auth/server'
 
 import { generateClient } from 'aws-amplify/data/server'
-import type { Schema } from '@starter-nuxt-amplify-saas/backend/amplify/data/resource'
+import type { Schema } from '@starter-nuxt-amplify-saas/backend/schema'
 
 import type { LibraryOptions, FetchAuthSessionOptions } from '@aws-amplify/core'
 import type {

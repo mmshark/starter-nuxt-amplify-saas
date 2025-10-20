@@ -3,6 +3,10 @@
   "type": "module",
   "version": "0.0.1",
   "main": "./nuxt.config.ts",
+  "exports": {
+    ".": "./nuxt.config.ts",
+    "./server/utils/amplify": "./server/utils/amplify.ts"
+  },
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
@@ -19,7 +23,10 @@
     "aws-amplify": "^6.8.4"
   },
   "devDependencies": {
+    "@starter-nuxt-amplify-saas/backend": "workspace:*",
     "@nuxt/eslint": "latest",
+    "@aws-amplify/core": "^6.1.0",
+    "@aws-amplify/api-graphql": "^4.7.19",
     "eslint": "^9.31.0",
     "nuxt": "^4.0.0",
     "typescript": "^5.8.3",

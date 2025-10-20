@@ -21,6 +21,7 @@
     "sandbox:stripe:sync": "tsx scripts/stripe-sync.ts"
   },
   "dependencies": {
+    "@starter-nuxt-amplify-saas/amplify": "workspace:*",
     "@starter-nuxt-amplify-saas/auth": "workspace:*",
     "@starter-nuxt-amplify-saas/backend": "workspace:*",
     "@starter-nuxt-amplify-saas/uix": "workspace:*",

@@ -1,5 +1,4 @@
 import Stripe from 'stripe'
-import type { Schema } from '@starter-nuxt-amplify-saas/backend/amplify/data/resource'
 import { withAmplifyAuth, getServerUserPoolDataClient } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
 import { fetchAuthSession } from 'aws-amplify/auth/server'
 
