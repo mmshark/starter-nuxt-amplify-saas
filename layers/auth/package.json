@@ -12,17 +12,17 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@starter-nuxt-amplify-saas/uix": "workspace:*"
-  },
-  "devDependencies": {
-    "@nuxt/eslint": "latest",
+    "@starter-nuxt-amplify-saas/uix": "workspace:*",
     "@vueuse/core": "^13.9.0",
     "@nuxt/ui": "^4.0.0",
     "aws-amplify": "^6.15.3",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "latest",
     "eslint": "^9.31.0",
     "nuxt": "^4.0.0",
     "typescript": "^5.8.3",
-    "vue": "latest",
-    "zod": "^4.1.12"
+    "vue": "latest"
   }
 }
