@@ -33,12 +33,12 @@ tasks:
       - find . -type d \( -name "node_modules" \) -exec rm -rf {} +
   clean:
     desc: "Clean the entire project from all temporary files"
-    deps:
-      - clean.nuxt
-      - clean.amplify
-      - clean.test
-      - clean.logs
-      - clean.node
+    cmds:
+      - task: clean.nuxt
+      - task: clean.amplify
+      - task: clean.test
+      - task: clean.logs
+      - task: clean.node
 
   # Amplify tasks to manage the sandbox environment
 
