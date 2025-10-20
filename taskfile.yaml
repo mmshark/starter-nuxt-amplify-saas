@@ -1,28 +1,33 @@
 version: '3'
 
 tasks:
+  # Clean tasks are to reset the working directory to a clean state
+
   clean.nuxt:
-    desc: "Clean the project from Nuxt related files"
+    desc: "Clean Nuxt related files"
     cmds:
       - find . -type d \( -name ".nuxt" -o -name ".playground" -o -name ".output" -o -name "dist" \) -exec rm -rf {} +
   clean.amplify:
-    desc: "Clean the project from Nuxt related files"
+    desc: "Clean Amplify related files"
     cmds:
       - find . -type d \( -name ".amplify" \) -exec rm -rf {} +
+      - find . -type d \( -name "amplify_outputs*" \) -exec rm -rf {} +
+      - find . -type d \( -name "amplifyconfiguration*" \) -exec rm -rf {} +
+      - find . -type d \( -name "utils/graphql*" \) -exec rm -rf {} +
   clean.test:
-    desc: "Clean the project from test related files"
+    desc: "Clean test related files"
     cmds:
       - find . -type d \( -name "test-results" \) -exec rm -rf {} +
   clean.logs:
-    desc: "Clean the project from logs"
+    desc: "Clean logs"
     cmds:
       - find . -type f \( -name "*.log" \) -exec rm -rf {} +
   clean.node:
-    desc: "Clean the project from node_modules"
+    desc: "Clean node_modules"
     cmds:
       - find . -type d \( -name "node_modules" \) -exec rm -rf {} +
   clean:
-    desc: "Clean the project"
+    desc: "Clean the entire project from all temporary files"
     deps:
       - clean.nuxt
       - clean.amplify
@@ -30,31 +35,55 @@ tasks:
       - clean.logs
       - clean.node
 
+  # Amplify tasks to manage the sandbox environment
+
   amplify.checks:
     desc: "Check the Amplify project"
-    cmds:
-      - 'test -n "$AWS_PROFILE" || (echo "Error: AWS_PROFILEX is not set" && exit 1)'
-      - 'test -n "$SANDBOX_STACK_NAME" || (echo "Error: SANDBOX_STACK_NAME environment variable is not set" && exit 1)'
-      # - 'test -n "$STRIPE_SECRET_KEY" || (echo "Error: STRIPE_SECRET_KEY environment variable is not set" && exit 1)'
+    preconditions:
+      - sh: 'test -n "$AWS_PROFILE"'
+        msg: "AWS_PROFILE is not set"
+      - sh: 'test -n "$SANDBOX_STACK_NAME"'
+        msg: "SANDBOX_STACK_NAME is not set"
 
-  amplify.bootstrap:
-    desc: "Bootstrap the Amplify project"
-    deps:
-      - amplify.checks
+  amplify.install:
+    desc: "Install the Amplify project node modules"
     cmds:
+      - clean
       - corepack enable
       - pnpm install
-      - pnpm backend:sandbox:delete
+
+  amplify.sandbox.init:
+    desc: "Initialize the Amplify sandbox"
+    cmds:
+      - task: amplify.checks
       - pnpm backend:sandbox:init
+
+  amplify.sandbox.delete:
+    desc: "Delete the Amplify sandbox in AWS"
+    cmds:
+      - task: amplify.checks
+      - pnpm backend:sandbox:delete
+
+  amplify.sandbox.secrets:
+    desc: "Set the Amplify sandbox secrets (e.g.: STRIPE_SECRET_KEY, etc.)"
+    preconditions:
+      - sh: 'test -n "$STRIPE_SECRET_KEY"'
+        msg: "STRIPE_SECRET_KEY is not set"
+    cmds:
+      - task: amplify.checks
+      - pnpm backend:sandbox:secrets
+
+  amplify.sandbox.generate:
+    desc: "Generate the Amplify project outputs and graphql client code"
+    cmds:
+      - task: amplify.checks
       - pnpm amplify:sandbox:generate-outputs
       - pnpm amplify:sandbox:generate-graphql-client-code
 
-  amplify.seed:
+  amplify.sandbox.seed:
     desc: "Seed the Amplify sandbox"
-    deps:
-      - amplify.checks
     cmds:
+      - task: amplify.checks
       - pnpm backend:sandbox:seed
-
-
-
+      - pnpm backend:sandbox:seed:plans
+      - pnpm backend:sandbox:seed:users
