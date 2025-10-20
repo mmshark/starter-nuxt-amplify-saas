@@ -117,6 +117,88 @@ layers/<layer>/
 - Configuration: Layer `nuxt.config.ts` can define `runtimeConfig` (server) and `public.runtimeConfig` (client). Never hardcode secrets.
 - Document required environment variables in the layer README (e.g., Stripe keys for `billing`).
 
+#### Package.json Export Patterns in layers
+
+**Simple Layers** (configuration only):
+
+These layers doesn't offer any utility.
+
+```json
+{
+  "name": "@starter-nuxt-amplify-saas/<layer>",
+  "main": "./nuxt.config.ts"
+}
+```
+
+**Complex Layers** (configuration + utilities):
+
+Layers that exports utilities.
+
+```json
+{
+  "name": "@starter-nuxt-amplify-saas/<layer>",
+  "main": "./nuxt.config.ts",
+  "exports": {
+    ".": "./nuxt.config.ts",
+    "./server/utils/<layer>": "./server/utils/<layer>.ts"
+  }
+}
+```
+
+**Critical Rule**: If `package.json` has **any** `exports` field, you **MUST** explicitly export `"."` pointing to `nuxt.config.ts`. Node.js module resolution works as follows:
+- **No exports field**: Uses `main` field (defaults to `nuxt.config.ts`)
+- **Has exports field**: Ignores `main` field, requires explicit `"."` export for the default import
+
+
+### Layer Dependency Management
+
+Guidelines for managing dependencies in Nuxt Layers to ensure proper TypeScript support and runtime behavior.
+
+**Dependency Declaration Rules:**
+
+1. **Runtime Dependencies** (in `dependencies`):
+   - All packages imported and used at runtime by the layer
+   - Third-party libraries (e.g., `aws-amplify`, `stripe`, `zod`)
+   - UI libraries (e.g., `@nuxt/ui`, `@vueuse/core`)
+   - Workspace dependencies that the layer directly uses
+   - Any package that appears in `import` statements in the layer code
+
+2. **Development Dependencies** (in `devDependencies`):
+   - Build tools and TypeScript (e.g., `nuxt`, `typescript`, `eslint`)
+   - Type definitions for runtime dependencies (e.g., `@types/jsonwebtoken`)
+   - Development-only utilities (e.g., `@aws-amplify/seed`, `tsx`)
+   - Linting and formatting tools
+
+**Key Principles & Guidelines:**
+- **LSP/TypeScript Support**: Declare runtime dependencies in `dependencies` to ensure proper TypeScript resolution and LSP support in IDEs like Cursor.
+- **Layer Isolation**: Each layer should declare its own dependencies, even if they might be available through the consuming app.
+- **Workspace Dependencies**: Use `workspace:*` for internal layer dependencies (e.g., `@starter-nuxt-amplify-saas/uix`).
+- **Version Consistency**: Keep versions consistent across layers when using the same packages.
+- **Avoid Duplication**: Don't redeclare dependencies that are already declared in workspace dependencies.
+
+**Common Patterns:**
+```json
+{
+  "dependencies": {
+    "@starter-nuxt-amplify-saas/uix": "workspace:*",
+    "aws-amplify": "^6.15.3",
+    "@vueuse/core": "^13.9.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.5",
+    "@aws-amplify/seed": "^1.0.0",
+    "nuxt": "^4.0.0",
+    "typescript": "^5.8.3"
+  }
+}
+```
+
+**Troubleshooting:**
+- **"Cannot find module" errors**: Move the package from `devDependencies` to `dependencies`
+- **TypeScript errors in IDE**: Ensure runtime dependencies are in `dependencies`, not `devDependencies`
+- **Build failures**: Check that all imported packages are declared as dependencies
+
 ### Composables Patterns
 
 Guidelines for designing and maintaining Nuxt Composables in this repository.
