@@ -23,6 +23,30 @@ This document must remain the single source of truth. Any deviation must result 
 - **Billing**: Stripe (portal-first approach).
 - **UI**: Nuxt UI Pro + TailwindCSS.
 
+## Current Roadmap & Status
+
+Based on the **Architecture Alignment Report (Oct 2025)**, the project is in active development with the following status:
+
+### Implemented Layers
+- ✅ **Amplify**: Core AWS integration (Auth, Data, Storage)
+- ✅ **Auth**: User authentication, MFA, Profile management
+- ✅ **Billing**: Stripe integration (Subscriptions, Portal) - *Note: Currently uses REST, migration to tRPC planned*
+- ✅ **i18n**: Internationalization foundation
+- ✅ **tRPC**: Type-safe API layer
+
+### Missing / In-Progress Layers
+- 🔴 **Entitlements**: Authorization, RBAC, Feature Gating (**High Priority**)
+- 🔴 **Workspaces**: Multi-tenancy, Team management (**High Priority**)
+- 🟡 **UIX**: Comprehensive Design System & Component Library (Partial)
+
+### Feature Specifications (PRDs)
+For detailed requirements, refer to the Product Requirement Documents in `doc/prd/`:
+- [Auth Layer Specification](doc/prd/auth.md)
+- [Billing Layer Specification](doc/prd/billing.md)
+- [Entitlements Layer Specification](doc/prd/entitlements.md)
+- [Workspaces Layer Specification](doc/prd/workspaces.md)
+- [UIX Layer Specification](doc/prd/uix.md)
+
 ## Architecture
 
 This repository is a pnpm monorepo that composes Nuxt 4 apps from Nuxt Layers and an AWS Amplify Gen2 backend. The architecture optimizes for reuse, SSR safety, and clean contracts between layers and apps.
@@ -92,6 +116,16 @@ For consistency and scalability, we follow strict architectural patterns. Refer 
 | **Git Conventions** | Semantic versioning and commit message format. | [git-conventions.pattern.md](doc/ard/patterns/git-conventions.pattern.md) |
 | **Repository Structure** | Organization of context, operations, and infrastructure. | [repository-structure.pattern.md](doc/ard/patterns/repository-structure.pattern.md) |
 
+### tRPC Patterns (Preferred)
+
+For all new feature development, **tRPC is the preferred pattern** over REST API routes for type safety and developer experience.
+
+- **Routers**: Define routers in `layers/<layer>/server/trpc/routers/`.
+- **Procedures**: Use `publicProcedure` for open endpoints and `protectedProcedure` for authenticated ones.
+- **Client**: Use the auto-generated tRPC client in frontend apps.
+
+*Note: The Billing layer currently uses REST API routes but is slated for migration to tRPC.*
+
 ## Quick Start
 ```bash
 corepack enable
@@ -105,6 +139,10 @@ pnpm saas:dev
 - SaaS: `http://localhost:3000` (or `http://localhost:3001` if 3000 occupied)
 - Landing: `pnpm landing:dev` → `http://localhost:3001`
 - Secrets: Create `.env` in `apps/saas/` for Stripe keys (never commit)
+
+### Known Limitations
+- **Multi-tenancy**: Not yet implemented. The application currently supports single-user accounts only.
+- **Authorization**: RBAC and feature gating (Entitlements) are pending implementation.
 
 ## Essential Commands
 
