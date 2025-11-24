@@ -21,7 +21,7 @@ Use wrappers provided by the `amplify` layer:
 ### Error Handling
 Use `createError` from `h3` to throw standardized HTTP errors.
 
-### Example
+### Example: Authenticated Endpoint with User Context
 ```typescript
 import { withAmplifyAuth } from '@your-org/amplify/server/utils/amplify'
 
@@ -36,3 +36,48 @@ export default defineEventHandler(async (event) => {
   })
 })
 ```
+
+### Example: Public Endpoint with Amplify Data (GraphQL)
+```typescript
+import { getServerPublicDataClient, withAmplifyPublic } from '@your-org/amplify/server/utils/amplify'
+import { z } from 'zod'
+
+const createSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional()
+})
+
+export default defineEventHandler(async (event) => {
+  const user = event.context.user // Set by auth middleware
+  const body = await readBody(event)
+
+  // Validate input
+  const input = createSchema.parse(body)
+
+  return await withAmplifyPublic(async (contextSpec) => {
+    const client = getServerPublicDataClient()
+
+    // GraphQL mutation via Amplify Data
+    const { data, errors } = await client.models.Workspace.create(contextSpec, {
+      name: input.name,
+      description: input.description,
+      ownerId: user.userId
+    })
+
+    if (errors) {
+      throw createError({
+        statusCode: 500,
+        message: 'Failed to create resource'
+      })
+    }
+
+    return data
+  })
+})
+```
+
+**Key Points**:
+- `withAmplifyPublic` creates the Amplify server context
+- `contextSpec` must be passed to all Amplify Data operations
+- Zod schemas provide input validation
+- GraphQL operations are type-safe via generated client

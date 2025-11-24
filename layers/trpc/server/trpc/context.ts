@@ -1,7 +1,7 @@
 import type { inferAsyncReturnType } from '@trpc/server'
 import { fetchAuthSession, getCurrentUser } from 'aws-amplify/auth/server'
 import type { H3Event } from 'h3'
-import { withAmplifyAuth } from '../../../../amplify/server/utils/amplify'
+import { withAmplifyAuth } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
 
 interface CreateNuxtContextOptions {
   event: H3Event

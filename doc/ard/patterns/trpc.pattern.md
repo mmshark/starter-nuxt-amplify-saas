@@ -1,43 +1,355 @@
-# Pattern: tRPC Integration
+# Pattern: tRPC Auto-Discovery with Build-Time Code Generation
 
 ## Context
-REST APIs often suffer from lack of type safety between client and server, leading to runtime errors and poor developer experience.
+
+Nuxt layers promote modularity by allowing features to be packaged as self-contained units that can be composed via the `extends` configuration. However, tRPC requires a centralized router that aggregates all API endpoints, which traditionally requires manual imports and registration, breaking layer automaticity.
 
 ## Problem
-- **Type Disconnect**: Frontend doesn't know the exact shape of backend responses.
-- **Boilerplate**: Manually typing fetch responses.
-- **Refactoring Pain**: Changing backend types breaks frontend silently.
+
+**Manual Router Composition Breaks Layer Automaticity**:
+- Adding a new feature layer requires manually importing its router
+- Removing a layer requires manually cleaning up router imports
+- Developers must maintain a central `appRouter` file
+- Easy to forget registration when adding/removing layers
+- Defeats the purpose of Nuxt's layer system
+
+**Example of Manual Composition** (❌ Not Scalable):
+```typescript
+// apps/saas/server/trpc/routers/index.ts
+import { router } from '@starter-nuxt-amplify-saas/trpc/server/trpc/trpc'
+import { workspacesRouter } from '@starter-nuxt-amplify-saas/workspaces/server/trpc/routers/workspaces'
+import { entitlementsRouter } from '@starter-nuxt-amplify-saas/entitlements/server/trpc/routers/entitlements'
+import { billingRouter } from '@starter-nuxt-amplify-saas/billing/server/trpc/routers/billing'
+// ... manually add more as layers grow
+
+export const appRouter = router({
+  workspaces: workspacesRouter,
+  entitlements: entitlementsRouter,
+  billing: billingRouter,
+  // ... manually register each one
+})
+```
 
 ## Solution
-Use **tRPC** for end-to-end type safety. It allows the frontend to call backend functions directly as if they were local, with full type inference.
 
-## Pattern Details
+**Build-Time Code Generation with Convention-Based Auto-Discovery**:
 
-### Structure
-- **Routers**: Defined in `layers/<layer>/server/trpc/routers/`.
-- **Procedures**:
-    - `publicProcedure`: Open access.
-    - `protectedProcedure`: Requires authentication.
+1. **Strict Naming Convention**: Feature layers follow a standard pattern
+2. **Nuxt Build Hook**: Scans all layers during build
+3. **Generated TypeScript**: Creates type-safe router composition automatically
+4. **Zero Configuration**: Layers auto-register when added to `extends`
 
-### Example Router
+## Pattern Implementation
+
+### Step 1: Layer Convention
+
+Each feature layer exports its router following the standard pattern:
+
 ```typescript
+// layers/workspaces/server/trpc/routers/workspaces.ts
+import { router, protectedProcedure } from '@starter-nuxt-amplify-saas/trpc/server/trpc/trpc'
 import { z } from 'zod'
-import { publicProcedure, router } from '../../trpc'
 
-export const exampleRouter = router({
-  hello: publicProcedure
-    .input(z.object({ text: z.string() }))
-    .query(({ input }) => {
-      return {
-        greeting: `Hello ${input.text}`,
-      }
+export const workspacesRouter = router({
+  list: protectedProcedure
+    .query(async ({ ctx }) => {
+      // Implementation
+      return workspaces
+    }),
+
+  create: protectedProcedure
+    .input(z.object({
+      name: z.string().min(1),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Implementation
+      return newWorkspace
     }),
 })
 ```
 
-### Client Usage
+**Naming Requirements**:
+| Element | Pattern | Example |
+|---------|---------|---------|
+| File path | `layers/{layer}/server/trpc/routers/{name}.ts` | `layers/workspaces/server/trpc/routers/workspaces.ts` |
+| Export name | `export const {name}Router` | `export const workspacesRouter` |
+| Namespace | Auto: `$trpc.{name}.*` | `$trpc.workspaces.list.useQuery()` |
+
+### Step 2: Build Hook (tRPC Layer)
+
 ```typescript
-const { $client } = useNuxtApp()
-const result = await $client.example.hello.query({ text: 'World' })
-// result.greeting is typed as string
+// layers/trpc/nuxt.config.ts
+import { defineNuxtConfig } from 'nuxt/config'
+import { existsSync, readdirSync, writeFileSync, mkdirSync } from 'fs'
+import { join } from 'path'
+
+export default defineNuxtConfig({
+  build: {
+    transpile: ['trpc-nuxt']
+  },
+
+  hooks: {
+    'build:before': (nuxt) => {
+      const routers = []
+
+      // Scan all layers for tRPC routers
+      for (const layer of nuxt.options._layers) {
+        const routersPath = join(layer.cwd, 'server/trpc/routers')
+
+        if (!existsSync(routersPath)) continue
+
+        const files = readdirSync(routersPath).filter(f =>
+          f.endsWith('.ts') && !f.endsWith('.d.ts')
+        )
+
+        for (const file of files) {
+          const routerName = file.replace('.ts', '')
+          const layerName = layer.config.name?.replace('@starter-nuxt-amplify-saas/', '')
+
+          if (!layerName) {
+            console.warn(`[tRPC] Skipping router ${routerName}: layer has no name`)
+            continue
+          }
+
+          routers.push({
+            name: routerName,
+            exportName: `${routerName}Router`,
+            importPath: `@starter-nuxt-amplify-saas/${layerName}/server/trpc/routers/${routerName}`,
+            layerName,
+          })
+        }
+      }
+
+      // Generate TypeScript code
+      const code = `
+// ==========================================
+// Auto-generated by tRPC layer
+// DO NOT EDIT - Changes will be overwritten
+// Generated at: ${new Date().toISOString()}
+// ==========================================
+
+import { router } from '@starter-nuxt-amplify-saas/trpc/server/trpc/trpc'
+
+// Layer router imports
+${routers.map(r => `import { ${r.exportName} } from '${r.importPath}' // from ${r.layerName}`).join('\n')}
+
+// Composed application router
+export const appRouter = router({
+${routers.map(r => `  ${r.name}: ${r.exportName},`).join('\n')}
+})
+
+// Type export for client usage
+export type AppRouter = typeof appRouter
+`
+
+      // Ensure .nuxt directory exists
+      const buildDir = nuxt.options.buildDir
+      if (!existsSync(buildDir)) {
+        mkdirSync(buildDir, { recursive: true })
+      }
+
+      // Write generated router
+      const outputPath = join(buildDir, 'trpc-router.ts')
+      writeFileSync(outputPath, code, 'utf-8')
+
+      console.log(`✅ [tRPC] Generated router with ${routers.length} routers:`)
+      routers.forEach(r => console.log(`   - ${r.name} (from ${r.layerName})`))
+    }
+  }
+})
 ```
+
+### Step 3: API Handler (App)
+
+```typescript
+// apps/saas/server/api/trpc/[trpc].ts
+import { createNuxtApiHandler } from 'trpc-nuxt'
+import { appRouter } from '#build/trpc-router'  // ← Auto-generated
+import { createContext } from '@starter-nuxt-amplify-saas/trpc/server/trpc/context'
+
+export default createNuxtApiHandler({
+  router: appRouter,
+  createContext,
+})
+```
+
+### Step 4: Client Plugin (tRPC Layer)
+
+```typescript
+// layers/trpc/plugins/trpc.client.ts
+import { createTRPCNuxtClient, httpBatchLink } from 'trpc-nuxt/client'
+
+export default defineNuxtPlugin(() => {
+  console.log('🔌 [tRPC Layer] Initializing tRPC client...')
+
+  const client = createTRPCNuxtClient({
+    links: [
+      httpBatchLink({
+        url: '/api/trpc',
+      }),
+    ],
+  })
+
+  console.log('✅ [tRPC Layer] tRPC client created successfully')
+
+  return {
+    provide: {
+      trpc: client,
+    },
+  }
+})
+```
+
+## Usage Examples
+
+### Adding a New Feature Layer
+
+**Before** (Manual - ❌):
+```typescript
+// 1. Create router in layer
+// 2. Go to apps/saas/server/trpc/routers/index.ts
+// 3. Add import
+// 4. Add to router object
+// 5. Remember to update when removing
+```
+
+**After** (Auto - ✅):
+```typescript
+// 1. Create router following convention:
+// layers/billing/server/trpc/routers/billing.ts
+export const billingRouter = router({ ... })
+
+// 2. Add layer to extends in nuxt.config.ts:
+extends: [
+  '@starter-nuxt-amplify-saas/billing',  // ← That's it!
+]
+
+// 3. Rebuild → Router automatically included
+// 4. Client usage immediately available:
+$trpc.billing.getPlans.useQuery()
+```
+
+### Client Usage
+
+```vue
+<script setup lang="ts">
+// Workspaces layer procedures
+const { data: workspaces, pending } = await $trpc.workspaces.list.useQuery()
+
+const createWorkspace = $trpc.workspaces.create.useMutation({
+  onSuccess: (newWorkspace) => {
+    console.log('Created:', newWorkspace)
+  }
+})
+
+// Entitlements layer procedures
+const { data: entitlements } = await $trpc.entitlements.get.useQuery()
+
+// Billing layer procedures (auto-discovered)
+const { data: plans } = await $trpc.billing.getPlans.useQuery()
+</script>
+
+<template>
+  <div>
+    <h2>Workspaces</h2>
+    <ul v-if="workspaces">
+      <li v-for="ws in workspaces" :key="ws.id">{{ ws.name }}</li>
+    </ul>
+
+    <button @click="createWorkspace.mutate({ name: 'New Workspace' })">
+      Create Workspace
+    </button>
+  </div>
+</template>
+```
+
+### Inspecting Generated Code
+
+During development, you can inspect the generated router:
+
+```bash
+cat apps/saas/.nuxt/trpc-router.ts
+```
+
+Example output:
+```typescript
+// Auto-generated by tRPC layer - DO NOT EDIT
+// Generated at: 2025-11-24T19:00:00.000Z
+
+import { router } from '@starter-nuxt-amplify-saas/trpc/server/trpc/trpc'
+
+// Layer router imports
+import { workspacesRouter } from '@starter-nuxt-amplify-saas/workspaces/server/trpc/routers/workspaces' // from workspaces
+import { entitlementsRouter } from '@starter-nuxt-amplify-saas/entitlements/server/trpc/routers/entitlements' // from entitlements
+import { billingRouter } from '@starter-nuxt-amplify-saas/billing/server/trpc/routers/billing' // from billing
+
+// Composed application router
+export const appRouter = router({
+  workspaces: workspacesRouter,
+  entitlements: entitlementsRouter,
+  billing: billingRouter,
+})
+
+// Type export for client usage
+export type AppRouter = typeof appRouter
+```
+
+## Benefits
+
+### For Developers
+- ✅ **Zero Configuration**: Add layer → router included automatically
+- ✅ **Type Safety**: Full TypeScript inference from generated code
+- ✅ **IntelliSense**: Autocompletion works immediately
+- ✅ **Explicit Errors**: Build fails clearly if convention violated
+- ✅ **Visibility**: Generated code can be inspected for debugging
+
+### For Architecture
+- ✅ **True Layer Autonomy**: Each layer self-contains its API
+- ✅ **Automatic Cleanup**: Remove layer → router excluded automatically
+- ✅ **Scalability**: Add 100 layers → zero manual work
+- ✅ **Consistency**: Enforces naming standards across all layers
+- ✅ **Maintainability**: No central file that grows indefinitely
+
+### For Performance
+- ✅ **Zero Runtime Overhead**: All composition happens at build time
+- ✅ **Static Analysis**: TypeScript can fully analyze types
+- ✅ **Tree Shaking**: Unused routers can be eliminated
+- ✅ **Fast Builds**: Generation adds ~100-200ms only
+
+## Trade-offs
+
+### Accepted
+- ⚠️ **Strict Convention**: Must follow file/export naming pattern
+  - **Mitigation**: Clear error messages, documented in PRD
+- ⚠️ **Build Step**: Adds ~100-200ms to build time
+  - **Mitigation**: Negligible compared to total build time
+- ⚠️ **HMR Limitation**: Adding new router may require rebuild
+  - **Mitigation**: Only happens when creating new routers (rare)
+
+### Not Issues
+- ✅ **Type Safety**: Fully preserved via generated TypeScript
+- ✅ **Debugging**: Generated file is readable and inspectable
+- ✅ **Flexibility**: Apps can still manually import if needed
+- ✅ **Testing**: Generated router behaves identically to manual
+
+## Comparison with Alternatives
+
+| Approach | Type Safety | Automaticity | Performance | Complexity |
+|----------|-------------|--------------|-------------|------------|
+| **Build-Time Generation** (This pattern) | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| Manual Composition | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| Runtime Discovery | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+| Virtual Modules | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ |
+
+## Related Patterns
+
+- **Layer Architecture**: How Nuxt layers enable modular composition
+- **tRPC Context Integration**: Shared authentication and request context
+- **Convention over Configuration**: Reducing boilerplate through standards
+
+## References
+
+- [Nuxt Layers Documentation](https://nuxt.com/docs/guide/going-further/layers)
+- [tRPC Router Documentation](https://trpc.io/docs/router)
+- [Build Hooks in Nuxt](https://nuxt.com/docs/api/advanced/hooks#build-hooks)
