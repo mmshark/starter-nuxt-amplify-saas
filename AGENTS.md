@@ -79,214 +79,18 @@ starter-nuxt-amplify-saas/
 
 This section outlines standardized patterns for consistency, scalability, and maintainability across the repository. Update this section for any new or modified patterns.
 
-### Layers Patterns
+### Standardized Patterns
 
-Guidelines for designing and maintaining Nuxt Layers in this monorepo.
+For consistency and scalability, we follow strict architectural patterns. Refer to the detailed documentation for each pattern:
 
-**Standard structure (per layer):**
-
-```text
-layers/<layer>/
-  nuxt.config.ts          # Layer config (runtimeConfig, i18n merge, module opts)
-  package.json           # Name: @starter-nuxt-amplify-saas/<layer>
-  README.md              # Public API, usage, caveats
-  components/            # Reusable UI components (dual-mode: controlled/autonomous)
-  composables/           # SSR-safe composables (useState-based; init guards)
-  plugins/               # Client/server plugins (prefix with 01., 02. to enforce order)
-  server/
-    api/<layer>/...      # Namespaced routes to avoid collisions
-    utils/               # Server-only helpers (no client globals)
-  utils/                 # Shared helpers (isomorphic if needed)
-  types/                 # d.ts module augmentation and public types
-  i18n/locales/{en,es}/  # Layer-local translations (merged in nuxt.config)
-  assets/                # Optional assets (e.g., uix theme tokens)
-```
-
-**Key Principles & Guidelines:**
-- Encapsulation: Each layer owns its namespace and internal logic.
-- Composition: Apps extend multiple layers using the extends field on `nuxt.config.ts` (e.g., `@starter-nuxt-amplify-saas/<layer>`).
-- SSR Safety: Use `useState` or shared state and per-request isolation.
-- Internal API: Server routes and utilities are namespaced per layer to avoid collisions.
-- UI: Prefer Nuxt UI Pro and in-house components in `layers/uix`.
-- Server Routes: Always namespaced under `server/api/<layer>/...` to avoid collisions.
-- Plugins: Separate client/server plugins (`*.client.ts` / `*.server.ts`).
-- Plugins: Use numeric prefixes (e.g., `01.amplify.client.ts`) to ensure ordering when a dependency must load first (e.g., Amplify before auth/billing).
-- Internationalization: Each layer may contribute locales; merge them in `nuxt.config` of the layer. Scope keys by feature to avoid collisions.
-- Types: Provide `.d.ts` files for module augmentation (e.g., `types/amplify.d.ts`).
-- Export public TypeScript types for component props/emits and composable return types.
-- Configuration: Layer `nuxt.config.ts` can define `runtimeConfig` (server) and `public.runtimeConfig` (client). Never hardcode secrets.
-- Document required environment variables in the layer README (e.g., Stripe keys for `billing`).
-
-#### Package.json Export Patterns in layers
-
-**Simple Layers** (configuration only):
-
-These layers doesn't offer any utility.
-
-```json
-{
-  "name": "@starter-nuxt-amplify-saas/<layer>",
-  "main": "./nuxt.config.ts"
-}
-```
-
-**Complex Layers** (configuration + utilities):
-
-Layers that exports utilities.
-
-```json
-{
-  "name": "@starter-nuxt-amplify-saas/<layer>",
-  "main": "./nuxt.config.ts",
-  "exports": {
-    ".": "./nuxt.config.ts",
-    "./server/utils/<layer>": "./server/utils/<layer>.ts"
-  }
-}
-```
-
-**Critical Rule**: If `package.json` has **any** `exports` field, you **MUST** explicitly export `"."` pointing to `nuxt.config.ts`. Node.js module resolution works as follows:
-- **No exports field**: Uses `main` field (defaults to `nuxt.config.ts`)
-- **Has exports field**: Ignores `main` field, requires explicit `"."` export for the default import
-
-
-### Layer Dependency Management
-
-Guidelines for managing dependencies in Nuxt Layers to ensure proper TypeScript support and runtime behavior.
-
-**Dependency Declaration Rules:**
-
-1. **Runtime Dependencies** (in `dependencies`):
-   - All packages imported and used at runtime by the layer
-   - Third-party libraries (e.g., `aws-amplify`, `stripe`, `zod`)
-   - UI libraries (e.g., `@nuxt/ui`, `@vueuse/core`)
-   - Workspace dependencies that the layer directly uses
-   - Any package that appears in `import` statements in the layer code
-
-2. **Development Dependencies** (in `devDependencies`):
-   - Build tools and TypeScript (e.g., `nuxt`, `typescript`, `eslint`)
-   - Type definitions for runtime dependencies (e.g., `@types/jsonwebtoken`)
-   - Development-only utilities (e.g., `@aws-amplify/seed`, `tsx`)
-   - Linting and formatting tools
-
-**Key Principles & Guidelines:**
-- **LSP/TypeScript Support**: Declare runtime dependencies in `dependencies` to ensure proper TypeScript resolution and LSP support in IDEs like Cursor.
-- **Layer Isolation**: Each layer should declare its own dependencies, even if they might be available through the consuming app.
-- **Workspace Dependencies**: Use `workspace:*` for internal layer dependencies (e.g., `@starter-nuxt-amplify-saas/uix`).
-- **Version Consistency**: Keep versions consistent across layers when using the same packages.
-- **Avoid Duplication**: Don't redeclare dependencies that are already declared in workspace dependencies.
-
-**Common Patterns:**
-```json
-{
-  "dependencies": {
-    "@starter-nuxt-amplify-saas/uix": "workspace:*",
-    "aws-amplify": "^6.15.3",
-    "@vueuse/core": "^13.9.0",
-    "zod": "^4.1.12"
-  },
-  "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.5",
-    "@aws-amplify/seed": "^1.0.0",
-    "nuxt": "^4.0.0",
-    "typescript": "^5.8.3"
-  }
-}
-```
-
-**Troubleshooting:**
-- **"Cannot find module" errors**: Move the package from `devDependencies` to `dependencies`
-- **TypeScript errors in IDE**: Ensure runtime dependencies are in `dependencies`, not `devDependencies`
-- **Build failures**: Check that all imported packages are declared as dependencies
-
-### Composables Patterns
-
-Guidelines for designing and maintaining Nuxt Composables in this repository.
-
-**Standard Template (per composable):**
-
-```ts
-import { createSharedComposable } from '@vueuse/core' // Import if needed for shared instance
-
-// Base state: Use useState for SSR-safe, serializable shared state
-const useXState = () => ({
-  data: useState<any>('x:data', () => null), // Main data (e.g., fetched resource)
-  loading: useState<boolean>('x:loading', () => false), // Global loading flag
-  error: useState<string | null>('x:error', () => null) // Error message
-  // Optional: Add guards like initialized: useState<boolean>('x:initialized', () => false)
-})
-
-// Core logic: Environment-agnostic where possible, branched when needed
-const _useX = () => {
-  const s = useXState()
-
-  // Shared action: Logic that runs identically on server/client
-  const action = async () => {
-    s.loading.value = true
-    try {
-      // Example: Fetch data or perform computation
-      // s.data.value = await someUniversalFetch()
-    } catch (e: any) {
-      s.error.value = e?.message ?? 'Unknown error'
-    } finally {
-      s.loading.value = false
-    }
-  }
-
-  // Differentiated action: Branch based on environment
-  const actionDifferentiated = async () => {
-    s.loading.value = true
-    try {
-      if (import.meta.server) {
-        // Server-only: e.g., access Nitro event, database queries without client exposure
-      }
-      if (import.meta.client) {
-        // Client-only: e.g., browser APIs like localStorage, DOM interactions
-      }
-    } catch (e: any) {
-      s.error.value = e?.message ?? 'Unknown error'
-    } finally {
-      s.loading.value = false
-    }
-  }
-
-  return { ...s, action, actionDifferentiated }
-}
-
-// Client-shared export: Use createSharedComposable for efficiency on client
-export const useX = createSharedComposable(_useX)
-
-// Server-only export: Isolated instance per request (throw error if called on client)
-export const useXServer = () => {
-  if (import.meta.client) throw new Error('useXServer is server-only')
-  return _useX()
-}
-```
-
-**Key Principles & Guidelines:**
-- SSR Safety: Prioritize useState for serializable state to avoid hydration mismatches. Avoid non-serializable values (e.g., functions, classes).
-- Environment Differentiation: Use import.meta.server and import.meta.client to branch logic where necessary, keeping the API consistent.
-- Shared Instance: Wrap with createSharedComposable to share a single instance across client-side components, reducing redundant computations.
-- Server Isolation: Provide a server-only variant (useXServer) for per-request isolation in API routes or server plugins.
-- Error Handling: Always include loading and error states; wrap actions in try/catch/finally for robust UX.
-- Initialization Guards: For async operations, add initialized or inFlight flags to prevent duplicate fetches (not shown in template but recommended for complex composables).
-
-**Usage Notes:**
-- Use `useX` for client-side components, composables and plugins.
-- Use `useX` for server-side components, composables.
-- Use `useXServer` for server API routes (`server/api/`) or server plugins.
-
-### API Server Patterns
-
-Guidelines for designing and maintaining API Server (`server/api/`) in this repository.
-
-**Key Principles & Guidelines:**
-- Auth wrappers come from the `amplify` layer utils when using Amplify resources.
-  - `withAmplifyAuth(event, fn)` for authenticated routes.
-  - `withAmplifyPublic(fn)` for public routes (no auth, safe reads only).
-  - Prefer server clients from `@starter-nuxt-amplify-saas/amplify/server/utils/amplify` (e.g., `getServerUserPoolDataClient`).
-- Validate inputs and return normalized `{ success, data?, error? }` shapes. Use `createError` for HTTP errors.
-- Keep third-party SDK initialization (e.g., Stripe) inside handlers, reading keys from `runtimeConfig` provided by the layer.
+| Pattern | Description | Documentation |
+| :--- | :--- | :--- |
+| **Nuxt Layers** | Structure, encapsulation, composition, and dependency management. | [layers.pattern.md](doc/ard/patterns/layers.pattern.md) |
+| **Composables** | SSR-safe state management and logic sharing. | [composables.pattern.md](doc/ard/patterns/composables.pattern.md) |
+| **API Server** | Secure and consistent server-side API routes. | [api-server.pattern.md](doc/ard/patterns/api-server.pattern.md) |
+| **tRPC** | End-to-end type safety for client-server communication. | [trpc.pattern.md](doc/ard/patterns/trpc.pattern.md) |
+| **Git Conventions** | Semantic versioning and commit message format. | [git-conventions.pattern.md](doc/ard/patterns/git-conventions.pattern.md) |
+| **Repository Structure** | Organization of context, operations, and infrastructure. | [repository-structure.pattern.md](doc/ard/patterns/repository-structure.pattern.md) |
 
 ## Quick Start
 ```bash
@@ -357,9 +161,11 @@ pnpm saas:dev
 ## Contribution Standards
 
 ### Git Conventions
-- **Format**: `<type>(<scope>): <description>` (max 72 chars)
-- **Types**: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `style`
-- **Scopes**: `billing`, `auth`, `i18n`, `saas`, `amplify`, `uix`, `debug`, `deps`, `docs`
+
+We follow the **Conventional Commits** pattern. Refer to [git-conventions.pattern.md](doc/ard/patterns/git-conventions.pattern.md) for the full specification and type definitions.
+
+**Project Scopes:**
+- `billing`, `auth`, `i18n`, `saas`, `amplify`, `uix`, `debug`, `deps`, `docs`
 
 ### Code Standards
 - **TypeScript**: Strict mode enabled
