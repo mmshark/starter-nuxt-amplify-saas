@@ -1,4 +1,4 @@
-import path from 'path'
+import path from 'path';
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -7,9 +7,11 @@ export default defineNuxtConfig({
   extends: [
     '@starter-nuxt-amplify-saas/uix',
     '@starter-nuxt-amplify-saas/amplify',
+    // '@starter-nuxt-amplify-saas/trpc',
     '@starter-nuxt-amplify-saas/i18n',
     '@starter-nuxt-amplify-saas/auth',
     '@starter-nuxt-amplify-saas/billing',
+    '@starter-nuxt-amplify-saas/workspaces',
     '@starter-nuxt-amplify-saas/debug'
   ],
   alias: {

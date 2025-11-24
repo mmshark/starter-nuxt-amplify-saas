@@ -1,0 +1,15 @@
+{
+  "name": "@starter-nuxt-amplify-saas/entitlements",
+  "main": "./nuxt.config.ts",
+  "dependencies": {
+    "@starter-nuxt-amplify-saas/auth": "workspace:*",
+    "@starter-nuxt-amplify-saas/billing": "workspace:*"
+  },
+  "devDependencies": {
+    "nuxt": "^4.0.0",
+    "vitest": "^1.0.0"
+  },
+  "scripts": {
+    "test": "vitest"
+  }
+}
