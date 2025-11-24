@@ -96,9 +96,15 @@ importers:
       '@starter-nuxt-amplify-saas/debug':
         specifier: workspace:*
         version: link:../../layers/debug
+      '@starter-nuxt-amplify-saas/entitlements':
+        specifier: workspace:*
+        version: link:../../layers/entitlements
       '@starter-nuxt-amplify-saas/i18n':
         specifier: workspace:*
         version: link:../../layers/i18n
+      '@starter-nuxt-amplify-saas/trpc':
+        specifier: workspace:*
+        version: link:../../layers/trpc
       '@starter-nuxt-amplify-saas/uix':
         specifier: workspace:*
         version: link:../../layers/uix

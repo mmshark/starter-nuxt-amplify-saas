@@ -1,35 +1,35 @@
 <template>
-  <UModal v-model="isOpen">
-    <UCard>
-      <template #header>
-        <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+  <UModal v-model:open="isOpen">
+    <template #content>
+      <div class="p-4 sm:p-6">
+        <h3 class="text-lg font-semibold mb-4">
           Create Workspace
         </h3>
-      </template>
 
-      <form @submit.prevent="onSubmit" class="space-y-4">
-        <UFormGroup label="Workspace Name" name="name" required>
-          <UInput v-model="form.name" placeholder="My Awesome Team" />
-        </UFormGroup>
+        <form @submit.prevent="onSubmit" class="space-y-4">
+          <UFormField label="Workspace Name" name="name" required>
+            <UInput v-model="form.name" placeholder="My Awesome Team" />
+          </UFormField>
 
-        <UFormGroup label="Slug" name="slug" help="Unique identifier for your workspace URL">
-          <UInput v-model="form.slug" placeholder="my-awesome-team" />
-        </UFormGroup>
+          <UFormField label="Slug" name="slug" help="Unique identifier for your workspace URL">
+            <UInput v-model="form.slug" placeholder="my-awesome-team" />
+          </UFormField>
 
-        <UFormGroup label="Description" name="description">
-          <UTextarea v-model="form.description" placeholder="What is this workspace for?" />
-        </UFormGroup>
+          <UFormField label="Description" name="description">
+            <UTextarea v-model="form.description" placeholder="What is this workspace for?" />
+          </UFormField>
 
-        <div class="flex justify-end gap-2">
-          <UButton color="gray" variant="ghost" @click="isOpen = false">
-            Cancel
-          </UButton>
-          <UButton type="submit" :loading="loading" color="black">
-            Create Workspace
-          </UButton>
-        </div>
-      </form>
-    </UCard>
+          <div class="flex justify-end gap-2">
+            <UButton color="neutral" variant="ghost" @click="isOpen = false">
+              Cancel
+            </UButton>
+            <UButton type="submit" :loading="loading">
+              Create Workspace
+            </UButton>
+          </div>
+        </form>
+      </div>
+    </template>
   </UModal>
 </template>
 

@@ -1,35 +1,35 @@
 <template>
-  <UModal v-model="isOpen">
-    <UCard>
-      <template #header>
-        <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+  <UModal v-model:open="isOpen">
+    <template #content>
+      <div class="p-4 sm:p-6">
+        <h3 class="text-lg font-semibold mb-4">
           Invite Team Member
         </h3>
-      </template>
 
-      <form @submit.prevent="onSubmit" class="space-y-4">
-        <UFormGroup label="Email Address" name="email" required>
-          <UInput v-model="form.email" type="email" placeholder="colleague@company.com" />
-        </UFormGroup>
+        <form @submit.prevent="onSubmit" class="space-y-4">
+          <UFormField label="Email Address" name="email" required>
+            <UInput v-model="form.email" type="email" placeholder="colleague@company.com" />
+          </UFormField>
 
-        <UFormGroup label="Role" name="role" required>
-          <USelect v-model="form.role" :options="roleOptions" />
-        </UFormGroup>
+          <UFormField label="Role" name="role" required>
+            <USelect v-model="form.role" :options="roleOptions" />
+          </UFormField>
 
-        <UFormGroup label="Message" name="message">
-          <UTextarea v-model="form.message" placeholder="Join our team workspace..." />
-        </UFormGroup>
+          <UFormField label="Message" name="message">
+            <UTextarea v-model="form.message" placeholder="Join our team workspace..." />
+          </UFormField>
 
-        <div class="flex justify-end gap-2">
-          <UButton color="gray" variant="ghost" @click="isOpen = false">
-            Cancel
-          </UButton>
-          <UButton type="submit" :loading="loading" color="black">
-            Send Invitation
-          </UButton>
-        </div>
-      </form>
-    </UCard>
+          <div class="flex justify-end gap-2">
+            <UButton color="neutral" variant="ghost" @click="isOpen = false">
+              Cancel
+            </UButton>
+            <UButton type="submit" :loading="loading">
+              Send Invitation
+            </UButton>
+          </div>
+        </form>
+      </div>
+    </template>
   </UModal>
 </template>
 

@@ -1,7 +1,6 @@
 import type { CreateWorkspaceInput, Workspace } from '../types/workspaces'
 
 export const useWorkspaces = () => {
-  const { $client } = useNuxtApp()
   const { user } = useUser()
 
   const workspaces = useState<Workspace[]>('workspaces', () => [])
@@ -21,7 +20,7 @@ export const useWorkspaces = () => {
 
     loading.value = true
     try {
-      const result = await $client.workspaces.list.query()
+      const result = await $fetch<Workspace[]>('/api/workspaces')
       workspaces.value = result
 
       // Auto-select workspace if none selected
@@ -40,7 +39,10 @@ export const useWorkspaces = () => {
   const createWorkspace = async (input: CreateWorkspaceInput) => {
     loading.value = true
     try {
-      const newWorkspace = await $client.workspaces.create.mutate(input)
+      const newWorkspace = await $fetch<Workspace>('/api/workspaces', {
+        method: 'POST',
+        body: input
+      })
       workspaces.value.push(newWorkspace)
       currentWorkspaceId.value = newWorkspace.id
       return newWorkspace
@@ -56,7 +58,6 @@ export const useWorkspaces = () => {
     const workspace = workspaces.value.find(w => w.id === workspaceId)
     if (workspace) {
       currentWorkspaceId.value = workspaceId
-      // Persist to cookie/storage if needed
       const workspaceCookie = useCookie('current-workspace-id')
       workspaceCookie.value = workspaceId
     }

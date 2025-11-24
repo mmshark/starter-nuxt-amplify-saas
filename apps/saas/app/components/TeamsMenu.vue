@@ -5,64 +5,83 @@ defineProps<{
   collapsed?: boolean
 }>()
 
-const teams = ref([{
-  label: 'Nuxt',
-  avatar: {
-    src: 'https://github.com/nuxt.png',
-    alt: 'Nuxt'
+const { workspaces, currentWorkspace, switchWorkspace, loadWorkspaces } = useWorkspaces()
+const { user } = useUser()
+const showCreateModal = ref(false)
+
+// Load workspaces when user is authenticated
+const loaded = ref(false)
+watchEffect(() => {
+  if (user?.value && !loaded.value) {
+    loadWorkspaces()
+    loaded.value = true
   }
-}, {
-  label: 'NuxtHub',
-  avatar: {
-    src: 'https://github.com/nuxt-hub.png',
-    alt: 'NuxtHub'
-  }
-}, {
-  label: 'NuxtLabs',
-  avatar: {
-    src: 'https://github.com/nuxtlabs.png',
-    alt: 'NuxtLabs'
-  }
-}])
-const selectedTeam = ref(teams.value[0])
+})
+
+// Debug logs
+watchEffect(() => {
+  console.log('Workspaces:', workspaces.value)
+  console.log('Current workspace:', currentWorkspace.value)
+})
 
 const items = computed<DropdownMenuItem[][]>(() => {
-  return [teams.value.map(team => ({
-    ...team,
+  const workspaceItems = workspaces.value.map(workspace => ({
+    label: workspace.name,
+    avatar: {
+      alt: workspace.name,
+      size: 'xs' as const
+    },
     onSelect() {
-      selectedTeam.value = team
+      console.log('Switching workspace:', workspace.id)
+      switchWorkspace(workspace.id)
     }
-  })), [{
-    label: 'Create team',
-    icon: 'i-lucide-circle-plus'
+  }))
+
+  const actionItems = [{
+    label: 'Create workspace',
+    icon: 'i-lucide-circle-plus',
+    onSelect() {
+      console.log('Opening create modal')
+      showCreateModal.value = true
+    }
   }, {
-    label: 'Manage teams',
-    icon: 'i-lucide-cog'
-  }]]
+    label: 'Workspace settings',
+    icon: 'i-lucide-cog',
+    to: '/settings/workspace'
+  }]
+
+  // Always include action items, add workspace items only if they exist
+  return workspaceItems.length > 0
+    ? [workspaceItems, actionItems]
+    : [actionItems]
 })
 </script>
 
 <template>
-  <UDropdownMenu
-    :items="items"
-    :content="{ align: 'center', collisionPadding: 12 }"
-    :ui="{ content: collapsed ? 'w-40' : 'w-(--reka-dropdown-menu-trigger-width)' }"
-  >
-    <UButton
-      v-bind="{
-        ...selectedTeam,
-        label: collapsed ? undefined : selectedTeam?.label,
-        trailingIcon: collapsed ? undefined : 'i-lucide-chevrons-up-down'
-      }"
-      color="neutral"
-      variant="ghost"
-      block
-      :square="collapsed"
-      class="data-[state=open]:bg-elevated"
-      :class="[!collapsed && 'py-2']"
-      :ui="{
-        trailingIcon: 'text-dimmed'
-      }"
-    />
-  </UDropdownMenu>
+  <div>
+    <UDropdownMenu
+      :items="items"
+      :content="{ align: 'center', collisionPadding: 12 }"
+      :ui="{ content: collapsed ? 'w-40' : 'w-(--reka-dropdown-menu-trigger-width)' }"
+    >
+      <UButton
+        v-bind="{
+          label: collapsed ? undefined : currentWorkspace?.name || 'Select Workspace',
+          avatar: currentWorkspace ? { alt: currentWorkspace.name, size: 'xs' } : undefined,
+          trailingIcon: collapsed ? undefined : 'i-lucide-chevrons-up-down'
+        }"
+        color="neutral"
+        variant="ghost"
+        block
+        :square="collapsed"
+        class="data-[state=open]:bg-elevated"
+        :class="[!collapsed && 'py-2']"
+        :ui="{
+          trailingIcon: 'text-dimmed'
+        }"
+      />
+    </UDropdownMenu>
+
+    <CreateWorkspaceModal v-model="showCreateModal" />
+  </div>
 </template>

@@ -1,8 +1,6 @@
 import type { InviteMemberInput, WorkspaceInvitation, WorkspaceMember, WorkspaceRole } from '../types/workspaces'
 
 export const useWorkspaceMembers = (workspaceId: string) => {
-  const { $client } = useNuxtApp()
-
   const members = useState<WorkspaceMember[]>(`members-${workspaceId}`, () => [])
   const invitations = useState<WorkspaceInvitation[]>(`invitations-${workspaceId}`, () => [])
   const loading = useState<boolean>(`members-loading-${workspaceId}`, () => false)
@@ -10,7 +8,7 @@ export const useWorkspaceMembers = (workspaceId: string) => {
   const loadMembers = async () => {
     loading.value = true
     try {
-      const result = await $client.workspaces.listMembers.query({ workspaceId })
+      const result = await $fetch<WorkspaceMember[]>(`/api/workspaces/${workspaceId}/members`)
       members.value = result
     } catch (error) {
       console.error('Failed to load members:', error)
@@ -21,7 +19,7 @@ export const useWorkspaceMembers = (workspaceId: string) => {
 
   const loadInvitations = async () => {
     try {
-      const result = await $client.workspaces.listInvitations.query({ workspaceId })
+      const result = await $fetch<WorkspaceInvitation[]>(`/api/workspaces/${workspaceId}/invitations`)
       invitations.value = result
     } catch (error) {
       console.error('Failed to load invitations:', error)
@@ -30,7 +28,10 @@ export const useWorkspaceMembers = (workspaceId: string) => {
 
   const inviteMember = async (input: InviteMemberInput) => {
     try {
-      await $client.workspaces.inviteMember.mutate({ workspaceId, ...input })
+      await $fetch(`/api/workspaces/${workspaceId}/members/invite`, {
+        method: 'POST',
+        body: input
+      })
       await loadInvitations()
     } catch (error) {
       console.error('Failed to invite member:', error)
@@ -40,7 +41,9 @@ export const useWorkspaceMembers = (workspaceId: string) => {
 
   const removeMember = async (userId: string) => {
     try {
-      await $client.workspaces.removeMember.mutate({ workspaceId, userId })
+      await $fetch(`/api/workspaces/${workspaceId}/members/${userId}`, {
+        method: 'DELETE'
+      })
       await loadMembers()
     } catch (error) {
       console.error('Failed to remove member:', error)
@@ -50,7 +53,10 @@ export const useWorkspaceMembers = (workspaceId: string) => {
 
   const updateMemberRole = async (userId: string, role: WorkspaceRole) => {
     try {
-      await $client.workspaces.updateMemberRole.mutate({ workspaceId, userId, role })
+      await $fetch(`/api/workspaces/${workspaceId}/members/${userId}/role`, {
+        method: 'PATCH',
+        body: { role }
+      })
       await loadMembers()
     } catch (error) {
       console.error('Failed to update member role:', error)

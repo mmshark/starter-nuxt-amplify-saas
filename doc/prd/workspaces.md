@@ -20,7 +20,7 @@
   - [3.4 Middlewares](#34-middlewares)
   - [3.5 Utilities](#35-utilities)
   - [3.6 Server Utilities](#36-server-utilities)
-  - [3.7 tRPC Procedures](#37-trpc-procedures)
+  - [3.7 Server API Endpoints](#37-server-api-endpoints)
 - [4. Testing](#4-testing)
   - [4.1 Unit Tests (Minimal)](#41-unit-tests-minimal)
   - [4.2 E2E Tests (Primary)](#42-e2e-tests-primary)
@@ -549,24 +549,38 @@ const schema = a.schema({
 **Purpose**: Validate ownership or throw 403
 **Signature**: requireWorkspaceOwner(event: H3Event, workspaceId: string): Promise<void>
 
-### 3.7 tRPC Procedures
+### 3.7 Server API Endpoints
 
-**Location**: `layers/workspaces/server/trpc/routers/workspaces.ts`
+**Location**: `layers/workspaces/server/api/workspaces/`
 
-**Procedures**:
-- `workspaces.list` (query): List user's workspaces
-- `workspaces.get` (query): Get workspace details with members
-- `workspaces.create` (mutation): Create new workspace
-- `workspaces.update` (mutation): Update workspace settings
-- `workspaces.delete` (mutation): Delete workspace
-- `workspaces.switch` (mutation): Switch active workspace
-- `workspaces.inviteMember` (mutation): Send team member invitation
-- `workspaces.listInvitations` (query): List pending invitations
-- `workspaces.acceptInvitation` (mutation): Accept workspace invitation
-- `workspaces.rejectInvitation` (mutation): Reject workspace invitation
-- `workspaces.updateMemberRole` (mutation): Update team member role
-- `workspaces.removeMember` (mutation): Remove team member
-- `workspaces.listMembers` (query): List workspace members
+**Architecture**: Nuxt server/api endpoints with AWS Amplify Data (GraphQL/AppSync/DynamoDB)
+
+**Endpoints**:
+- `GET /api/workspaces` - List user's workspaces
+- `POST /api/workspaces` - Create new workspace
+- `GET /api/workspaces/[id]/members` - List workspace members
+- `POST /api/workspaces/[id]/members/invite` - Invite team member
+- `DELETE /api/workspaces/[id]/members/[userId]` - Remove team member
+- `PATCH /api/workspaces/[id]/members/[userId]/role` - Update member role
+- `GET /api/workspaces/[id]/invitations` - List pending invitations
+
+**Implementation Pattern**:
+```typescript
+// All endpoints use withAmplifyPublic for Amplify Data context
+import { getServerPublicDataClient, withAmplifyPublic } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+
+export default defineEventHandler(async (event) => {
+  return await withAmplifyPublic(async (contextSpec) => {
+    const client = getServerPublicDataClient()
+    // GraphQL operations via Amplify Data client
+    await client.models.Workspace.create(contextSpec, { ... })
+  })
+})
+```
+
+**Authentication**: Handled by `server/middleware/auth.ts` for all `/api/workspaces` routes
+
+**Validation**: Zod schemas for request body validation
 
 ### 3.8 Utilities
 
@@ -818,9 +832,19 @@ layers/workspaces/
 │   ├── workspaceOwner.ts
 │   └── workspaceMember.ts
 ├── server/
-│   ├── trpc/
-│   │   └── routers/
-│   │       └── workspaces.ts         # tRPC workspaces router
+│   ├── api/
+│   │   └── workspaces/               # REST API endpoints
+│   │       ├── index.get.ts          # List workspaces
+│   │       ├── index.post.ts         # Create workspace
+│   │       └── [id]/
+│   │           ├── members/
+│   │           │   ├── index.get.ts  # List members
+│   │           │   ├── invite.post.ts # Invite member
+│   │           │   ├── [userId].delete.ts # Remove member
+│   │           │   └── [userId]/role.patch.ts # Update role
+│   │           └── invitations.get.ts # List invitations
+│   ├── middleware/
+│   │   └── auth.ts                   # Auth middleware for /api/workspaces
 │   └── utils/
 │       ├── requireWorkspace.ts
 │       ├── requireWorkspaceMember.ts
@@ -850,11 +874,11 @@ layers/workspaces/
 ### 5.2 Definition of Done
 
 **Code Complete**:
-- [ ] All composables implemented with SSR compatibility
-- [ ] All components implemented with proper TypeScript types
-- [ ] All middlewares implemented with workspace validation
-- [ ] All server utilities implemented with error handling
-- [ ] tRPC router implemented with all procedures
+- [x] All composables implemented with SSR compatibility
+- [x] All components implemented with proper TypeScript types
+- [x] All middlewares implemented with workspace validation
+- [x] All server utilities implemented with error handling
+- [x] Server API endpoints implemented with Amplify Data integration
 
 **Type Safety**:
 - [ ] All TypeScript types exported from types/ directory
@@ -874,11 +898,11 @@ layers/workspaces/
 - [ ] Examples for common use cases
 
 **Integration**:
-- [ ] Auth Layer integration via useUser()
+- [x] Auth Layer integration via useUser()
 - [ ] Billing Layer integration for workspace limits
-- [ ] Entitlements Layer integration for role-based permissions
-- [ ] tRPC router registered in main tRPC router
-- [ ] GraphQL schema deployed to Amplify backend
+- [x] Entitlements Layer integration for role-based permissions
+- [x] Server API endpoints with authentication middleware
+- [x] GraphQL schema deployed to Amplify backend (AppSync + DynamoDB)
 
 **Quality**:
 - [ ] ESLint passing with no errors
