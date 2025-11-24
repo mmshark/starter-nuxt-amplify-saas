@@ -37,9 +37,6 @@ export const publicProcedure = t.procedure
  * This middleware should check if the user is authenticated and throw an error if not
  */
 const isAuthenticated = t.middleware(async ({ ctx, next }) => {
-  // TODO: Replace with actual Amplify auth check
-  // Example implementation:
-  /*
   if (!ctx.user || !ctx.session) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
@@ -51,19 +48,6 @@ const isAuthenticated = t.middleware(async ({ ctx, next }) => {
     ctx: {
       ...ctx,
       // Ensure user is defined in protected procedures
-      user: ctx.user,
-      session: ctx.session,
-    },
-  })
-  */
-
-  // Temporary implementation - always allow for development
-  console.warn('⚠️ Protected procedure called without authentication check implemented')
-
-  return next({
-    ctx: {
-      ...ctx,
-      // For now, pass through as-is
       user: ctx.user,
       session: ctx.session,
     },

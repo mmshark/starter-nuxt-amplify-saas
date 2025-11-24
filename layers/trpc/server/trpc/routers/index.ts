@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import { publicProcedure, protectedProcedure, router } from '../trpc'
+import { z } from 'zod';
+import { protectedProcedure, publicProcedure, router } from '../trpc';
 
 /**
  * Example router demonstrating tRPC patterns
@@ -105,9 +105,17 @@ const exampleRouter = router({
  * - user: router with user management procedures
  * - etc.
  */
+import { entitlementsRouter } from '@starter-nuxt-amplify-saas/entitlements/server/trpc/routers/entitlements';
+import { workspacesRouter } from '@starter-nuxt-amplify-saas/workspaces/server/trpc/routers/workspaces';
+
+// ... (existing code)
+
 export const appRouter = router({
   // Example router - remove once you have real routers
   example: exampleRouter,
+
+  entitlements: entitlementsRouter,
+  workspaces: workspacesRouter,
 
   // TODO: Add real routers here
   // billing: billingRouter,

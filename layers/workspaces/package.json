@@ -1,0 +1,29 @@
+{
+  "name": "@starter-nuxt-amplify-saas/workspaces",
+  "type": "module",
+  "version": "0.0.1",
+  "main": "./nuxt.config.ts",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@starter-nuxt-amplify-saas/auth": "workspace:*",
+    "@starter-nuxt-amplify-saas/entitlements": "workspace:*",
+    "@starter-nuxt-amplify-saas/uix": "workspace:*",
+    "@vueuse/core": "^13.9.0",
+    "aws-amplify": "^6.15.3",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "latest",
+    "eslint": "^9.31.0",
+    "nuxt": "^4.0.0",
+    "typescript": "^5.8.3",
+    "vue": "latest"
+  }
+}

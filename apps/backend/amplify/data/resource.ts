@@ -59,6 +59,66 @@ const schema = a
         allow.ownerDefinedIn("userId").to(["read"]), // Usuario solo lee su propia suscripción
         allow.groups(["admin"]).to(["create", "update", "delete"]), // Admins y webhooks modifican
       ]),
+
+    // Workspaces
+    Workspace: a.model({
+      name: a.string().required(),
+      slug: a.string().required(),
+      description: a.string(),
+      ownerId: a.string().required(),
+      isPersonal: a.boolean().default(false),
+      memberCount: a.integer().default(1),
+      members: a.hasMany('WorkspaceMember', 'workspaceId'),
+      invitations: a.hasMany('WorkspaceInvitation', 'workspaceId'),
+      // subscription: a.hasOne('WorkspaceSubscription', 'workspaceId'), // TODO: Migrate to WorkspaceSubscription
+    })
+      .authorization((allow) => [
+        allow.ownerDefinedIn('ownerId').to(['read', 'update', 'delete']),
+        allow.authenticated().to(['create']),
+        allow.publicApiKey(), // For server-side privileged access
+      ])
+      .secondaryIndexes((index) => [
+        index('slug'),
+        index('ownerId'),
+      ]),
+
+    WorkspaceMember: a.model({
+      workspaceId: a.id().required(),
+      workspace: a.belongsTo('Workspace', 'workspaceId'),
+      userId: a.string().required(),
+      email: a.email().required(),
+      name: a.string(),
+      role: a.enum(['OWNER', 'ADMIN', 'MEMBER']),
+      joinedAt: a.datetime().required(),
+    })
+      .authorization((allow) => [
+        allow.ownerDefinedIn('userId').to(['read']),
+        allow.publicApiKey(), // For server-side privileged access
+      ])
+      .secondaryIndexes((index) => [
+        index('workspaceId'),
+        index('userId'),
+      ]),
+
+    WorkspaceInvitation: a.model({
+      workspaceId: a.id().required(),
+      workspace: a.belongsTo('Workspace', 'workspaceId'),
+      email: a.email().required(),
+      role: a.enum(['OWNER', 'ADMIN', 'MEMBER']),
+      invitedBy: a.string().required(),
+      inviterName: a.string(),
+      token: a.string().required(),
+      expiresAt: a.datetime().required(),
+      message: a.string(),
+    })
+      .authorization((allow) => [
+        allow.ownerDefinedIn('invitedBy').to(['read', 'delete']),
+        allow.publicApiKey(), // For server-side privileged access
+      ])
+      .secondaryIndexes((index) => [
+        index('workspaceId'),
+        index('email'),
+      ]),
   })
   .authorization((allow) => [allow.resource(postConfirmation)]);
 
