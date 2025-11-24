@@ -13,7 +13,7 @@ tasks:
     silent: true
     cmds:
       - find . -type d \( -name ".amplify" \) -exec rm -rf {} +
-      - find . -type d \( -name "amplify_outputs*" \) -exec rm -rf {} +
+      - find . -type f \( -name "amplify_outputs*" \) -exec rm -rf {} +
       - find . -type d \( -name "amplifyconfiguration*" \) -exec rm -rf {} +
       - find . -type d \( -name "utils/graphql*" \) -exec rm -rf {} +
   clean.test:
