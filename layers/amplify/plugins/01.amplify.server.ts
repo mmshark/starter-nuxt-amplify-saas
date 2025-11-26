@@ -28,12 +28,74 @@ import type {
 import outputs from '../amplify_outputs.json'
 
 /**
- * Server plugin responsibilities:
- * - Parse Amplify config from amplify_outputs.json (ResourceConfig).
- * - Build a cookie-backed key-value storage so SSR can read/write Cognito tokens.
- * - Create token/credentials providers wired to those cookies.
- * - Expose server-safe Amplify APIs (Auth, Data, GraphQL) via Nuxt provide.
- * - Ensure ALL calls run inside runWithAmplifyServerContext so user tokens are applied.
+ * Amplify Server-Side Plugin
+ *
+ * Provides AWS Amplify APIs that work safely in server-side contexts (SSR, API routes, middleware).
+ *
+ * PLUGIN RESPONSIBILITIES:
+ * ========================
+ * - Parse Amplify config from amplify_outputs.json (ResourceConfig)
+ * - Build cookie-backed key-value storage so SSR can read/write Cognito tokens
+ * - Create token/credentials providers wired to those cookies
+ * - Expose server-safe Amplify APIs (Auth, Data, GraphQL) via Nuxt provide
+ * - Ensure ALL calls run inside runWithAmplifyServerContext so user tokens are applied
+ *
+ * AUTHORIZATION STRATEGY:
+ * =======================
+ * amplify_outputs.json default: API_KEY (public access)
+ * This plugin's GraphQL client: 'userPool' (authenticated access)
+ *
+ * WHY? The plugin-provided client is designed for authenticated user operations
+ * where you need to know WHO the user is (e.g., fetching user profile, user-owned data).
+ *
+ * For public/webhook operations that don't need user context:
+ * → Use server/utils/amplify.ts helpers: withAmplifyPublic() + getServerPublicDataClient()
+ *
+ * USAGE EXAMPLES:
+ * ===============
+ *
+ * Authenticated operation (uses this plugin's userPool client):
+ * ```typescript
+ * // In a server route: server/api/profile.get.ts
+ * export default defineEventHandler(async (event) => {
+ *   const { $Amplify } = useNuxtApp()
+ *   const userProfile = await $Amplify.GraphQL.client.graphql({
+ *     query: queries.getUserProfile,
+ *     variables: { userId: event.context.userId }
+ *   })
+ *   return { profile: userProfile.data }
+ * })
+ * ```
+ *
+ * Public/webhook operation (use utils with apiKey auth):
+ * ```typescript
+ * // In a webhook: server/api/webhooks/stripe.post.ts
+ * import { withAmplifyPublic, getServerPublicDataClient } from '#amplify/server/utils/amplify'
+ *
+ * export default defineEventHandler(async (event) => {
+ *   const stripeEvent = await readBody(event)
+ *
+ *   return await withAmplifyPublic(async (contextSpec) => {
+ *     const client = getServerPublicDataClient()
+ *     await client.models.UserSubscription.update(contextSpec, {
+ *       userId: stripeEvent.customerId,
+ *       status: stripeEvent.status
+ *     })
+ *     return { success: true }
+ *   })
+ * })
+ * ```
+ *
+ * WHY THIS DIFFERS FROM OFFICIAL DOCS:
+ * =====================================
+ * Official Amplify docs show creating clients without authMode, then specifying
+ * it per-operation. Our approach creates clients with fixed authMode for:
+ *
+ * - Fail-safety: Plugin client always uses userPool, can't accidentally use API key
+ * - Clarity: Separate helpers for different auth modes (userPool vs apiKey)
+ * - Team safety: Explicit separation prevents auth mode confusion
+ *
+ * Both approaches are valid; ours prioritizes safety and clarity over flexibility.
  */
 
 // 1) Parse SSR config (ResourceConfig)
@@ -50,9 +112,25 @@ const getAmplifyAuthKeys = (lastAuthUser: string) =>
     .map(key => 'CognitoIdentityServiceProvider.' + userPoolClientId + '.' + lastAuthUser + '.' + key)
     .concat(lastAuthUserCookieName)
 
-// 3) Create server-side Data/GraphQL clients with explicit config
-const gqlServerClient = generateClient({ config: amplifyConfig, authMode: 'userPool' })
-const dataServerClient = generateClient<Schema>({ config: amplifyConfig, authMode: 'userPool' })
+/**
+ * Create server-side GraphQL client with User Pool authentication
+ *
+ * This client is designed for authenticated user operations where we need
+ * to know WHO the user is and apply owner-based authorization rules.
+ *
+ * authMode: 'userPool' ensures:
+ * - Cognito JWT tokens are included in requests
+ * - User identity (userId, email, claims) is available in resolvers
+ * - Owner-based @auth rules work correctly
+ * - Private data access (@auth private) is enabled
+ *
+ * For public operations (webhooks, public data), use getServerPublicDataClient()
+ * from server/utils/amplify.ts which uses authMode: 'apiKey'
+ */
+const gqlServerClient = generateClient<Schema>({
+  config: amplifyConfig,
+  authMode: 'userPool' // Override API_KEY default for authenticated operations
+})
 
 export default defineNuxtPlugin({
   name: 'amplify.server',
@@ -152,31 +230,18 @@ export default defineNuxtPlugin({
           },
 
           /**
-           * DATA (server)
-           * Use withContext(...) to run any Data/models call in the isolated
-           * server context so the request is authenticated.
-           *
-           * Example:
-           *   const user = await $Amplify.Data.withContext(ctx =>
-           *     $Amplify.Data.client.models.User.get({ id: 'xyz' }, ctx)
-           *   )
-           */
-          Data: {
-            client: dataServerClient,
-            withContext: <T>(callback: (contextSpec: any) => T | Promise<T>) =>
-              runWithAmplifyServerContext<T>(amplifyConfig, libraryOptions, callback)
-          },
-
-          /**
            * GRAPHQL (server)
            * A thin wrapper that executes graphql() inside the server context.
-           * Useful for custom queries/mutations/subscriptions beyond models.
+           * Provides access to both custom queries/mutations and typed models.
            *
-           * Example:
+           * Example (custom query):
            *   const res = await $Amplify.GraphQL.client.graphql({
            *     query: `query GetX($id: ID!) { getX(id:$id) { id name } }`,
            *     variables: { id: '123' }
            *   })
+           *
+           * Example (typed models):
+           *   const users = await $Amplify.GraphQL.client.models.User.list()
            */
           GraphQL: {
             client: {

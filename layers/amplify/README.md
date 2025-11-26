@@ -5,6 +5,16 @@ AWS Amplify Gen2 integration layer for Nuxt 3 applications. This layer provides 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Authorization Strategy Guide](#authorization-strategy-guide)
+  - [Understanding authMode](#understanding-authmode)
+  - [Available Authorization Modes](#available-authorization-modes)
+  - [Our Implementation Strategy](#our-implementation-strategy)
+  - [When to Use Each authMode](#when-to-use-each-authmode)
+  - [Implementation Patterns](#implementation-patterns)
+  - [Real-World Use Cases](#real-world-use-cases)
+  - [Common Mistakes to Avoid](#common-mistakes-to-avoid)
+  - [Troubleshooting](#troubleshooting)
+  - [Quick Reference](#quick-reference)
 - [Architecture](#architecture)
 - [Plugins](#plugins)
 - [Utils & GraphQL](#utils--graphql)
@@ -21,6 +31,294 @@ The Amplify layer integrates AWS Amplify Gen2 with Nuxt 3, providing:
 - 🖥️ **SSR Support** - Server-side rendering compatibility
 - 📱 **Generated Types** - Auto-generated TypeScript types from schema
 - ⚡ **Pre-configured Client** - Ready-to-use Amplify client
+
+## Authorization Strategy Guide
+
+### Understanding authMode
+
+The `authMode` parameter determines **how** a request is authenticated against your AWS AppSync GraphQL API. Our `amplify_outputs.json` specifies:
+
+```json
+"default_authorization_type": "API_KEY"
+```
+
+This means requests default to API Key authentication (public access) unless you explicitly override it.
+
+### Available Authorization Modes
+
+| Mode | Purpose | User Context | Best For |
+|------|---------|--------------|----------|
+| `apiKey` | Public access | ❌ No | Public data, webhooks, server operations without user identity |
+| `userPool` | Authenticated users | ✅ Yes (userId, email, claims) | User-specific operations, owner-based authorization |
+| `iam` | AWS service-to-service | ✅ Yes (AWS credentials) | Lambda functions, AWS service integration |
+
+### Our Implementation Strategy
+
+**Why we explicitly specify `authMode: 'userPool'`:**
+
+1. ✅ **Client-side operations** are typically performed by authenticated users
+2. ✅ **User identity context** (userId, email, claims) is essential for most operations
+3. ✅ **Owner-based authorization rules** (`@auth` directives) require user context
+4. ✅ **Private data access** requires authenticated user sessions
+
+**This differs from official documentation examples** which show creating clients without `authMode` and specifying it per-operation. Our approach prioritizes:
+- **Fail-safety**: Can't accidentally use wrong auth mode
+- **Simplicity**: Less verbose, clearer intent
+- **Team clarity**: Explicit about authentication expectations
+
+### When to Use Each authMode
+
+#### Use `authMode: 'userPool'` when:
+- ✅ Operating on behalf of an authenticated user
+- ✅ Need user identity context (userId, email, claims)
+- ✅ Applying owner-based authorization rules (`allow: "owner"`)
+- ✅ Accessing private data (`allow: "private"`)
+- ✅ Group-based permissions (`allow: "groups"`)
+
+**Examples:**
+- Fetching user's own profile
+- Creating user-owned resources
+- Updating subscription data for logged-in user
+
+#### Use `authMode: 'apiKey'` when:
+- ✅ Public data access (no authentication required)
+- ✅ Server operations without user context (webhooks, background jobs)
+- ✅ Operations with `allow: "public", provider: "apiKey"` rules
+
+**Examples:**
+- Stripe webhook updating subscription status
+- Public listing of subscription plans
+- Background job processing payments
+
+### Implementation Patterns
+
+#### Client-Side (Browser)
+
+Our default client uses `userPool` authentication:
+
+```typescript
+// In components/pages - uses userPool by default
+const { $Amplify } = useNuxtApp()
+
+const { data } = await $Amplify.GraphQL.client.models.UserProfile.get({
+  userId: currentUser.value
+})
+```
+
+**To use a different authMode on the client:**
+
+```typescript
+import { generateClient } from 'aws-amplify/data'
+import type { Schema } from '@starter-nuxt-amplify-saas/backend/schema'
+import outputs from '~/layers/amplify/amplify_outputs.json'
+
+// Create a separate client with apiKey auth
+const publicClient = generateClient<Schema>({
+  config: outputs,
+  authMode: 'apiKey'
+})
+
+// Now use it for public operations
+const { data } = await publicClient.models.SubscriptionPlan.list({
+  filter: { isActive: { eq: true } }
+})
+```
+
+#### Server-Side API Routes - Authenticated
+
+```typescript
+// server/api/profile.get.ts
+import { withAmplifyAuth, getServerUserPoolDataClient } from '#amplify/server/utils/amplify'
+
+export default defineEventHandler(async (event) => {
+  return await withAmplifyAuth(event, async (contextSpec) => {
+    const client = getServerUserPoolDataClient()
+
+    const { data } = await client.models.UserProfile.get(contextSpec, {
+      userId: event.context.userId
+    })
+
+    return { profile: data }
+  })
+})
+```
+
+#### Server-Side API Routes - Public
+
+```typescript
+// server/api/public/plans.get.ts
+import { withAmplifyPublic, getServerPublicDataClient } from '#amplify/server/utils/amplify'
+
+export default defineEventHandler(async (event) => {
+  return await withAmplifyPublic(async (contextSpec) => {
+    const client = getServerPublicDataClient()
+
+    const { data } = await client.models.SubscriptionPlan.list(contextSpec, {
+      filter: { isActive: { eq: true } }
+    })
+
+    return { plans: data }
+  })
+})
+```
+
+#### Server-Side API Routes - Using Different authMode
+
+If you need to use a different `authMode` than the default in server routes:
+
+```typescript
+// server/api/mixed-auth.post.ts
+import { generateClient } from 'aws-amplify/data/server'
+import type { Schema } from '@starter-nuxt-amplify-saas/backend/schema'
+import { withAmplifyAuth, amplifyConfig } from '#amplify/server/utils/amplify'
+
+export default defineEventHandler(async (event) => {
+  return await withAmplifyAuth(event, async (contextSpec) => {
+    // Option 1: Create a client with specific authMode
+    const publicClient = generateClient<Schema>({
+      config: amplifyConfig,
+      authMode: 'apiKey'
+    })
+
+    // Option 2: Create authenticated client
+    const userClient = generateClient<Schema>({
+      config: amplifyConfig,
+      authMode: 'userPool'
+    })
+
+    // Use the appropriate client for each operation
+    const publicData = await publicClient.models.SubscriptionPlan.list(contextSpec)
+    const userData = await userClient.models.UserProfile.get(contextSpec, { userId: 'user-123' })
+
+    return { publicData, userData }
+  })
+})
+```
+
+### Real-World Use Cases
+
+#### 1. User Profile Page (userPool)
+```typescript
+// pages/profile.vue
+const { $Amplify } = useNuxtApp()
+
+// Authenticated - uses userPool by default
+const { data: profile } = await $Amplify.GraphQL.client.models.UserProfile.get({
+  userId: user.value.username
+})
+```
+
+#### 2. Public Pricing Page (apiKey)
+```typescript
+// pages/pricing.vue
+import { generateClient } from 'aws-amplify/data'
+import type { Schema } from '@starter-nuxt-amplify-saas/backend/schema'
+import outputs from '~/layers/amplify/amplify_outputs.json'
+
+// Create public client for pricing plans
+const publicClient = generateClient<Schema>({
+  config: outputs,
+  authMode: 'apiKey'
+})
+
+const { data: plans } = await publicClient.models.SubscriptionPlan.list({
+  filter: { isActive: { eq: true } }
+})
+```
+
+#### 3. Stripe Webhook (apiKey)
+```typescript
+// server/api/webhooks/stripe.post.ts
+import { withAmplifyPublic, getServerPublicDataClient } from '#amplify/server/utils/amplify'
+
+export default defineEventHandler(async (event) => {
+  const stripeEvent = await readBody(event)
+
+  // Verify stripe signature first!
+  // ... signature verification code ...
+
+  return await withAmplifyPublic(async (contextSpec) => {
+    const client = getServerPublicDataClient()
+
+    // Update subscription using API key (no user session needed)
+    const { data, errors } = await client.models.UserSubscription.update(contextSpec, {
+      userId: stripeEvent.customer,
+      status: stripeEvent.subscription_status
+    })
+
+    if (errors) throw new Error('Failed to update subscription')
+    return { success: true, data }
+  })
+})
+```
+
+### Common Mistakes to Avoid
+
+❌ **Don't** forget to specify authMode for authenticated operations:
+```typescript
+// BAD: Will use API_KEY default, user identity not available
+const client = generateClient<Schema>({ config: outputs })
+await client.models.UserProfile.get({ userId: 'xxx' })
+```
+
+✅ **Do** explicitly specify authMode for user operations:
+```typescript
+// GOOD: Uses User Pool auth, user identity available
+const client = generateClient<Schema>({ config: outputs, authMode: 'userPool' })
+await client.models.UserProfile.get({ userId: 'xxx' })
+```
+
+❌ **Don't** use User Pool auth for webhooks:
+```typescript
+// BAD: Webhook doesn't have user session, will fail
+withAmplifyAuth(event, async (contextSpec) => { ... })
+```
+
+✅ **Do** use API Key auth for webhooks:
+```typescript
+// GOOD: Webhook uses API key authentication
+withAmplifyPublic(async (contextSpec) => { ... })
+```
+
+### Troubleshooting
+
+#### Error: "Not Authorized to access..."
+
+**Cause**: Wrong authMode for the operation
+
+**Solution**:
+- Check your schema's `@auth` rules
+- Verify you're using the correct authMode (`userPool` vs `apiKey`)
+- Ensure user is authenticated for `userPool` operations
+
+#### Error: "No current user"
+
+**Cause**: Attempting `userPool` operation without authenticated session
+
+**Solution**:
+- Verify user is signed in
+- Check authentication cookies are being sent
+- For webhooks/public endpoints, use `apiKey` instead
+
+#### Data returns null despite no errors
+
+**Cause**: Authorization rules preventing access
+
+**Solution**:
+- Verify `@auth` rules allow your authMode
+- Check owner fields match authenticated user
+- Confirm API key has proper permissions in schema
+
+### Quick Reference
+
+| Scenario | authMode | Helper Function |
+|----------|----------|-----------------|
+| User profile operations | `userPool` | `getServerUserPoolDataClient()` |
+| Public pricing page | `apiKey` | `getServerPublicDataClient()` |
+| Stripe webhooks | `apiKey` | `withAmplifyPublic()` |
+| Authenticated API routes | `userPool` | `withAmplifyAuth()` |
+| Background jobs | `apiKey` | `withAmplifyPublic()` |
+| User-owned data | `userPool` | `getServerUserPoolDataClient()` |
 
 ## Architecture
 
