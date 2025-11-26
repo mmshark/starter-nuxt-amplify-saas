@@ -1,10 +1,6 @@
-import { onMounted } from 'vue'
 import { createSharedComposable } from '@vueuse/core'
-import { getCurrentUser, fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth/server'
-import { generateClient } from 'aws-amplify/data/server'
 import * as queries from '../../amplify/utils/graphql/queries'
 import * as mutations from '../../amplify/utils/graphql/mutations'
-import { withAmplifyAuth, withAmplifyPublic } from '../../amplify/server/utils/amplify'
 import { handleAuthError } from '../utils'
 
 // Base state: Use useState for SSR-safe, serializable shared state
@@ -75,7 +71,7 @@ const useUserState = () => ({
  * @method confirmOTP - Complete OTP/TOTP challenge during sign in (client-side only)
  * @method signOut - Sign out the current user (client-side only)
  * @method updateAttributes - Update Cognito user attributes
- * @method fetchUser - Fetch latest user data information (client-side fetches full auth data, server-side fetches basic data)
+ * @method fetchUser - Fetch latest user data information (works universally on both client and server)
  */
 
 const _useUser = () => {
@@ -127,11 +123,14 @@ const _useUser = () => {
       throw new Error('signUp can only be called on the client side')
     }
 
+    // Capture useNuxtApp before async operations
+    const nuxtApp = useNuxtApp()
+
     userState.loading.value = true
     userState.error.value = null
 
     try {
-      const result = await useNuxtApp().$Amplify.Auth.signUp(data)
+      const result = await nuxtApp.$Amplify.Auth.signUp(data)
       userState.authStep.value = result.nextStep?.signUpStep || 'authenticated'
       return result
     } catch (err) {
@@ -151,11 +150,14 @@ const _useUser = () => {
       throw new Error('signIn can only be called on the client side')
     }
 
+    // Capture useNuxtApp before async operations
+    const nuxtApp = useNuxtApp()
+
     userState.loading.value = true
     userState.error.value = null
 
     try {
-      const result = await useNuxtApp().$Amplify.Auth.signIn(credentials)
+      const result = await nuxtApp.$Amplify.Auth.signIn(credentials)
       userState.currentUser.value = serializeCurrentUser(result.user)
 
       // Handle auth challenges
@@ -194,11 +196,14 @@ const _useUser = () => {
       throw new Error('confirmOTP can only be called on the client side')
     }
 
+    // Capture useNuxtApp before async operations
+    const nuxtApp = useNuxtApp()
+
     userState.loading.value = true
     userState.error.value = null
 
     try {
-      const result = await useNuxtApp().$Amplify.Auth.confirmSignIn(code)
+      const result = await nuxtApp.$Amplify.Auth.confirmSignIn(code)
       userState.authStep.value = 'authenticated'
       await fetchUser()
       return result
@@ -219,11 +224,14 @@ const _useUser = () => {
       throw new Error('resetPassword can only be called on the client side')
     }
 
+    // Capture useNuxtApp before async operations
+    const nuxtApp = useNuxtApp()
+
     userState.loading.value = true
     userState.error.value = null
 
     try {
-      const result = await useNuxtApp().$Amplify.Auth.resetPassword({ username })
+      const result = await nuxtApp.$Amplify.Auth.resetPassword({ username })
       return { success: true, nextStep: result.nextStep }
     } catch (err) {
       console.error('Error resetting password:', err)
@@ -242,11 +250,14 @@ const _useUser = () => {
       throw new Error('confirmResetPassword can only be called on the client side')
     }
 
+    // Capture useNuxtApp before async operations
+    const nuxtApp = useNuxtApp()
+
     userState.loading.value = true
     userState.error.value = null
 
     try {
-      const result = await useNuxtApp().$Amplify.Auth.confirmResetPassword({
+      const result = await nuxtApp.$Amplify.Auth.confirmResetPassword({
         username,
         confirmationCode,
         newPassword
@@ -269,11 +280,14 @@ const _useUser = () => {
       throw new Error('signOut can only be called on the client side')
     }
 
+    // Capture useNuxtApp before async operations
+    const nuxtApp = useNuxtApp()
+
     userState.loading.value = true
     userState.error.value = null
 
     try {
-      await useNuxtApp().$Amplify.Auth.signOut()
+      await nuxtApp.$Amplify.Auth.signOut()
       userState.isAuthenticated.value = false
       userState.authStep.value = 'initial'
       userState.userAttributes.value = null
@@ -294,12 +308,15 @@ const _useUser = () => {
    * Update Cognito user attributes
    */
   const updateAttributes = async (attributes) => {
+    // Capture useNuxtApp before async operations
+    const nuxtApp = useNuxtApp()
+
     userState.loading.value = true
     userState.error.value = null
 
     try {
       if (import.meta.client) {
-        await useNuxtApp().$Amplify.Auth.updateUserAttributes(attributes)
+        await nuxtApp.$Amplify.Auth.updateUserAttributes(attributes)
         await fetchUser()
       }
       if (import.meta.server) {
@@ -317,32 +334,20 @@ const _useUser = () => {
   /**
    * Fetch user profile data from GraphQL
    */
-  const fetchUserProfile = async (event?: H3Event<EventHandlerRequest>) => {
+  const fetchUserProfile = async (event?: H3Event<EventHandlerRequest>, nuxtApp?: ReturnType<typeof useNuxtApp>) => {
     if (!userState.isAuthenticated.value || !userState.userAttributes.value?.sub) {
       return
     }
 
     try {
       const userId = userState.userAttributes.value.sub
+      const app = nuxtApp || useNuxtApp()
 
-      if (import.meta.client) {
-        const result = await useNuxtApp().$Amplify.GraphQL.client.graphql({
-          query: queries.getUserProfile,
-          variables: { userId: userId }
-        })
-        userState.userProfile.value = result.data?.getUserProfile || null
-      }
-
-      if (import.meta.server) {
-        const result = await withAmplifyAuth(event, async (contextSpec) => {
-          const client = generateClient({ authMode: 'userPool' })
-          return await client.graphql(contextSpec, {
-            query: queries.getUserProfile,
-            variables: { userId: userId }
-          })
-        })
-        userState.userProfile.value = result.data?.getUserProfile || null
-      }
+      const result = await app.$Amplify.GraphQL.client.graphql({
+        query: queries.getUserProfile,
+        variables: { userId: userId }
+      })
+      userState.userProfile.value = result.data?.getUserProfile || null
     } catch (err) {
       console.error('Error fetching user data:', err)
       userState.userProfile.value = null
@@ -357,31 +362,25 @@ const _useUser = () => {
       throw new Error('User not authenticated')
     }
 
+    // Capture useNuxtApp before any async operations
+    const nuxtApp = useNuxtApp()
+
     userState.loading.value = true
     userState.error.value = null
 
     try {
       const userId = userState.userAttributes.value.sub
 
-      if (import.meta.client) {
-        const result = await useNuxtApp().$Amplify.GraphQL.client.graphql({
-          query: mutations.updateUserProfile,
-          variables: {
-            input: {
-              id: userId,
-              ...profileData
-            }
+      const result = await nuxtApp.$Amplify.GraphQL.client.graphql({
+        query: mutations.updateUserProfile,
+        variables: {
+          input: {
+            id: userId,
+            ...profileData
           }
-        })
-        userState.userProfile.value = result.data?.updateUserProfile || null
-      }
-
-      if (import.meta.server) {
-        // Note: For server updates, we'd need the H3Event context
-        // This is a limitation that needs to be addressed in the calling code
-        console.warn('Server-side user profile updates require H3Event context')
-        throw new Error('Server-side user profile updates not supported without H3Event context')
-      }
+        }
+      })
+      userState.userProfile.value = result.data?.updateUserProfile || null
     } catch (err) {
       console.error('Error updating user data:', err)
       userState.error.value = handleAuthError(err)
@@ -395,53 +394,35 @@ const _useUser = () => {
    * Fetch all user data including session, tokens, and attributes
    */
   const fetchUser = async (event?: H3Event<EventHandlerRequest>) => {
+    // Capture useNuxtApp BEFORE any async operations to preserve Nuxt context
+    const nuxtApp = useNuxtApp()
+
     userState.loading.value = true
     userState.error.value = null
 
     try {
-      if (import.meta.client) {
-        // Get current auth session
-        const authSession = await useNuxtApp().$Amplify.Auth.fetchAuthSession()
-        userState.authSession.value = serializeAuthSession(authSession)
-        userState.isAuthenticated.value = authSession.tokens !== undefined
+      // Get current auth session
+      const authSession = await nuxtApp.$Amplify.Auth.fetchAuthSession()
+      userState.authSession.value = serializeAuthSession(authSession)
+      userState.isAuthenticated.value = authSession.tokens !== undefined
 
-        if (userState.isAuthenticated.value) {
-          userState.tokens.value = serializeTokens(authSession.tokens)
+      if (userState.isAuthenticated.value) {
+        userState.tokens.value = serializeTokens(authSession.tokens)
 
-          // Get current user
-          const currentUser = await useNuxtApp().$Amplify.Auth.getCurrentUser()
-          userState.currentUser.value = serializeCurrentUser(currentUser)
+        // Get current user
+        const currentUser = await nuxtApp.$Amplify.Auth.getCurrentUser()
+        userState.currentUser.value = serializeCurrentUser(currentUser)
 
-          // Get user attributes
-          const userAttributes = await useNuxtApp().$Amplify.Auth.fetchUserAttributes()
-          userState.userAttributes.value = userAttributes
+        // Get user attributes
+        const userAttributes = await nuxtApp.$Amplify.Auth.fetchUserAttributes()
+        userState.userAttributes.value = userAttributes
 
-          // Get user data from GraphQL
-          await fetchUserProfile(event)
-        }
+        // Get user data from GraphQL - pass nuxtApp to avoid re-calling useNuxtApp()
+        await fetchUserProfile(event, nuxtApp)
       }
+
+      // Return data for server-side usage if needed
       if (import.meta.server) {
-        const authSession = await withAmplifyAuth(event, contextSpec =>
-          fetchAuthSession(contextSpec)
-        )
-        userState.authSession.value = serializeAuthSession(authSession)
-        userState.isAuthenticated.value = authSession.tokens !== undefined
-
-        if (userState.isAuthenticated.value) {
-          userState.tokens.value = serializeTokens(authSession.tokens)
-          userState.currentUser.value = serializeCurrentUser(
-            await withAmplifyAuth(event, contextSpec =>
-              getCurrentUser(contextSpec)
-            )
-          )
-          userState.userAttributes.value = await withAmplifyAuth(event, contextSpec =>
-            fetchUserAttributes(contextSpec)
-          )
-
-          // Get user data from GraphQL
-          await fetchUserProfile(event)
-        }
-
         return {
           isAuthenticated: userState.isAuthenticated.value,
           authSession: userState.authSession.value,
@@ -457,13 +438,6 @@ const _useUser = () => {
     } finally {
       userState.loading.value = false
     }
-  }
-
-  // Check auth state on mount
-  if (import.meta.client) {
-    onMounted(() => {
-      fetchUser()
-    })
   }
 
   return {

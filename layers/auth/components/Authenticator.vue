@@ -117,9 +117,11 @@ const verifySchema = z.object({
 })
 
 async function onSignInSubmit(event: FormSubmitEvent<z.infer<typeof signInSchema>>) {
+  // Capture useNuxtApp before async operations
+  const { Auth } = useNuxtApp().$Amplify
+
   loading.value = true
   try {
-    const { Auth } = useNuxtApp().$Amplify
     const { isSignedIn, nextStep } = await Auth.signIn({
       username: event.data.email,
       password: event.data.password
@@ -157,9 +159,11 @@ async function onSignInSubmit(event: FormSubmitEvent<z.infer<typeof signInSchema
 }
 
 async function onSignUpSubmit(event: FormSubmitEvent<z.infer<typeof signUpSchema>>) {
+  // Capture useNuxtApp before async operations
+  const { Auth } = useNuxtApp().$Amplify
+
   loading.value = true
   try {
-    const { Auth } = useNuxtApp().$Amplify
     console.log('onSignUpSubmit', event.data.email, event.data.password, event.data.firstName, event.data.lastName)
     const { isSignUpComplete, nextStep } = await Auth.signUp({
       username: event.data.email,
@@ -193,9 +197,11 @@ async function onSignUpSubmit(event: FormSubmitEvent<z.infer<typeof signUpSchema
 }
 
 async function onVerifySubmit(event: FormSubmitEvent<z.infer<typeof verifySchema>>) {
+  // Capture useNuxtApp before async operations
+  const { Auth } = useNuxtApp().$Amplify
+
   loading.value = true
   try {
-    const { Auth } = useNuxtApp().$Amplify
     await Auth.confirmSignUp({
       username: userEmail.value,
       confirmationCode: event.data.code
@@ -218,9 +224,11 @@ async function onVerifySubmit(event: FormSubmitEvent<z.infer<typeof verifySchema
 }
 
 async function resendCode() {
+  // Capture useNuxtApp before async operations
+  const { Auth } = useNuxtApp().$Amplify
+
   resendLoading.value = true
   try {
-    const { Auth } = useNuxtApp().$Amplify
     await Auth.resendSignUpCode({ username: userEmail.value })
     toast.add({
       title: 'Success',
