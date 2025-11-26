@@ -12,7 +12,7 @@
   - [3.1 Workspace-based Monorepo](#31-workspace-based-monorepo)
   - [3.2 Nuxt Layers Architecture](#32-nuxt-layers-architecture)
   - [3.3 AWS Amplify Gen2 Backend Architecture](#33-aws-amplify-gen2-backend-architecture)
-  - [3.4 tRPC API Support](#34-trpc-api-support)
+  - [3.4 Server API Architecture](#34-server-api-architecture)
   - [3.5 Environment Management](#35-environment-management)
   - [3.6 SaaS Configuration](#36-saas-configuration)
   - [3.7 Deployment Architecture](#37-deployment-architecture)
@@ -75,7 +75,6 @@ This Nuxt Amplify SaaS Starter offers aproduction-ready SaaS starter kit built w
 - **Amplify Layer** (`layers/amplify/`) - AWS integration utilities
 - **UIX Layer** (`layers/uix/`) - UI components and design system
 - **I18n Layer** (`layers/i18n/`) - Internationalization support
-- **tRPC Layer** (`layers/trpc/`) - Type-safe API layer for custom business logic
 
 *Feature Layers (Business Capabilities)*:
 - **Auth Layer** (`layers/auth/`) - Complete authentication system
@@ -215,26 +214,25 @@ apps/backend/
 └── tsconfig.json
 ```
 
-### 3.4 tRPC API Support
+### 3.4 Server API Architecture
 
-The tRPC layer provides end-to-end type-safe APIs for custom business logic that extends beyond basic Amplify GraphQL operations.
+The application uses classic Nuxt `server/api` endpoints for custom business logic that extends beyond basic Amplify GraphQL operations.
 
 **Use Cases**:
 - **Complex Business Logic**: Multi-step operations combining Amplify GraphQL + external services (e.g., Stripe checkout creation that updates both Amplify profile and creates Stripe session)
 - **Input Validation**: Runtime validation with Zod schemas for complex request parameters (e.g., enums, nested objects, custom validation rules)
-- **Third-Party Integrations**: Type-safe wrappers for external APIs (Stripe, SendGrid, analytics services)
+- **Third-Party Integrations**: Wrappers for external APIs (Stripe, SendGrid, analytics services)
 - **Data Aggregation**: Operations that combine data from multiple sources (Amplify + Stripe + cache)
 
 **NOT for**:
 - ❌ Direct Amplify resource access (use GraphQL directly)
-- ❌ External webhooks (must use REST for external services like Stripe webhooks)
 - ❌ Simple CRUD operations already handled by Amplify GraphQL
 
 **Architecture Pattern**:
 ```
 Amplify GraphQL → Direct AWS resources (UserProfile, SubscriptionPlan, etc.)
-tRPC Procedures → Custom business logic (Stripe integration, aggregations, etc.)
-REST Endpoints → External webhooks and public APIs
+Server API Endpoints → Custom business logic (Stripe integration, aggregations, etc.)
+Webhook Endpoints → External webhooks and public APIs (Stripe webhooks)
 ```
 
 ### 3.5 Environment Management

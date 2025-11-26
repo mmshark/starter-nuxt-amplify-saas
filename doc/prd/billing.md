@@ -16,11 +16,10 @@
   - [3.1 Data Model](#31-data-model)
   - [3.2 Composables](#32-composables)
   - [3.3 Components](#33-components)
-  - [3.4 tRPC Procedures](#34-trpc-procedures)
-  - [3.5 REST API Routes](#35-rest-api-routes)
+  - [3.4 Server API Endpoints](#34-server-api-endpoints)
+  - [3.5 Webhook Endpoint](#35-webhook-endpoint)
   - [3.6 Data Access](#36-data-access)
   - [3.7 Server Utilities](#37-server-utilities)
-  - [3.8 tRPC Subscription Middleware](#38-trpc-subscription-middleware)
 - [4. Testing](#4-testing)
   - [4.1 Unit Tests (Minimal)](#41-unit-tests-minimal)
   - [4.2 E2E Tests (Primary)](#42-e2e-tests-primary)
@@ -98,13 +97,11 @@ The Billing Layer provides **workspace-level** subscription management.
 - `<InvoicesList>` - Display billing history and invoices
 - `<PaymentMethod>` - Show and manage payment method
 
-**tRPC Procedures** (`layers/billing/server/trpc/routers/billing.ts`):
-- `billing.createCheckout` (mutation) - Create Stripe Checkout session with Amplify profile management
-- `billing.createPortalSession` (mutation) - Create Customer Portal session with flow configuration
-- `billing.getSubscription` (query) - Get current subscription status (Amplify + Stripe aggregation)
-- `billing.listInvoices` (query) - Get user's billing invoices with pagination and filtering
-
-**REST API Routes** (external integrations only):
+**Server API Endpoints** (`layers/billing/server/api/billing/`):
+- `POST /api/billing/checkout` - Create Stripe Checkout session with Amplify profile management
+- `POST /api/billing/portal` - Create Customer Portal session with flow configuration
+- `GET /api/billing/subscription` - Get current subscription status (Amplify + Stripe aggregation)
+- `GET /api/billing/invoices` - Get user's billing invoices with pagination and filtering
 - `POST /api/billing/webhook` - Handle Stripe webhook events (required by Stripe)
 
 **Data Access**:
@@ -516,169 +513,230 @@ Display billing history and invoices with download links.
 </template>
 ```
 
-### 3.5 tRPC Procedures
+### 3.4 Server API Endpoints
 
-**`billing.createCheckout`** (mutation, protected)
+**Location**: `layers/billing/server/api/billing/`
 
-Create Stripe Checkout session for subscription purchase with Amplify profile management.
+**Architecture**: Nuxt server/api endpoints with AWS Amplify Data (GraphQL/AppSync/DynamoDB) and Stripe API integration
 
-**Input Schema**
+**Endpoints**:
+- `POST /api/billing/checkout` - Create Stripe Checkout session
+- `POST /api/billing/portal` - Create Customer Portal session
+- `GET /api/billing/subscription` - Get current subscription status
+- `GET /api/billing/invoices` - List billing invoices
+- `POST /api/billing/webhook` - Handle Stripe webhook events
+
+**Implementation Pattern**:
 ```typescript
-z.object({
-  workspaceId: z.string().min(1),
-  priceId: z.string().regex(/^price_[a-zA-Z0-9]+$/),
-  planId: z.string().min(1),
-  billingInterval: z.enum(['month', 'year'])
-})
-```
+// All endpoints use withAmplifyPublic for Amplify Data context
+import { getServerPublicDataClient, withAmplifyPublic } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
 
-**Output Schema**
-```typescript
-z.object({
-  success: z.boolean(),
-  data: z.object({
-    url: z.string().url(),
-    sessionId: z.string()
+export default defineEventHandler(async (event) => {
+  return await withAmplifyPublic(async (contextSpec) => {
+    const client = getServerPublicDataClient()
+    // GraphQL operations via Amplify Data client
+    await client.models.WorkspaceSubscription.get(contextSpec, { ... })
   })
 })
 ```
 
-**Behavior**
-- Protected procedure (requires authentication via tRPC context)
+**Authentication**: Handled by `server/middleware/auth.ts` for all `/api/billing` routes (except webhook)
+
+**Validation**: Zod schemas for request body validation
+
+---
+
+#### `POST /api/billing/checkout`
+
+Create Stripe Checkout session for subscription purchase with Amplify profile management.
+
+**Request Body**:
+```typescript
+{
+  workspaceId: string,      // Workspace ID (required)
+  priceId: string,          // Stripe Price ID (required, format: price_*)
+  planId: string,           // Plan ID (required)
+  billingInterval: 'month' | 'year'  // Billing interval (required)
+}
+```
+
+**Response**:
+```typescript
+{
+  success: boolean,
+  data: {
+    url: string,            // Checkout session URL
+    sessionId: string       // Stripe session ID
+  }
+}
+```
+
+**Behavior**:
+- Requires authentication (via auth middleware)
 - Validates user is Owner of the `workspaceId`
 - Fetches or creates Stripe Customer ID in `WorkspaceSubscription` (Amplify GraphQL)
 - Creates Stripe Checkout session with subscription mode
 - Returns checkout URL for client redirect
 - Validates input with Zod runtime validation
 
+**Error Responses**:
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not workspace owner
+- `400 Bad Request` - Invalid input data
+- `500 Internal Server Error` - Stripe API error
+
 ---
 
-**`billing.createPortalSession`** (mutation, protected)
+#### `POST /api/billing/portal`
 
 Create Stripe Customer Portal session with flow configuration.
 
-**Input Schema**
+**Request Body**:
 ```typescript
-z.object({
-  workspaceId: z.string().min(1),
-  flow_type: z.enum([
-    'subscription_update',
-    'subscription_cancel',
-    'payment_method_update',
-    'subscription_update_confirm'
-  ]).default('subscription_update'),
-  return_url: z.string().url().optional(),
-  configuration_id: z.string().optional(),
-  discount_id: z.string().optional()
-})
+{
+  workspaceId: string,                          // Workspace ID (required)
+  flow_type?: 'subscription_update' |           // Portal flow type (optional)
+              'subscription_cancel' |
+              'payment_method_update' |
+              'subscription_update_confirm',
+  return_url?: string,                          // Return URL (optional)
+  configuration_id?: string,                    // Portal configuration ID (optional)
+  discount_id?: string                          // Discount ID (optional)
+}
 ```
 
-**Output Schema**
+**Response**:
 ```typescript
-z.object({
-  success: z.boolean(),
-  data: z.object({
-    url: z.string().url(),
-    created: z.number(),
-    expires_at: z.number(),
-    customer: z.string(),
-    flow_type: z.string(),
-    return_url: z.string()
-  })
-})
+{
+  success: boolean,
+  data: {
+    url: string,            // Portal session URL
+    created: number,        // Unix timestamp
+    expires_at: number,     // Unix timestamp
+    customer: string,       // Stripe customer ID
+    flow_type: string,      // Flow type used
+    return_url: string      // Return URL
+  }
+}
 ```
 
-**Behavior**
-- Protected procedure (requires authentication)
+**Behavior**:
+- Requires authentication
 - Validates user is Owner of the `workspaceId`
 - Fetches Stripe Customer ID from `WorkspaceSubscription` (Amplify GraphQL)
 - Validates customer exists before creating portal session
 - Configures portal session based on flow_type
 - Returns portal URL and session metadata
 
+**Error Responses**:
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not workspace owner
+- `404 Not Found` - No Stripe customer found
+- `500 Internal Server Error` - Stripe API error
+
 ---
 
-**`billing.getSubscription`** (query, protected)
+#### `GET /api/billing/subscription`
 
-Get current user's subscription status with data aggregation from Amplify and Stripe.
+Get current workspace subscription status with data aggregation from Amplify and Stripe.
 
-**Output Schema**
+**Query Parameters**:
 ```typescript
-z.object({
-  success: z.boolean(),
-  data: z.object({
-    subscription: z.object({
-      userId: z.string(),
-      planId: z.string(),
-      stripeSubscriptionId: z.string().nullable(),
-      status: z.enum(['active', 'past_due', 'canceled', 'trialing', ...]),
-      currentPeriodStart: z.date(),
-      currentPeriodEnd: z.date().nullable(),
-      cancelAtPeriodEnd: z.boolean()
-    }).nullable(),
-    plan: z.object({
-      planId: z.string(),
-      name: z.string(),
-      monthlyPrice: z.number(),
-      yearlyPrice: z.number(),
-      currency: z.string()
-    }).nullable()
-  })
-})
+{
+  workspaceId: string     // Workspace ID (required)
+}
 ```
 
-**Behavior**
-- Protected procedure (requires authentication)
-- Fetches UserSubscription from Amplify GraphQL
+**Response**:
+```typescript
+{
+  success: boolean,
+  data: {
+    subscription: {
+      workspaceId: string,
+      planId: string,
+      stripeSubscriptionId: string | null,
+      status: 'active' | 'past_due' | 'canceled' | 'trialing' | ...,
+      currentPeriodStart: Date,
+      currentPeriodEnd: Date | null,
+      cancelAtPeriodEnd: boolean
+    } | null,
+    plan: {
+      planId: string,
+      name: string,
+      monthlyPrice: number,
+      yearlyPrice: number,
+      currency: string
+    } | null
+  }
+}
+```
+
+**Behavior**:
+- Requires authentication
+- Validates user is member of the workspace
+- Fetches WorkspaceSubscription from Amplify GraphQL
 - Enriches with SubscriptionPlan details
 - Aggregates data from both Amplify and Stripe sources
 - Returns null if no subscription exists
 
+**Error Responses**:
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not workspace member
+- `404 Not Found` - Workspace not found
+
 ---
 
-**`billing.listInvoices`** (query, protected)
+#### `GET /api/billing/invoices`
 
-Get user's billing invoices with pagination and filtering.
+Get workspace billing invoices with pagination and filtering.
 
-**Input Schema**
+**Query Parameters**:
 ```typescript
-z.object({
-  limit: z.number().min(1).max(100).default(10),
-  startingAfter: z.string().optional()
-})
+{
+  workspaceId: string,           // Workspace ID (required)
+  limit?: number,                // Items per page (1-100, default: 10)
+  startingAfter?: string         // Cursor for pagination (optional)
+}
 ```
 
-**Output Schema**
+**Response**:
 ```typescript
-z.object({
-  success: z.boolean(),
-  data: z.object({
-    invoices: z.array(z.object({
-      id: z.string(),
-      number: z.string().nullable(),
-      date: z.string(),
-      amount: z.number(),
-      currency: z.string(),
-      status: z.string(),
-      downloadUrl: z.string().url().nullable()
-    })),
-    hasMore: z.boolean(),
-    totalCount: z.number()
-  })
-})
+{
+  success: boolean,
+  data: {
+    invoices: Array<{
+      id: string,
+      number: string | null,
+      date: string,              // ISO date string
+      amount: number,
+      currency: string,
+      status: string,
+      downloadUrl: string | null
+    }>,
+    hasMore: boolean,
+    totalCount: number
+  }
+}
 ```
 
-**Behavior**
-- Protected procedure (requires authentication)
+**Behavior**:
+- Requires authentication
+- Validates user is member of the workspace
 - Fetches Stripe Customer ID from Amplify GraphQL
 - Retrieves paid invoices from Stripe API
 - Transforms Stripe invoice data for frontend
 - Supports cursor-based pagination
 - Returns empty array if no customer or invoices
 
+**Error Responses**:
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not workspace member
+- `404 Not Found` - Workspace not found
+
 ---
 
-### 3.6 REST API Routes
+### 3.5 Webhook Endpoint
 
 **`POST /api/billing/webhook`**
 
@@ -806,116 +864,6 @@ export default withSubscription(async (event) => {
 
 ---
 
-### 3.9 tRPC Subscription Middleware
-
-For tRPC procedures, use **custom middleware** instead of `requireSubscription()` / `withSubscription()`.
-
-**Pattern**: Create a `subscriptionProcedure` that extends `protectedProcedure`
-
-**Implementation** (`layers/billing/server/trpc/middleware/subscription.ts`):
-
-```typescript
-import { TRPCError } from '@trpc/server'
-import { protectedProcedure } from '@layers/trpc/server/trpc/trpc'
-import { generateClient } from 'aws-amplify/data/server'
-import type { Schema } from '@starter-nuxt-amplify-saas/backend/amplify/data/resource'
-
-/**
- * Factory function to create subscription-validated tRPC procedures
- * Consistent with REST withSubscription(handler, plans?) wrapper pattern
- *
- * @param allowedPlans - Optional array of plan IDs to restrict access
- * @returns Procedure type with subscription validation middleware
- */
-export const withSubscriptionProcedure = (allowedPlans?: string[]) => {
-  return protectedProcedure.middleware(async ({ ctx, next }) => {
-    const userId = ctx.session.tokens?.idToken?.payload?.sub
-
-    // Fetch subscription from Amplify GraphQL
-    const client = generateClient<Schema>({ authMode: 'userPool' })
-    const { data: subscription } = await client.models.UserSubscription.get(
-      ctx.contextSpec,
-      { userId }
-    )
-
-    // Validate subscription exists and is active
-    if (!subscription || subscription.status !== 'active') {
-      throw new TRPCError({
-        code: 'PAYMENT_REQUIRED',
-        message: 'Active subscription required for this feature'
-      })
-    }
-
-    // If specific plans required, validate plan membership
-    if (allowedPlans && !allowedPlans.includes(subscription.planId)) {
-      throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: `This feature requires: ${allowedPlans.join(' or ')} plan`
-      })
-    }
-
-    return next({
-      ctx: {
-        ...ctx,
-        subscription, // Add validated subscription to context
-      }
-    })
-  })
-}
-```
-
-**Usage in Router**:
-
-```typescript
-// layers/billing/server/trpc/routers/billing.ts
-import { router } from '@layers/trpc/server/trpc/trpc'
-import { withSubscriptionProcedure } from '../middleware/subscription'
-
-export const billingRouter = router({
-  // Any active subscription required
-  getAdvancedFeature: withSubscriptionProcedure()
-    .output(z.object({ data: z.string() }))
-    .query(async ({ ctx }) => {
-      // ctx.subscription is guaranteed to exist and be active
-      return { data: 'Advanced feature data' }
-    }),
-
-  // Specific plans required
-  getPremiumFeature: withSubscriptionProcedure(['premium', 'ultimate'])
-    .output(z.object({ data: z.string() }))
-    .query(async ({ ctx }) => {
-      // ctx.subscription.planId matches one of the allowed plans
-      return { data: 'Premium feature data' }
-    }),
-
-  // Single plan required
-  getUltimateFeature: withSubscriptionProcedure(['ultimate'])
-    .output(z.object({ data: z.string() }))
-    .query(async ({ ctx }) => {
-      // ctx.subscription.planId is 'ultimate'
-      return { data: 'Ultimate-only feature' }
-    }),
-})
-```
-
-**Comparison**:
-
-| Use Case | REST Endpoints | tRPC Procedures |
-|----------|----------------|-----------------|
-| **Direct validator** | `requireSubscription(event, plans?)` | N/A (not needed in tRPC) |
-| **Wrapper pattern - any subscription** | `withSubscription(handler)` | `withSubscriptionProcedure()` |
-| **Wrapper pattern - specific plans** | `withSubscription(handler, ['plan1'])` | `withSubscriptionProcedure(['plan1', 'plan2'])` |
-| **Context access** | Via `event` object | Via `ctx.subscription` |
-
-**Benefits of tRPC Middleware**:
-- ✅ Type-safe subscription context
-- ✅ Composable with other middleware
-- ✅ Reusable across all procedures
-- ✅ Automatic error handling
-- ✅ Better TypeScript inference
-
----
-
 ## 4. Testing
 
 ### 4.1 Unit Tests (Minimal)
@@ -986,14 +934,13 @@ layers/billing/
 ├── composables/
 │   └── useBilling.ts                 # Universal composable (client/SSR/API)
 ├── server/
-│   ├── trpc/
-│   │   ├── middleware/
-│   │   │   └── subscription.ts       # Subscription validation middleware
-│   │   └── routers/
-│   │       └── billing.ts            # tRPC procedures (checkout, portal, subscription, invoices)
 │   ├── api/
 │   │   └── billing/
-│   │       └── webhook.post.ts       # Handle Stripe webhooks (REST only)
+│   │       ├── checkout.post.ts          # Create Stripe Checkout session
+│   │       ├── portal.post.ts            # Create Customer Portal session
+│   │       ├── subscription.get.ts       # Get subscription status
+│   │       ├── invoices.get.ts           # List invoices
+│   │       └── webhook.post.ts           # Handle Stripe webhooks
 │   └── utils/
 │       ├── stripe.ts                 # Stripe client initialization
 │       ├── requireSubscription.ts    # Direct subscription validation
@@ -1032,25 +979,23 @@ layers/billing/
 
 **Interfaces**
 
-- [ ] `useBilling()` composable is implemented (uses tRPC internally)
+- [ ] `useBilling()` composable is implemented
 - [ ] `PricingTable` component is implemented
 - [ ] `PricingPlans` component is implemented
 - [ ] `PricingPlan` component is implemented
 - [ ] `CurrentSubscription` component is implemented
 - [ ] `InvoicesList` component is implemented
 - [ ] `PaymentMethod` component is implemented
-- [ ] `billing.createCheckout` tRPC procedure is implemented
-- [ ] `billing.createPortalSession` tRPC procedure is implemented
-- [ ] `billing.getSubscription` tRPC query is implemented
-- [ ] `billing.listInvoices` tRPC query is implemented
-- [ ] `/api/billing/webhook` REST endpoint is implemented
-- [ ] Billing router registered in main tRPC appRouter
-- [ ] `requireSubscription()` utility is implemented (REST direct validator)
-- [ ] `withSubscription()` utility is implemented (REST wrapper)
-- [ ] `withSubscriptionProcedure()` middleware is implemented (tRPC wrapper)
+- [ ] `POST /api/billing/checkout` endpoint is implemented
+- [ ] `POST /api/billing/portal` endpoint is implemented
+- [ ] `GET /api/billing/subscription` endpoint is implemented
+- [ ] `GET /api/billing/invoices` endpoint is implemented
+- [ ] `POST /api/billing/webhook` endpoint is implemented
+- [ ] `requireSubscription()` utility is implemented
+- [ ] `withSubscription()` utility is implemented
 - [ ] Webhook signature verification is implemented
 - [ ] Stripe API integration is implemented
-- [ ] Zod schemas for all tRPC procedures are implemented
+- [ ] Zod schemas for all API endpoints are implemented
 
 ### 5.3 Plan
 

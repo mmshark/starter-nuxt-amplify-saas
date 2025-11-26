@@ -19,7 +19,7 @@
   - [3.4 Middlewares](#34-middlewares)
   - [3.5 Utilities](#35-utilities)
   - [3.6 Server Utilities](#36-server-utilities)
-  - [3.7 tRPC Procedures](#37-trpc-procedures)
+  - [3.7 Server API Endpoints](#37-server-api-endpoints)
 - [4. Testing](#4-testing)
   - [4.1 Unit Tests (Minimal)](#41-unit-tests-minimal)
   - [4.2 E2E Tests (Primary)](#42-e2e-tests-primary)
@@ -47,7 +47,7 @@ The Entitlements Layer provides authorization and feature access control for a N
 - SSR-compatible permission checking with universal API
 - Integration with Auth Layer (user authentication) and Billing Layer (subscription status)
 - Permission middleware for route protection
-- Server-side authorization utilities for API routes and tRPC procedures
+- Server-side authorization utilities for API routes
 - Feature flag system for controlled rollouts
 
 **Excludes**:
@@ -113,11 +113,11 @@ The Entitlements Layer provides authorization and feature access control for a N
 - `withPermission(handler, permission)` - HOF wrapper for protected endpoints
 - `withFeature(handler, feature)` - HOF wrapper for feature-gated endpoints
 
-**tRPC Procedures** (`layers/entitlements/server/trpc/routers/entitlements.ts`):
-- `entitlements.get` (query) - Get current user entitlements and permissions
-- `entitlements.checkFeature` (query) - Check access to specific feature
-- `entitlements.checkPermission` (query) - Check specific permission
-- `entitlements.listFeatures` (query) - List all available features with access status
+**Server API Endpoints** (`layers/entitlements/server/api/entitlements/`):
+- `GET /api/entitlements` - Get current user entitlements and permissions
+- `GET /api/entitlements/check-feature` - Check access to specific feature
+- `GET /api/entitlements/check-permission` - Check specific permission
+- `GET /api/entitlements/features` - List all available features with access status
 
 **Utilities**:
 - `definePermissions()` - Type-safe permission definitions
@@ -388,17 +388,17 @@ export function useEntitlements() {
 
 **Purpose**: HOF wrappers to protect endpoint handlers with permission or feature checks
 
-### 3.6 tRPC Procedures
+### 3.7 Server API Endpoints
 
-**Location**: `layers/entitlements/server/trpc/routers/entitlements.ts`
+**Location**: `layers/entitlements/server/api/entitlements/`
 
-**Procedures**:
-- `entitlements.get` (query): Get current user entitlements and permissions
-- `entitlements.checkFeature` (query): Check access to specific feature
-- `entitlements.checkPermission` (query): Check specific permission
-- `entitlements.listFeatures` (query): List all available features with access status
+**Endpoints**:
+- `GET /api/entitlements` - Get current user entitlements and permissions
+- `GET /api/entitlements/check-feature` - Check access to specific feature
+- `GET /api/entitlements/check-permission` - Check specific permission
+- `GET /api/entitlements/features` - List all available features with access status
 
-### 3.7 Utilities
+### 3.8 Utilities
 
 #### 3.7.1 Type-Safe Permission Definitions
 
@@ -435,7 +435,7 @@ export function useEntitlements() {
 1. **Feature Access Flow**: Free/pro/enterprise users accessing plan-appropriate features, upgrade prompts
 2. **Permission Validation Flow**: Role-based access control, permission denied messages
 3. **Middleware Protection**: Route middleware redirects for unauthorized access
-4. **Server-Side Authorization**: API endpoint rejection, tRPC validation, 403 error handling
+4. **Server-Side Authorization**: API endpoint rejection, 403 error handling
 
 **Tools**: Playwright
 
@@ -460,9 +460,12 @@ layers/entitlements/
 │   ├── feature.ts
 │   └── requirePlan.ts
 ├── server/
-│   ├── trpc/
-│   │   └── routers/
-│   │       └── entitlements.ts  # tRPC entitlements router
+│   ├── api/
+│   │   └── entitlements/
+│   │       ├── index.get.ts          # Get entitlements
+│   │       ├── check-feature.get.ts  # Check feature access
+│   │       ├── check-permission.get.ts # Check permission
+│   │       └── features.get.ts       # List features
 │   └── utils/
 │       ├── requirePermission.ts
 │       ├── requireFeature.ts
@@ -493,7 +496,7 @@ layers/entitlements/
 - [ ] All components implemented with proper TypeScript types
 - [ ] All middlewares implemented with route protection
 - [ ] All server utilities implemented with error handling
-- [ ] tRPC router implemented with validation schemas
+- [ ] Server API endpoints implemented with validation schemas
 
 **Type Safety**:
 - [ ] All TypeScript types exported from types/ directory
@@ -515,7 +518,6 @@ layers/entitlements/
 **Integration**:
 - [ ] Auth Layer integration via useUser()
 - [ ] Billing Layer integration via useBilling()
-- [ ] tRPC router registered in main tRPC router
 - [ ] Middleware registered in Nuxt configuration
 
 **Quality**:
@@ -536,7 +538,6 @@ See [Entitlements Implementation Plan](../plan/entitlements.md).
 - All permission checks validated server-side for sensitive operations
 - Client-side checks for UX only, never for security
 - API endpoints protected with server utilities (requirePermission, requireFeature)
-- tRPC procedures validate entitlements before execution
 
 **Token Validation**:
 - Subscription status validated from authoritative source (Billing Layer)
@@ -562,7 +563,7 @@ See [Entitlements Implementation Plan](../plan/entitlements.md).
 **Response Times**:
 - Permission check: < 50ms (cached)
 - Feature check: < 50ms (cached)
-- tRPC entitlements query: < 200ms (with subscription lookup)
+- API entitlements query: < 200ms (with subscription lookup)
 
 **Optimization**:
 - Computed refs for reactive entitlements state

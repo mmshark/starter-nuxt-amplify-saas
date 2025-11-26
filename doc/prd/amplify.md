@@ -138,7 +138,7 @@ The Amplify layer supports three distinct execution contexts with unified API:
 
 1. **Browser Context**: Client-side data fetching, mutations, file uploads
 2. **SSR Context**: Server-rendered pages with authenticated data
-3. **Nitro Context**: API routes for tRPC, REST endpoints, webhooks
+3. **Nitro Context**: API routes for server endpoints and webhooks
 
 #### 3.1.2 Authentication Context Propagation
 

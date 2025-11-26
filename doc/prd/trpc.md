@@ -1,5 +1,12 @@
 # PRD: tRPC Layer
 
+> [!CAUTION]
+> **DEPRECATED**: This document describes the tRPC layer which has been replaced with classic Nuxt `server/api` endpoints. This documentation is kept for historical reference only.
+>
+> **Migration**: All tRPC procedures have been migrated to standard HTTP endpoints in `server/api/` directories. See individual layer PRDs (billing.md, workspaces.md, entitlements.md) for current API specifications.
+>
+> **Rationale**: The project has moved to using Nuxt's built-in server/api routing for simplicity and better alignment with Nuxt conventions.
+
 ## Table of Contents
 
 - [1. Overview](#1-overview)

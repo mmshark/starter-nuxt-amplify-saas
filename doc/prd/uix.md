@@ -57,7 +57,7 @@ The UIX (User Interface/Experience) Layer provides a comprehensive design system
 - Billing UI (handled by Billing Layer)
 - Workspace-specific UI (handled by Workspaces Layer)
 - Application-specific pages (handled by apps)
-- Backend integration logic (handled by Amplify/tRPC layers)
+- Backend integration logic (handled by Amplify/server API layers)
 
 ### 1.3 Key Requirements
 

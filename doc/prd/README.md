@@ -50,8 +50,7 @@ Common subsections:
 - **3.3 Components** - Vue/Nuxt components with props and events
 - **3.4 Middlewares** - Route protection and navigation guards
 - **3.5 Utilities** - Helper functions and server utilities
-- **3.6 Server Endpoints** - API routes or tRPC procedures
-- **3.7 tRPC Procedures** - tRPC procedures for custom business logic
+- **3.6 Server API Endpoints** - API routes for custom business logic
 - **3.8 Plugins** - Nuxt plugins for the layer
 
 ### 4. Testing

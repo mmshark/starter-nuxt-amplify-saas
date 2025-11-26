@@ -4,7 +4,6 @@ import { postConfirmation } from "../auth/post-confirmation/resource";
 const userProfileModel = a.model({
   userId: a.string().required(),
   stripeCustomerId: a.string(),
-  subscription: a.hasOne('UserSubscription', 'userId'),
 }).identifier(['userId'])
 
 const subscriptionPlanModel = a.model({
@@ -18,26 +17,18 @@ const subscriptionPlanModel = a.model({
   stripeYearlyPriceId: a.string(),
   stripeProductId: a.string().required(),
   isActive: a.boolean().required().default(true),
-  userSubscriptions: a.hasMany('UserSubscription', 'planId'),
+  // userSubscriptions: a.hasMany('UserSubscription', 'planId'), // Removed
 }).identifier(['planId'])
 
 const userSubscriptionModel = a.model({
   userId: a.string().required(),
-  planId: a.string().required(),
-
-  stripeSubscriptionId: a.string(),
-
-  stripeCustomerId: a.string().required(),
+  planId: a.string(),
   status: a.enum(['active', 'past_due', 'canceled', 'trialing', 'incomplete', 'incomplete_expired', 'unpaid']),
-  currentPeriodStart: a.datetime().required(),
-  currentPeriodEnd: a.datetime(), // Optional - null for free plans that never expire
+  stripeSubscriptionId: a.string(),
+  stripeCustomerId: a.string(),
+  currentPeriodStart: a.datetime(),
+  currentPeriodEnd: a.datetime(),
   cancelAtPeriodEnd: a.boolean().default(false),
-  billingInterval: a.enum(['month', 'year']),
-  trialStart: a.datetime(),
-  trialEnd: a.datetime(),
-
-  userProfile: a.belongsTo('UserProfile', 'userId'),
-  subscriptionPlan: a.belongsTo('SubscriptionPlan', 'planId'),
 }).identifier(['userId'])
 
 const schema = a
@@ -58,6 +49,92 @@ const schema = a
         allow.publicApiKey(), // Para webhooks de Stripe
         allow.ownerDefinedIn("userId").to(["read"]), // Usuario solo lee su propia suscripción
         allow.groups(["admin"]).to(["create", "update", "delete"]), // Admins y webhooks modifican
+      ]),
+
+    // Workspaces
+    Workspace: a.model({
+      name: a.string().required(),
+      slug: a.string().required(),
+      description: a.string(),
+      ownerId: a.string().required(),
+      isPersonal: a.boolean().default(false),
+      memberCount: a.integer().default(1),
+      members: a.hasMany('WorkspaceMember', 'workspaceId'),
+      invitations: a.hasMany('WorkspaceInvitation', 'workspaceId'),
+      subscription: a.hasOne('WorkspaceSubscription', 'workspaceId'),
+    })
+      .authorization((allow) => [
+        allow.ownerDefinedIn('ownerId').to(['read', 'update', 'delete']),
+        allow.authenticated().to(['create']),
+        allow.publicApiKey(), // For server-side privileged access
+      ])
+      .secondaryIndexes((index) => [
+        index('slug'),
+        index('ownerId'),
+      ]),
+
+    WorkspaceSubscription: a.model({
+      workspaceId: a.id().required(),
+      workspace: a.belongsTo('Workspace', 'workspaceId'),
+      planId: a.string().required(),
+      plan: a.belongsTo('SubscriptionPlan', 'planId'),
+
+      stripeSubscriptionId: a.string(),
+      stripeCustomerId: a.string().required(),
+
+      status: a.enum(['active', 'past_due', 'canceled', 'trialing', 'incomplete', 'incomplete_expired', 'unpaid']),
+      currentPeriodStart: a.datetime().required(),
+      currentPeriodEnd: a.datetime(),
+      cancelAtPeriodEnd: a.boolean().default(false),
+      billingInterval: a.enum(['month', 'year']),
+      trialStart: a.datetime(),
+      trialEnd: a.datetime(),
+    })
+      .authorization((allow) => [
+        allow.publicApiKey(), // For Stripe webhooks
+        allow.custom(), // TODO: Implement workspace-based authorization
+      ])
+      .identifier(['workspaceId'])
+      .secondaryIndexes((index) => [
+        index('stripeCustomerId'),
+      ]),
+
+    WorkspaceMember: a.model({
+      workspaceId: a.id().required(),
+      workspace: a.belongsTo('Workspace', 'workspaceId'),
+      userId: a.string().required(),
+      email: a.email().required(),
+      name: a.string(),
+      role: a.enum(['OWNER', 'ADMIN', 'MEMBER']),
+      joinedAt: a.datetime().required(),
+    })
+      .authorization((allow) => [
+        allow.ownerDefinedIn('userId').to(['read']),
+        allow.publicApiKey(), // For server-side privileged access
+      ])
+      .secondaryIndexes((index) => [
+        index('workspaceId'),
+        index('userId'),
+      ]),
+
+    WorkspaceInvitation: a.model({
+      workspaceId: a.id().required(),
+      workspace: a.belongsTo('Workspace', 'workspaceId'),
+      email: a.email().required(),
+      role: a.enum(['OWNER', 'ADMIN', 'MEMBER']),
+      invitedBy: a.string().required(),
+      inviterName: a.string(),
+      token: a.string().required(),
+      expiresAt: a.datetime().required(),
+      message: a.string(),
+    })
+      .authorization((allow) => [
+        allow.ownerDefinedIn('invitedBy').to(['read', 'delete']),
+        allow.publicApiKey(), // For server-side privileged access
+      ])
+      .secondaryIndexes((index) => [
+        index('workspaceId'),
+        index('email'),
       ]),
   })
   .authorization((allow) => [allow.resource(postConfirmation)]);
