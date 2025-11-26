@@ -189,7 +189,72 @@ const _useUser = () => {
   }
 
   /**
-   * Confirm OTP/TOTP challenge
+   * Confirm OTP/TOTP challenge during multi-factor authentication
+   *
+   * This method is called after `signIn()` when the user is required to complete
+   * an MFA challenge. It handles both SMS-based OTP and app-based TOTP (e.g., Google Authenticator).
+   *
+   * MFA Flow:
+   * 1. User calls signIn(email, password)
+   * 2. Cognito detects MFA is enabled for user
+   * 3. authStep becomes 'challengeOTP' (for SMS_MFA or SOFTWARE_TOKEN_MFA)
+   * 4. User enters code from SMS or authenticator app
+   * 5. User calls confirmOTP(code) to complete authentication
+   * 6. On success, authStep becomes 'authenticated' and user is fully signed in
+   *
+   * Supported MFA Methods:
+   * - SMS_MFA: One-time code sent via SMS
+   * - SOFTWARE_TOKEN_MFA: Time-based code from authenticator apps (Google Authenticator, Authy, etc.)
+   *
+   * @param {string} code - 6-digit OTP code from SMS or TOTP authenticator app
+   * @returns {Promise<Object>} Cognito sign-in result with user details
+   * @throws {Error} If code is invalid or expired
+   *
+   * @example Basic MFA Flow
+   * ```typescript
+   * const { signIn, confirmOTP, authStep, error } = useUser()
+   *
+   * // Step 1: Sign in with credentials
+   * await signIn({ email: 'user@example.com', password: 'password123' })
+   *
+   * // Step 2: Check if MFA is required
+   * if (authStep.value === 'challengeOTP') {
+   *   // Step 3: Prompt user for OTP code
+   *   const otpCode = prompt('Enter your 6-digit code')
+   *
+   *   // Step 4: Complete MFA challenge
+   *   try {
+   *     await confirmOTP(otpCode)
+   *     console.log('MFA authentication successful!')
+   *   } catch (err) {
+   *     console.error('Invalid OTP code:', error.value)
+   *   }
+   * }
+   * ```
+   *
+   * @example Vue Component Usage
+   * ```vue
+   * <script setup>
+   * const { signIn, confirmOTP, authStep, loading, error } = useUser()
+   * const otpCode = ref('')
+   *
+   * const handleSignIn = async () => {
+   *   await signIn(credentials.value)
+   * }
+   *
+   * const handleOTPSubmit = async () => {
+   *   await confirmOTP(otpCode.value)
+   * }
+   * </script>
+   *
+   * <template>
+   *   <form v-if="authStep === 'challengeOTP'" @submit.prevent="handleOTPSubmit">
+   *     <input v-model="otpCode" placeholder="Enter 6-digit code" maxlength="6" />
+   *     <button type="submit" :disabled="loading">Verify Code</button>
+   *     <p v-if="error" class="error">{{ error }}</p>
+   *   </form>
+   * </template>
+   * ```
    */
   const confirmOTP = async (code) => {
     if (import.meta.server) {

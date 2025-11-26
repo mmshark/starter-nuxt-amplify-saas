@@ -3,7 +3,7 @@ import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 
 defineOptions({
-  name: 'UserProfileEditor'
+  name: 'UserProfileSettings'
 })
 
 const { userAttributes, updateAttributes, loading } = useUser()
