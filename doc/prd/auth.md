@@ -72,7 +72,7 @@ The Auth Layer provides complete authentication functionality for a Nuxt 4-based
 ### 1.4 Artifacts
 
 **Data Models**:
-- `UserProfile` - Application-specific user profile data stored in DynamoDB (subscription, preferences, metadata)
+- `UserProfile` - Application-specific user profile data stored in DynamoDB (preferences, metadata, display settings)
 
 **Types**:
 - `UserState` - Reactive authentication state (non-persistent)
@@ -135,6 +135,151 @@ The Auth Layer provides complete authentication functionality for a Nuxt 4-based
 4. User enters recovery code and new password
 5. System validates code and updates password in Cognito
 6. System redirects user to `/auth/login`
+
+### 2.5 Multi-Factor Authentication (MFA) Flow
+
+#### 2.5.1 MFA-Enhanced Login Flow
+
+When MFA is enabled for a user account, the login flow includes an additional verification step:
+
+```
+┌─────────────┐
+│  User Login │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────┐
+│ Enter Credentials   │
+│ (email + password)  │
+└──────┬──────────────┘
+       │
+       ▼
+┌─────────────────────┐
+│ Cognito Validates   │
+│ Primary Credentials │
+└──────┬──────────────┘
+       │
+       ▼
+   MFA Enabled?
+       │
+       ├─── NO ──────────────┐
+       │                     │
+       └─── YES              │
+            │                │
+            ▼                │
+    ┌──────────────┐         │
+    │ Send OTP via │         │
+    │ SMS or App   │         │
+    └──────┬───────┘         │
+           │                 │
+           ▼                 │
+    ┌──────────────┐         │
+    │ authStep =   │         │
+    │ 'challengeOTP'│        │
+    └──────┬───────┘         │
+           │                 │
+           ▼                 │
+    ┌──────────────┐         │
+    │ User Enters  │         │
+    │ 6-digit Code │         │
+    └──────┬───────┘         │
+           │                 │
+           ▼                 │
+    ┌──────────────┐         │
+    │ confirmOTP() │         │
+    └──────┬───────┘         │
+           │                 │
+           ├─────────────────┘
+           │
+           ▼
+    ┌──────────────┐
+    │ Authenticated│
+    │ authStep =   │
+    │'authenticated'│
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │ Redirect to  │
+    │ /dashboard   │
+    └──────────────┘
+```
+
+**Step-by-Step Process**:
+
+1. **Initial Sign-In** (`signIn()`)
+   - User enters email and password
+   - Amplify SDK calls `Auth.signIn()`
+   - Cognito validates primary credentials
+
+2. **MFA Challenge Detection**
+   - If MFA enabled, Cognito returns challenge: `SMS_MFA` or `SOFTWARE_TOKEN_MFA`
+   - `authStep` state changes to `'challengeOTP'`
+   - UI shows OTP input form
+
+3. **OTP Verification** (`confirmOTP()`)
+   - User enters 6-digit code from SMS or authenticator app
+   - Application calls `confirmOTP(code)`
+   - Amplify SDK calls `Auth.confirmSignIn({ challengeResponse: code })`
+
+4. **Authentication Complete**
+   - On successful verification, `authStep` becomes `'authenticated'`
+   - JWT tokens issued and stored
+   - User profile fetched
+   - Redirect to dashboard
+
+#### 2.5.2 Supported MFA Methods
+
+**SMS MFA** (`SMS_MFA`):
+- One-time code sent via SMS to verified phone number
+- Code valid for 3 minutes
+- User enters code in authentication form
+- Requires phone number verified in Cognito
+
+**Software Token MFA** (`SOFTWARE_TOKEN_MFA`):
+- Time-based one-time password (TOTP) from authenticator app
+- Compatible with Google Authenticator, Authy, Microsoft Authenticator, 1Password
+- Code rotates every 30 seconds
+- More secure than SMS (not vulnerable to SIM swapping)
+
+#### 2.5.3 MFA Setup Flow (Future Enhancement)
+
+**Note**: MFA setup flow is not currently implemented in the UI but is supported by the backend:
+
+```typescript
+// Future implementation example
+const { signIn, authStep } = useUser()
+
+await signIn(credentials)
+
+if (authStep.value === 'challengeTOTPSetup') {
+  // Show TOTP setup UI with QR code
+  // User scans QR with authenticator app
+  // User enters first TOTP code to verify setup
+}
+```
+
+#### 2.5.4 Implementation Details
+
+**State Management**:
+```typescript
+// useUser composable tracks MFA state
+const authStep = ref<'initial' | 'challengeOTP' | 'challengeTOTPSetup' | 'authenticated'>('initial')
+
+// After signIn() with MFA-enabled account
+if (challengeName === 'SMS_MFA' || challengeName === 'SOFTWARE_TOKEN_MFA') {
+  authStep.value = 'challengeOTP'
+}
+```
+
+**Error Handling**:
+- **Invalid Code**: User shown error, can retry with new code
+- **Expired Code**: User must restart login flow
+- **Max Attempts**: After 3 failed attempts, account temporarily locked (Cognito policy)
+
+**Code Examples**:
+
+See detailed examples in [useUser.ts composable documentation](../../layers/auth/composables/useUser.ts#L191-L258)
 
 ## 3. Technical Specifications
 

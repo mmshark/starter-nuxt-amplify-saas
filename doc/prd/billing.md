@@ -215,11 +215,11 @@ const schema = a.schema({
 **Access Pattern**:
 - Retrieved via `useBilling()` composable
 - Updated via webhook events from Stripe
-- Queried via tRPC procedures for subscription status
+- Queried via server API endpoints for subscription status
 
 **Relationships**:
-- Belongs to UserProfile (1:1 with user)
-- Belongs to SubscriptionPlan (many users can have same plan)
+- Belongs to Workspace (1:1 with workspace)
+- Belongs to SubscriptionPlan (many workspaces can have same plan)
 
 ### 3.2 Types
 
@@ -764,7 +764,7 @@ Handle Stripe webhook events (required for Stripe integration).
   - `customer.subscription.deleted` - Subscription canceled
   - `invoice.payment_succeeded` - Payment successful
   - `invoice.payment_failed` - Payment failed
-- Updates UserSubscription in Amplify GraphQL/DynamoDB
+- Updates WorkspaceSubscription in Amplify GraphQL/DynamoDB
 - Returns `200 OK` for successful processing
 - Idempotent processing (handles duplicate events via event ID tracking)
 

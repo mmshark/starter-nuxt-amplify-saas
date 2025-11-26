@@ -1,0 +1,16 @@
+{
+  "name": "@starter-nuxt-amplify-saas/entitlements",
+  "version": "0.1.0",
+  "description": "Authorization and feature access control layer for Nuxt 4 SaaS application",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./types/entitlements.ts",
+      "import": "./nuxt.config.ts"
+    }
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  }
+}
