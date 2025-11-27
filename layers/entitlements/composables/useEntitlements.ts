@@ -4,8 +4,7 @@
  * Universal composable for permission checking and feature access control.
  * Works across client, SSR, and API route contexts.
  *
- * TODO: Update to use workspace-level subscriptions once Workspaces layer is implemented.
- * Currently uses user-level subscriptions as temporary implementation.
+ * Integrated with Workspaces layer for workspace-level subscriptions and role-based permissions.
  */
 
 import type { Feature, Permission, Plan, Role } from '../types/entitlements'
@@ -14,40 +13,44 @@ import { ROLE_PERMISSIONS, roleHasPermission } from '../config/permissions'
 
 export const useEntitlements = createSharedComposable(() => {
   const { user, isAuthenticated } = useUser()
+  const { currentWorkspace } = useWorkspaces()
+  const { currentRole } = useWorkspaceMembership()
 
   /**
-   * Current subscription plan
-   * TODO: Get from workspace subscription when Workspaces layer is implemented
-   * Currently falling back to 'free' for all users
+   * Current subscription plan from workspace subscription
    */
   const subscriptionPlan = computed<Plan>(() => {
     if (!isAuthenticated.value || !user.value) {
       return 'free'
     }
 
-    // TODO: Replace with workspace subscription lookup
-    // const { currentWorkspace } = useWorkspaces()
-    // return currentWorkspace.value?.subscription?.planId || 'free'
+    // Get plan from current workspace subscription
+    const planId = currentWorkspace.value?.subscription?.planId
 
-    // Temporary: Default to 'free' until workspace subscriptions are implemented
+    // Validate plan is one of our known plans
+    if (planId === 'free' || planId === 'pro' || planId === 'enterprise') {
+      return planId as Plan
+    }
+
+    // Default to free if no subscription or invalid plan
     return 'free'
   })
 
   /**
-   * Current user role
-   * TODO: Get from workspace membership when Workspaces layer is implemented
-   * Currently defaults to 'user'
+   * Current user role from workspace membership
    */
   const userRole = computed<Role>(() => {
     if (!isAuthenticated.value || !user.value) {
       return 'user'
     }
 
-    // TODO: Replace with workspace role lookup
-    // const { currentWorkspace, currentMembership } = useWorkspaces()
-    // return currentMembership.value?.role || 'user'
+    // Map workspace roles to entitlements roles
+    const workspaceRole = currentRole.value
 
-    // Temporary: Default to 'user' until workspace memberships are implemented
+    if (workspaceRole === 'OWNER') return 'owner'
+    if (workspaceRole === 'ADMIN') return 'admin'
+
+    // Default to user for MEMBER or null
     return 'user'
   })
 

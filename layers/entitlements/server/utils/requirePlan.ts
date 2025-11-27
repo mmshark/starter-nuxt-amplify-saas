@@ -7,6 +7,7 @@
 
 import type { H3Event } from 'h3'
 import type { Plan } from '../../types/entitlements'
+import { getWorkspacePlan } from './getWorkspaceContext'
 
 /**
  * Require a minimum subscription plan for API access
@@ -16,20 +17,8 @@ import type { Plan } from '../../types/entitlements'
  * @throws 403 Forbidden if user's plan is lower than required
  */
 export async function requirePlan(event: H3Event, minPlan: Plan): Promise<void> {
-  // Get authenticated user from Auth Layer
-  const { user, isAuthenticated } = useUser()
-
-  if (!isAuthenticated.value || !user.value) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-      message: 'Authentication required',
-    })
-  }
-
-  // TODO: Get plan from workspace subscription when Workspaces layer is implemented
-  // For now, default to 'free' plan
-  const userPlan = 'free' as const
+  // Get subscription plan from workspace context
+  const userPlan = await getWorkspacePlan(event)
 
   // Plan hierarchy for comparison
   const planHierarchy: Record<Plan, number> = {

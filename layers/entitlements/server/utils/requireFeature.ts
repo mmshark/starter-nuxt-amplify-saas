@@ -8,6 +8,7 @@
 import type { H3Event } from 'h3'
 import type { Feature } from '../../types/entitlements'
 import { PLAN_FEATURES, getRequiredPlan } from '../../config/features'
+import { getWorkspacePlan } from './getWorkspaceContext'
 
 /**
  * Require a specific feature for API access
@@ -17,20 +18,8 @@ import { PLAN_FEATURES, getRequiredPlan } from '../../config/features'
  * @throws 403 Forbidden if user's plan doesn't include feature
  */
 export async function requireFeature(event: H3Event, feature: Feature): Promise<void> {
-  // Get authenticated user from Auth Layer
-  const { user, isAuthenticated } = useUser()
-
-  if (!isAuthenticated.value || !user.value) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-      message: 'Authentication required',
-    })
-  }
-
-  // TODO: Get plan from workspace subscription when Workspaces layer is implemented
-  // For now, default to 'free' plan
-  const userPlan = 'free' as const
+  // Get subscription plan from workspace context
+  const userPlan = await getWorkspacePlan(event)
 
   // Check if user's plan includes the required feature
   const hasFeature = PLAN_FEATURES[userPlan]?.includes(feature) || false

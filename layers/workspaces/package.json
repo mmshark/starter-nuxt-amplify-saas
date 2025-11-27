@@ -1,8 +1,7 @@
 {
-  "name": "@starter-nuxt-amplify-saas/entitlements",
-  "version": "0.1.0",
-  "description": "Authorization and feature access control layer for Nuxt 4 SaaS application",
+  "name": "@starter-nuxt-amplify-saas/workspaces",
   "type": "module",
+  "version": "0.0.1",
   "main": "./nuxt.config.ts",
   "scripts": {
     "build": "nuxt build",
@@ -14,7 +13,11 @@
   },
   "dependencies": {
     "@starter-nuxt-amplify-saas/auth": "workspace:*",
-    "zod": "^3.22.4"
+    "@starter-nuxt-amplify-saas/entitlements": "workspace:*",
+    "@starter-nuxt-amplify-saas/uix": "workspace:*",
+    "@vueuse/core": "^13.9.0",
+    "aws-amplify": "^6.15.3",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@nuxt/eslint": "latest",

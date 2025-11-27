@@ -9,6 +9,8 @@ export default defineNuxtConfig({
     '@starter-nuxt-amplify-saas/amplify',
     '@starter-nuxt-amplify-saas/i18n',
     '@starter-nuxt-amplify-saas/auth',
+    '@starter-nuxt-amplify-saas/workspaces',
+    '@starter-nuxt-amplify-saas/entitlements',
     '@starter-nuxt-amplify-saas/billing',
     '@starter-nuxt-amplify-saas/debug'
   ],

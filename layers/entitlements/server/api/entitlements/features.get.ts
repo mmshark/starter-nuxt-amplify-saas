@@ -6,22 +6,11 @@
  */
 
 import { FEATURES, planIncludesFeature } from '../../../config/features'
-import type { Plan } from '../../../types/entitlements'
+import { getWorkspacePlan } from '../../../server/utils/getWorkspaceContext'
 
 export default defineEventHandler(async (event) => {
-  // Require authentication
-  const { user, isAuthenticated } = useUser()
-
-  if (!isAuthenticated.value || !user.value) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-      message: 'Authentication required',
-    })
-  }
-
-  // TODO: Get plan from workspace subscription when Workspaces layer is implemented
-  const currentPlan: Plan = 'free'
+  // Get subscription plan from workspace context (includes authentication check)
+  const currentPlan = await getWorkspacePlan(event)
 
   // Build feature list with access status
   const features = Object.values(FEATURES).map(feature => ({

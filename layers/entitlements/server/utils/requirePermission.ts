@@ -8,6 +8,7 @@
 import type { H3Event } from 'h3'
 import type { Permission } from '../../types/entitlements'
 import { ROLE_PERMISSIONS } from '../../config/permissions'
+import { getWorkspaceRole } from './getWorkspaceContext'
 
 /**
  * Require a specific permission for API access
@@ -17,20 +18,8 @@ import { ROLE_PERMISSIONS } from '../../config/permissions'
  * @throws 403 Forbidden if user lacks permission
  */
 export async function requirePermission(event: H3Event, permission: Permission): Promise<void> {
-  // Get authenticated user from Auth Layer
-  const { user, isAuthenticated } = useUser()
-
-  if (!isAuthenticated.value || !user.value) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-      message: 'Authentication required',
-    })
-  }
-
-  // TODO: Get role from workspace membership when Workspaces layer is implemented
-  // For now, default to 'user' role
-  const userRole = 'user' as const
+  // Get user role from workspace context
+  const userRole = await getWorkspaceRole(event)
 
   // Check if user's role grants the required permission
   const hasPermission = ROLE_PERMISSIONS[userRole]?.includes(permission) || false

@@ -5,40 +5,40 @@ defineProps<{
   collapsed?: boolean
 }>()
 
-const teams = ref([{
-  label: 'Nuxt',
-  avatar: {
-    src: 'https://github.com/nuxt.png',
-    alt: 'Nuxt'
-  }
-}, {
-  label: 'NuxtHub',
-  avatar: {
-    src: 'https://github.com/nuxt-hub.png',
-    alt: 'NuxtHub'
-  }
-}, {
-  label: 'NuxtLabs',
-  avatar: {
-    src: 'https://github.com/nuxtlabs.png',
-    alt: 'NuxtLabs'
-  }
-}])
-const selectedTeam = ref(teams.value[0])
+const { workspaces, currentWorkspace, switchWorkspace, loadWorkspaces } = useWorkspaces()
+const showCreateModal = ref(false)
+
+// Load workspaces on mount
+onMounted(() => {
+  loadWorkspaces()
+})
 
 const items = computed<DropdownMenuItem[][]>(() => {
-  return [teams.value.map(team => ({
-    ...team,
-    onSelect() {
-      selectedTeam.value = team
-    }
-  })), [{
-    label: 'Create team',
-    icon: 'i-lucide-circle-plus'
-  }, {
-    label: 'Manage teams',
-    icon: 'i-lucide-cog'
-  }]]
+  return [
+    // Workspace list
+    workspaces.value.map(workspace => ({
+      label: workspace.name,
+      avatar: {
+        src: `https://ui-avatars.com/api/?name=${encodeURIComponent(workspace.name)}&background=random`,
+        alt: workspace.name
+      },
+      onSelect() {
+        switchWorkspace(workspace.id)
+      }
+    })),
+    // Actions
+    [{
+      label: 'Create workspace',
+      icon: 'i-lucide-circle-plus',
+      onSelect() {
+        showCreateModal.value = true
+      }
+    }, {
+      label: 'Manage workspaces',
+      icon: 'i-lucide-cog',
+      to: '/settings/workspaces'
+    }]
+  ]
 })
 </script>
 
@@ -46,12 +46,15 @@ const items = computed<DropdownMenuItem[][]>(() => {
   <UDropdownMenu
     :items="items"
     :content="{ align: 'center', collisionPadding: 12 }"
-    :ui="{ content: collapsed ? 'w-40' : 'w-(--reka-dropdown-menu-trigger-width)' }"
+    :ui="{ content: collapsed ? 'w-48' : 'w-(--reka-dropdown-menu-trigger-width)' }"
   >
     <UButton
       v-bind="{
-        ...selectedTeam,
-        label: collapsed ? undefined : selectedTeam?.label,
+        label: collapsed ? undefined : currentWorkspace?.name,
+        avatar: currentWorkspace ? {
+          src: `https://ui-avatars.com/api/?name=${encodeURIComponent(currentWorkspace.name)}&background=random`,
+          alt: currentWorkspace.name
+        } : undefined,
         trailingIcon: collapsed ? undefined : 'i-lucide-chevrons-up-down'
       }"
       color="neutral"
@@ -65,4 +68,7 @@ const items = computed<DropdownMenuItem[][]>(() => {
       }"
     />
   </UDropdownMenu>
+
+  <!-- Create Workspace Modal -->
+  <CreateWorkspaceModal v-model="showCreateModal" />
 </template>

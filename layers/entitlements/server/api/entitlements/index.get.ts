@@ -7,33 +7,19 @@
 
 import { PLAN_FEATURES } from '../../../config/features'
 import { ROLE_PERMISSIONS } from '../../../config/permissions'
-import type { Plan, Role } from '../../../types/entitlements'
+import { getWorkspaceContext } from '../../../server/utils/getWorkspaceContext'
 
 export default defineEventHandler(async (event) => {
-  // Require authentication
-  const { user, isAuthenticated } = useUser()
-
-  if (!isAuthenticated.value || !user.value) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-      message: 'Authentication required',
-    })
-  }
-
-  // TODO: Get plan from workspace subscription when Workspaces layer is implemented
-  const currentPlan: Plan = 'free'
-
-  // TODO: Get role from workspace membership when Workspaces layer is implemented
-  const currentRole: Role = 'user'
+  // Get workspace context (includes authentication check)
+  const { plan, role } = await getWorkspaceContext(event)
 
   // Get features and permissions for current plan/role
-  const features = PLAN_FEATURES[currentPlan] || []
-  const permissions = ROLE_PERMISSIONS[currentRole] || []
+  const features = PLAN_FEATURES[plan] || []
+  const permissions = ROLE_PERMISSIONS[role] || []
 
   return {
-    plan: currentPlan,
-    role: currentRole,
+    plan,
+    role,
     features,
     permissions,
     isAuthenticated: true,

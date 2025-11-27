@@ -18,6 +18,7 @@ const subscriptionPlanModel = a.model({
   stripeProductId: a.string().required(),
   isActive: a.boolean().required().default(true),
   // userSubscriptions: a.hasMany('UserSubscription', 'planId'), // Removed
+  workspaceSubscriptions: a.hasMany('WorkspaceSubscription', 'planId'),
 }).identifier(['planId'])
 
 const userSubscriptionModel = a.model({
@@ -29,6 +30,9 @@ const userSubscriptionModel = a.model({
   currentPeriodStart: a.datetime(),
   currentPeriodEnd: a.datetime(),
   cancelAtPeriodEnd: a.boolean().default(false),
+  billingInterval: a.enum(['month', 'year']),
+  trialStart: a.datetime(),
+  trialEnd: a.datetime(),
 }).identifier(['userId'])
 
 const schema = a
@@ -92,7 +96,7 @@ const schema = a
     })
       .authorization((allow) => [
         allow.publicApiKey(), // For Stripe webhooks
-        allow.custom(), // TODO: Implement workspace-based authorization
+        // allow.custom(), // TODO: Implement workspace-based authorization (requires Lambda function)
       ])
       .identifier(['workspaceId'])
       .secondaryIndexes((index) => [

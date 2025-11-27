@@ -1,6 +1,6 @@
-import Stripe from 'stripe'
-import { withAmplifyAuth, getServerUserPoolDataClient } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { getServerUserPoolDataClient, withAmplifyAuth } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
 import { fetchAuthSession } from 'aws-amplify/auth/server'
+import Stripe from 'stripe'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -28,34 +28,65 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    const query = getQuery(event)
+    const workspaceId = query.workspaceId as string
+
+    if (!workspaceId) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Workspace ID is required'
+      })
+    }
+
     const client = getServerUserPoolDataClient()
-    const { data: userSubscription } = await client.models.UserSubscription.get(
+
+    // Validate access: Check if user is a member of the workspace
+    const { data: members } = await client.models.WorkspaceMember.list(contextSpec, {
+      filter: {
+        workspaceId: { eq: workspaceId },
+        userId: { eq: userId }
+      }
+    })
+
+    if (members.length === 0) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Access denied to workspace'
+      })
+    }
+
+    const { data: workspaceSubscription } = await client.models.WorkspaceSubscription.get(
       contextSpec,
-      { userId },
+      { workspaceId },
       {
         selectionSet: [
-          'userId', 'planId', 'stripeSubscriptionId', 'stripeCustomerId',
+          'workspaceId', 'planId', 'stripeSubscriptionId', 'stripeCustomerId',
           'status', 'currentPeriodStart', 'currentPeriodEnd', 'cancelAtPeriodEnd',
           'billingInterval', 'trialStart', 'trialEnd',
-          'subscriptionPlan.planId', 'subscriptionPlan.name', 'subscriptionPlan.description',
-          'subscriptionPlan.monthlyPrice', 'subscriptionPlan.yearlyPrice', 'subscriptionPlan.priceCurrency'
+          'plan.planId', 'plan.name', 'plan.description',
+          'plan.monthlyPrice', 'plan.yearlyPrice', 'plan.priceCurrency'
         ]
       }
     )
 
-    if (!userSubscription) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'No subscription found for user'
-      })
+    if (!workspaceSubscription) {
+      // Return null subscription instead of 404 for better UX (e.g. new workspace)
+      return {
+        success: true,
+        data: {
+          subscription: null,
+          plan: null,
+          paymentMethod: null
+        }
+      }
     }
 
-    // Get payment method from Stripe if user has a Stripe customer ID
+    // Get payment method from Stripe if workspace has a Stripe customer ID
     let paymentMethod = null
-    if (userSubscription.stripeCustomerId) {
+    if (workspaceSubscription.stripeCustomerId) {
       try {
         // Get customer's default payment method (modern) — avoid legacy default_source
-        const customer = await stripe.customers.retrieve(userSubscription.stripeCustomerId, {
+        const customer = await stripe.customers.retrieve(workspaceSubscription.stripeCustomerId, {
           expand: ['invoice_settings.default_payment_method']
         })
 
@@ -69,7 +100,7 @@ export default defineEventHandler(async (event) => {
           } else {
             // Fallback: any attached card-type payment methods
             const paymentMethods = await stripe.paymentMethods.list({
-              customer: userSubscription.stripeCustomerId,
+              customer: workspaceSubscription.stripeCustomerId,
               type: 'card',
               limit: 10
             })
@@ -103,30 +134,30 @@ export default defineEventHandler(async (event) => {
       success: true,
       data: {
         subscription: {
-          planId: userSubscription.planId,
-          status: userSubscription.status,
-          currentPeriodStart: userSubscription.currentPeriodStart,
-          currentPeriodEnd: userSubscription.currentPeriodEnd,
-          cancelAtPeriodEnd: userSubscription.cancelAtPeriodEnd,
-          billingInterval: userSubscription.billingInterval,
-          trialStart: userSubscription.trialStart,
-          trialEnd: userSubscription.trialEnd,
-          stripeSubscriptionId: userSubscription.stripeSubscriptionId,
-          stripeCustomerId: userSubscription.stripeCustomerId
+          planId: workspaceSubscription.planId,
+          status: workspaceSubscription.status,
+          currentPeriodStart: workspaceSubscription.currentPeriodStart,
+          currentPeriodEnd: workspaceSubscription.currentPeriodEnd,
+          cancelAtPeriodEnd: workspaceSubscription.cancelAtPeriodEnd,
+          billingInterval: workspaceSubscription.billingInterval,
+          trialStart: workspaceSubscription.trialStart,
+          trialEnd: workspaceSubscription.trialEnd,
+          stripeSubscriptionId: workspaceSubscription.stripeSubscriptionId,
+          stripeCustomerId: workspaceSubscription.stripeCustomerId
         },
         plan: {
-          id: userSubscription.subscriptionPlan?.planId || userSubscription.planId,
-          name: userSubscription.subscriptionPlan?.name || 'Unknown Plan',
-          description: userSubscription.subscriptionPlan?.description,
-          monthlyPrice: userSubscription.subscriptionPlan?.monthlyPrice || 0,
-          yearlyPrice: userSubscription.subscriptionPlan?.yearlyPrice || 0,
-          currency: userSubscription.subscriptionPlan?.priceCurrency || 'USD',
+          id: workspaceSubscription.plan?.planId || workspaceSubscription.planId,
+          name: workspaceSubscription.plan?.name || 'Unknown Plan',
+          description: workspaceSubscription.plan?.description,
+          monthlyPrice: workspaceSubscription.plan?.monthlyPrice || 0,
+          yearlyPrice: workspaceSubscription.plan?.yearlyPrice || 0,
+          currency: workspaceSubscription.plan?.priceCurrency || 'USD',
           features: planFeatures,
           // For backward compatibility with current components
-          price: userSubscription.billingInterval === 'year'
-            ? Math.round((userSubscription.subscriptionPlan?.yearlyPrice || 0) / 12)
-            : userSubscription.subscriptionPlan?.monthlyPrice || 0,
-          interval: userSubscription.billingInterval === 'year' ? 'year' : 'month'
+          price: workspaceSubscription.billingInterval === 'year'
+            ? Math.round((workspaceSubscription.plan?.yearlyPrice || 0) / 12)
+            : workspaceSubscription.plan?.monthlyPrice || 0,
+          interval: workspaceSubscription.billingInterval === 'year' ? 'year' : 'month'
         },
         paymentMethod
       }

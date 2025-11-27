@@ -1,7 +1,7 @@
-import Stripe from 'stripe'
-import { generateClient } from 'aws-amplify/data/server'
-import type { Schema } from '@starter-nuxt-amplify-saas/backend/schema'
 import { withAmplifyPublic } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import type { Schema } from '@starter-nuxt-amplify-saas/backend/schema'
+import { generateClient } from 'aws-amplify/data/server'
+import Stripe from 'stripe'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -78,49 +78,26 @@ export default defineEventHandler(async (event) => {
 })
 
 // Helper functions for database operations
-async function getUserIdFromStripeCustomer(stripeCustomerId: string): Promise<string | null> {
+async function getWorkspaceIdFromStripeCustomer(stripeCustomerId: string): Promise<string | null> {
   try {
     // Note: This uses public access since webhooks don't have user context
     return await withAmplifyPublic(async (contextSpec) => {
       const client = generateClient<Schema>({ authMode: 'apiKey' })
-      const { data, errors } = await client.models.UserProfile.list(contextSpec, {
+      const { data, errors } = await client.models.WorkspaceSubscription.list(contextSpec, {
         filter: { stripeCustomerId: { eq: stripeCustomerId } }
       })
 
       if (errors) {
-        console.error('Error finding user from Stripe customer:', errors)
+        console.error('Error finding workspace from Stripe customer:', errors)
         return null
       }
 
-      const profile = data[0]
-      return profile?.userId || null
+      const subscription = data[0]
+      return subscription?.workspaceId || null
     })
   } catch (error) {
-    console.error('Error in getUserIdFromStripeCustomer:', error)
+    console.error('Error in getWorkspaceIdFromStripeCustomer:', error)
     return null
-  }
-}
-
-async function updateUserProfile(userId: string, updates: { stripeCustomerId?: string; stripePriceId?: string; stripeProductId?: string }): Promise<boolean> {
-  try {
-    // Note: This uses public access since webhooks don't have user context
-    return await withAmplifyPublic(async (contextSpec) => {
-      const client = generateClient<Schema>({ authMode: 'apiKey' })
-      const { data, errors } = await client.models.UserProfile.update(contextSpec, {
-        userId: userId,
-        ...updates
-      })
-
-      if (errors) {
-        console.error('Error updating user profile:', errors)
-        return false
-      }
-
-      return true
-    })
-  } catch (error) {
-    console.error('Error in updateUserProfile:', error)
-    return false
   }
 }
 
@@ -151,11 +128,11 @@ async function getPlanIdByStripePriceId(stripePriceId: string): Promise<string |
   }
 }
 
-// Helper function to create or update user subscription
-async function upsertUserSubscription(subscription: Stripe.Subscription): Promise<boolean> {
+// Helper function to create or update workspace subscription
+async function upsertWorkspaceSubscription(subscription: Stripe.Subscription): Promise<boolean> {
   try {
-    const userId = await resolveCustomerToUser(subscription.customer, `subscription ${subscription.id}`)
-    if (!userId) return false
+    const workspaceId = await resolveCustomerToWorkspace(subscription.customer, `subscription ${subscription.id}`)
+    if (!workspaceId) return false
 
     const priceId = subscription.items.data[0]?.price?.id
     if (!priceId) {
@@ -176,7 +153,6 @@ async function upsertUserSubscription(subscription: Stripe.Subscription): Promis
       const interval = subscription.items.data[0]?.price?.recurring?.interval === 'year' ? 'year' : 'month'
 
       const subscriptionData = {
-        userId,
         planId,
         stripeSubscriptionId: subscription.id,
         stripeCustomerId: getCustomerId(subscription.customer) || '',
@@ -184,91 +160,79 @@ async function upsertUserSubscription(subscription: Stripe.Subscription): Promis
         currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
         currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
-        billingInterval: interval,
+        billingInterval: interval as 'month' | 'year',
         trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000).toISOString() : null,
         trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
       }
 
-      // Try to update existing subscription first (now identified only by userId)
-      const { data: existing } = await client.models.UserSubscription.list(contextSpec, {
-        filter: {
-          userId: { eq: userId }
-        }
+      // Try to update existing subscription first (identified by workspaceId)
+      const { data: existing } = await client.models.WorkspaceSubscription.get(contextSpec, {
+        workspaceId
       })
 
-      if (existing && existing.length > 0) {
-        // Update existing - replace the current subscription
-        const { errors } = await client.models.UserSubscription.update(contextSpec, {
-          userId,
+      if (existing) {
+        // Update existing subscription
+        const { errors } = await client.models.WorkspaceSubscription.update(contextSpec, {
+          workspaceId,
           ...subscriptionData
         })
 
         if (errors) {
-          console.error('Error updating user subscription:', errors)
+          console.error('Error updating workspace subscription:', errors)
           return false
         }
       } else {
-        // Create new subscription (this shouldn't happen if post-confirmation creates free subscription)
-        const { errors } = await client.models.UserSubscription.create(contextSpec, subscriptionData)
+        // Create new subscription
+        const { errors } = await client.models.WorkspaceSubscription.create(contextSpec, {
+          workspaceId,
+          ...subscriptionData
+        })
 
         if (errors) {
-          console.error('Error creating user subscription:', errors)
+          console.error('Error creating workspace subscription:', errors)
           return false
         }
       }
 
-      // Also update UserProfile for backward compatibility
-      await updateUserProfile(userId, {
-        stripeCustomerId: getCustomerId(subscription.customer) || undefined,
-        stripePriceId: priceId,
-        stripeProductId: subscription.items.data[0]?.price?.product as string || undefined
-      })
-
       return true
     })
   } catch (error) {
-    console.error('Error in upsertUserSubscription:', error)
+    console.error('Error in upsertWorkspaceSubscription:', error)
     return false
   }
 }
 
 // Webhook handlers
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-
-  const userId = session.metadata?.userId
-  if (!userId) {
-    console.error('No userId in checkout session metadata')
+  const workspaceId = session.metadata?.workspaceId
+  if (!workspaceId) {
+    console.error('No workspaceId in checkout session metadata')
     return
   }
 
-  // Update user's profile with customer ID
-  if (session.customer) {
-    await updateUserProfile(userId, {
-      stripeCustomerId: getCustomerId(session.customer) || undefined
-    })
-  }
+  // Workspace subscription will be created/updated by subscription.created event
+  console.log(`Checkout completed for workspace: ${workspaceId}`)
 }
 
 async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
-  await upsertUserSubscription(subscription)
+  await upsertWorkspaceSubscription(subscription)
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  await upsertUserSubscription(subscription)
+  await upsertWorkspaceSubscription(subscription)
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-
-  const userId = await resolveCustomerToUser(subscription.customer, `subscription ${subscription.id}`)
-  if (!userId) return
+  const workspaceId = await resolveCustomerToWorkspace(subscription.customer, `subscription ${subscription.id}`)
+  if (!workspaceId) return
 
   try {
     await withAmplifyPublic(async (contextSpec) => {
       const client = generateClient<Schema>({ authMode: 'apiKey' })
 
       // Revert to free plan when subscription is canceled
-      const { errors } = await client.models.UserSubscription.update(contextSpec, {
-        userId,
+      const { errors } = await client.models.WorkspaceSubscription.update(contextSpec, {
+        workspaceId,
         planId: 'free',
         stripeSubscriptionId: null, // No Stripe subscription for free plan
         status: 'active', // Free plan is active
@@ -283,22 +247,16 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       if (errors) {
         console.error('Error reverting to free plan:', errors)
       } else {
+        console.log(`Workspace ${workspaceId} reverted to free plan`)
       }
     })
-
-    // Also clear UserProfile subscription data
-    await updateUserProfile(userId, {
-      stripePriceId: '',
-      stripeProductId: undefined
-    })
-
   } catch (error) {
     console.error('Error handling subscription deletion:', error)
   }
 }
 
-// Common helper for resolving customer to user
-async function resolveCustomerToUser(customer: string | Stripe.Customer | null, context: string): Promise<string | null> {
+// Common helper for resolving customer to workspace
+async function resolveCustomerToWorkspace(customer: string | Stripe.Customer | Stripe.DeletedCustomer | null, context: string): Promise<string | null> {
   const customerId = getCustomerId(customer)
 
   if (!customerId) {
@@ -306,32 +264,34 @@ async function resolveCustomerToUser(customer: string | Stripe.Customer | null, 
     return null
   }
 
-  const userId = await getUserIdFromStripeCustomer(customerId)
-  if (!userId) {
-    console.error(`No user found for Stripe customer: ${customerId} in ${context}`)
+  const workspaceId = await getWorkspaceIdFromStripeCustomer(customerId)
+  if (!workspaceId) {
+    console.error(`No workspace found for Stripe customer: ${customerId} in ${context}`)
     return null
   }
 
-  return userId
+  return workspaceId
 }
 
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
-  const userId = await resolveCustomerToUser(invoice.customer, `invoice ${invoice.id}`)
-  if (userId) {
-    // TODO: Send confirmation email, update payment status
+  const workspaceId = await resolveCustomerToWorkspace(invoice.customer, `invoice ${invoice.id}`)
+  if (workspaceId) {
+    // TODO: Send confirmation email to workspace owner, update payment status
+    console.log(`Payment succeeded for workspace: ${workspaceId}`)
   }
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  const userId = await resolveCustomerToUser(invoice.customer, `invoice ${invoice.id}`)
-  if (userId) {
-    // TODO: Send notification, handle failed payment
+  const workspaceId = await resolveCustomerToWorkspace(invoice.customer, `invoice ${invoice.id}`)
+  if (workspaceId) {
+    // TODO: Send notification to workspace owner, handle failed payment
+    console.log(`Payment failed for workspace: ${workspaceId}`)
   }
 }
 
 
 // Helper function to safely extract customer ID from Stripe objects
-function getCustomerId(customer: string | Stripe.Customer | null): string | null {
+function getCustomerId(customer: string | Stripe.Customer | Stripe.DeletedCustomer | null): string | null {
   if (!customer) return null
   return typeof customer === 'string' ? customer : customer.id
 }

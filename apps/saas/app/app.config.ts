@@ -33,6 +33,9 @@ export default defineAppConfig({
           to: '/settings',
           exact: true
         }, {
+          label: 'Workspaces',
+          to: '/settings/workspaces'
+        }, {
           label: 'Members',
           to: '/settings/members'
         }, {
