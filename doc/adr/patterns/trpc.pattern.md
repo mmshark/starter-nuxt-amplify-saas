@@ -1,6 +1,11 @@
 # Pattern: tRPC Integration
 
-## Context
+> [!CAUTION]
+> **DEPRECATED**: This pattern has been replaced with classic Nuxt `server/api` endpoints. See [API Server Pattern](api-server.pattern.md) for the current standard.
+>
+> **Rationale**: The project has moved to using Nuxt's built-in server/api routing for simplicity, better alignment with Nuxt conventions, and reduced complexity. REST API endpoints with Zod validation provide sufficient type safety for this project's needs.
+
+## Context (Historical Reference)
 REST APIs often suffer from lack of type safety between client and server, leading to runtime errors and poor developer experience.
 
 ## Problem

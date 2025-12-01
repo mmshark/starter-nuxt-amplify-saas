@@ -9,7 +9,7 @@ This directory contains detailed Product Requirements Documents for the Nuxt Amp
 
 ### Enabling Layer PRDs
 - [**amplify.md**](amplify.md) - AWS Amplify Gen2 integration and backend infrastructure
-- [**trpc.md**](trpc.md) - Type-safe API layer for custom business logic
+- [**trpc.md**](trpc.md) - ~~Type-safe API layer~~ **DEPRECATED** (historical reference)
 - [**i18n.md**](i18n.md) - Internationalization and multi-language support
 - [**uix.md**](uix.md) - UI/UX design system with Nuxt UI Pro and Tailwind CSS
 

@@ -20,7 +20,7 @@
   - [3.4 Middlewares](#34-middlewares)
   - [3.5 Utilities](#35-utilities)
   - [3.6 Server Utilities](#36-server-utilities)
-  - [3.7 tRPC Procedures](#37-trpc-procedures)
+  - [3.7 Server API Endpoints](#37-server-api-endpoints)
 - [4. Testing](#4-testing)
   - [4.1 Unit Tests (Minimal)](#41-unit-tests-minimal)
   - [4.2 E2E Tests (Primary)](#42-e2e-tests-primary)
@@ -123,20 +123,14 @@ The Workspaces Layer provides multi-tenant workspace management for a Nuxt 4-bas
 - `requireWorkspaceRole(event, workspaceId, role)` - Validate role or throw 403
 - `withWorkspace(handler)` - HOF wrapper for workspace-scoped endpoints
 
-**tRPC Procedures** (`layers/workspaces/server/trpc/routers/workspaces.ts`):
-- `workspaces.list` (query) - List user's workspaces
-- `workspaces.get` (query) - Get workspace details with members
-- `workspaces.create` (mutation) - Create new workspace
-- `workspaces.update` (mutation) - Update workspace settings
-- `workspaces.delete` (mutation) - Delete workspace
-- `workspaces.switch` (mutation) - Switch active workspace
-- `workspaces.inviteMember` (mutation) - Send team member invitation
-- `workspaces.listInvitations` (query) - List pending invitations
-- `workspaces.acceptInvitation` (mutation) - Accept workspace invitation
-- `workspaces.rejectInvitation` (mutation) - Reject workspace invitation
-- `workspaces.updateMemberRole` (mutation) - Update team member role
-- `workspaces.removeMember` (mutation) - Remove team member
-- `workspaces.listMembers` (query) - List workspace members
+**Server API Endpoints** (`layers/workspaces/server/api/workspaces/`):
+- `GET /api/workspaces` - List user's workspaces
+- `POST /api/workspaces` - Create new workspace
+- `GET /api/workspaces/[id]/members` - List workspace members
+- `POST /api/workspaces/[id]/members/invite` - Send team member invitation
+- `PATCH /api/workspaces/[id]/members/[userId]/role` - Update team member role
+- `DELETE /api/workspaces/[id]/members/[userId]` - Remove team member
+- `GET /api/workspaces/[id]/invitations` - List pending invitations
 
 **Utilities**:
 - `generateInviteToken()` - Create secure invitation token
@@ -549,24 +543,67 @@ const schema = a.schema({
 **Purpose**: Validate ownership or throw 403
 **Signature**: requireWorkspaceOwner(event: H3Event, workspaceId: string): Promise<void>
 
-### 3.7 tRPC Procedures
+### 3.7 Server API Endpoints
 
-**Location**: `layers/workspaces/server/trpc/routers/workspaces.ts`
+**Location**: `layers/workspaces/server/api/workspaces/`
 
-**Procedures**:
-- `workspaces.list` (query): List user's workspaces
-- `workspaces.get` (query): Get workspace details with members
-- `workspaces.create` (mutation): Create new workspace
-- `workspaces.update` (mutation): Update workspace settings
-- `workspaces.delete` (mutation): Delete workspace
-- `workspaces.switch` (mutation): Switch active workspace
-- `workspaces.inviteMember` (mutation): Send team member invitation
-- `workspaces.listInvitations` (query): List pending invitations
-- `workspaces.acceptInvitation` (mutation): Accept workspace invitation
-- `workspaces.rejectInvitation` (mutation): Reject workspace invitation
-- `workspaces.updateMemberRole` (mutation): Update team member role
-- `workspaces.removeMember` (mutation): Remove team member
-- `workspaces.listMembers` (query): List workspace members
+**Architecture**: Nuxt server/api endpoints with AWS Amplify Data (GraphQL/AppSync/DynamoDB) integration.
+
+**Endpoints**:
+
+#### `GET /api/workspaces`
+List user's workspaces.
+
+**Response**:
+```typescript
+{
+  workspaces: Workspace[]
+}
+```
+
+#### `POST /api/workspaces`
+Create new workspace.
+
+**Request Body**:
+```typescript
+{
+  name: string,
+  slug?: string,
+  description?: string
+}
+```
+
+#### `GET /api/workspaces/[id]/members`
+List workspace members.
+
+#### `POST /api/workspaces/[id]/members/invite`
+Send team member invitation.
+
+**Request Body**:
+```typescript
+{
+  email: string,
+  role: 'ADMIN' | 'MEMBER'
+}
+```
+
+#### `PATCH /api/workspaces/[id]/members/[userId]/role`
+Update team member role.
+
+**Request Body**:
+```typescript
+{
+  role: 'ADMIN' | 'MEMBER'
+}
+```
+
+#### `DELETE /api/workspaces/[id]/members/[userId]`
+Remove team member from workspace.
+
+#### `GET /api/workspaces/[id]/invitations`
+List pending invitations for workspace.
+
+**Authentication**: All endpoints require authentication via `server/middleware/auth.ts`
 
 ### 3.8 Utilities
 
@@ -642,9 +679,13 @@ layers/workspaces/
 │   ├── workspaceOwner.ts
 │   └── workspaceMember.ts
 ├── server/
-│   ├── trpc/
-│   │   └── routers/
-│   │       └── workspaces.ts
+│   ├── api/
+│   │   └── workspaces/
+│   │       ├── index.get.ts
+│   │       ├── index.post.ts
+│   │       └── [id]/
+│   │           ├── members/
+│   │           └── invitations.get.ts
 │   └── utils/
 │       ├── requireWorkspace.ts
 │       ├── requireWorkspaceMember.ts
@@ -818,9 +859,13 @@ layers/workspaces/
 │   ├── workspaceOwner.ts
 │   └── workspaceMember.ts
 ├── server/
-│   ├── trpc/
-│   │   └── routers/
-│   │       └── workspaces.ts         # tRPC workspaces router
+│   ├── api/
+│   │   └── workspaces/               # REST API endpoints
+│   │       ├── index.get.ts
+│   │       ├── index.post.ts
+│   │       └── [id]/
+│   │           ├── members/
+│   │           └── invitations.get.ts
 │   └── utils/
 │       ├── requireWorkspace.ts
 │       ├── requireWorkspaceMember.ts
@@ -854,7 +899,7 @@ layers/workspaces/
 - [ ] All components implemented with proper TypeScript types
 - [ ] All middlewares implemented with workspace validation
 - [ ] All server utilities implemented with error handling
-- [ ] tRPC router implemented with all procedures
+- [ ] REST API endpoints implemented for all operations
 
 **Type Safety**:
 - [ ] All TypeScript types exported from types/ directory
@@ -877,7 +922,7 @@ layers/workspaces/
 - [ ] Auth Layer integration via useUser()
 - [ ] Billing Layer integration for workspace limits
 - [ ] Entitlements Layer integration for role-based permissions
-- [ ] tRPC router registered in main tRPC router
+- [ ] REST API endpoints follow api-server.pattern.md
 - [ ] GraphQL schema deployed to Amplify backend
 
 **Quality**:
