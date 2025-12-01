@@ -20,16 +20,16 @@
     "generate-graphql-client-code": "ampx generate graphql-client-code --branch $AWS_BRANCH --app-id $BACKEND_APP_ID --out utils/graphql"
   },
   "dependencies": {
-    "aws-amplify": "^6.8.4",
-    "@aws-amplify/core": "^6.1.0",
-    "@aws-amplify/api-graphql": "^4.7.19"
+    "@aws-amplify/api-graphql": "^4.8.1",
+    "@aws-amplify/core": "^6.14.0",
+    "aws-amplify": "^6.15.8"
   },
   "devDependencies": {
-    "@starter-nuxt-amplify-saas/backend": "workspace:*",
     "@nuxt/eslint": "latest",
-    "eslint": "^9.31.0",
-    "nuxt": "^4.0.0",
-    "typescript": "^5.8.3",
+    "@starter-nuxt-amplify-saas/backend": "workspace:*",
+    "eslint": "^9.39.1",
+    "nuxt": "^4.2.1",
+    "typescript": "^5.9.3",
     "vue": "latest"
   }
 }

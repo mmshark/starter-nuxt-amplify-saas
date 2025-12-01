@@ -13,14 +13,11 @@
     "backend:sandbox:secrets": "pnpm --filter @starter-nuxt-amplify-saas/backend run sandbox:secrets",
     "billing:sandbox:stripe:seed": "pnpm --filter @starter-nuxt-amplify-saas/billing run sandbox:stripe:seed -- ../../apps/backend/amplify/seed/data/stripe.json",
     "backend:sandbox:amplify:seed": "pnpm --filter @starter-nuxt-amplify-saas/backend run sandbox:amplify:seed",
-
-
     "backend:sandbox:seed": "pnpm --filter @starter-nuxt-amplify-saas/backend run seed",
     "backend:sandbox:seed:plans": "pnpm --filter @starter-nuxt-amplify-saas/backend run seed:plans",
     "backend:sandbox:seed:users": "pnpm --filter @starter-nuxt-amplify-saas/backend run seed:users",
     "amplify:sandbox:generate-outputs": "pnpm --filter @starter-nuxt-amplify-saas/amplify run sandbox:generate-outputs",
     "amplify:sandbox:generate-graphql-client-code": "pnpm --filter @starter-nuxt-amplify-saas/amplify run sandbox:generate-graphql-client-code",
-
     "saas:dev": "pnpm --filter @starter-nuxt-amplify-saas/saas run dev",
     "saas:build": "pnpm --filter @starter-nuxt-amplify-saas/saas run build",
     "landing:dev": "pnpm --filter @starter-nuxt-amplify-saas/landing run dev",
@@ -41,9 +38,9 @@
   },
   "devDependencies": {
     "@aws-amplify/backend-cli": "^1.8.0",
-    "dotenv": "^17.2.2",
+    "dotenv": "^17.2.3",
     "stripe": "^17.7.0",
-    "tsx": "^4.20.5"
+    "tsx": "^4.21.0"
   },
   "packageManager": "pnpm@10.13.1",
   "pnpm": {

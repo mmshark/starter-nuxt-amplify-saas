@@ -13,10 +13,10 @@
     "node": ">=20.19.0"
   },
   "dependencies": {
-    "@starter-nuxt-amplify-saas/uix": "workspace:*",
     "@starter-nuxt-amplify-saas/amplify": "workspace:*",
-    "nuxt": "^4.0.0",
-    "vue": "^3.5.17",
-    "vue-router": "^4.5.1"
+    "@starter-nuxt-amplify-saas/uix": "workspace:*",
+    "nuxt": "^4.2.1",
+    "vue": "^3.5.25",
+    "vue-router": "^4.6.3"
   }
 }
