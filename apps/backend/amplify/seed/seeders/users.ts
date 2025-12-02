@@ -23,7 +23,7 @@ export type SeedUser = {
 
 export type SeedUsersFile = { users: SeedUser[] }
 
-async function createUserSubscription(client: any, userId: string, planId: string, billingInterval: 'month' | 'year', paymentMethod?: SeedUser['paymentMethod']): Promise<void> {
+async function createWorkspaceSubscription(client: any, workspaceId: string, userId: string, planId: string, billingInterval: 'month' | 'year', paymentMethod?: SeedUser['paymentMethod']): Promise<void> {
   try {
     // Verify the plan exists
     const { data: plans } = await client.models.SubscriptionPlan.list({
@@ -48,7 +48,7 @@ async function createUserSubscription(client: any, userId: string, planId: strin
     if (planId === 'free') {
       const now = new Date();
       const subscription = {
-        userId,
+        workspaceId,
         planId,
         stripeCustomerId: userProfile.stripeCustomerId,
         stripeSubscriptionId: null, // No Stripe subscription for free plan
@@ -56,11 +56,11 @@ async function createUserSubscription(client: any, userId: string, planId: strin
         currentPeriodStart: now.toISOString(),
         currentPeriodEnd: null, // Free plan never expires
         cancelAtPeriodEnd: false,
-        billingInterval: null, // No billing for free plan
+        billingInterval: 'month' as const,
       };
 
-      await client.models.UserSubscription.create(subscription);
-      console.log(`✅ Created free subscription for user ${userId} on plan ${planId}`);
+      await client.models.WorkspaceSubscription.create(subscription);
+      console.log(`✅ Created free workspace subscription for workspace ${workspaceId} on plan ${planId}`);
       return;
     }
 
@@ -132,7 +132,7 @@ async function createUserSubscription(client: any, userId: string, planId: strin
 
     // Create subscription record in DynamoDB
     const subscription = {
-      userId,
+      workspaceId,
       planId,
       stripeCustomerId: userProfile.stripeCustomerId,
       stripeSubscriptionId: stripeSubscription.id,
@@ -145,8 +145,8 @@ async function createUserSubscription(client: any, userId: string, planId: strin
       trialEnd: stripeSubscription.trial_end ? new Date(stripeSubscription.trial_end * 1000).toISOString() : null,
     };
 
-    await client.models.UserSubscription.create(subscription);
-    console.log(`✅ Created subscription for user ${userId} on plan ${planId} (${billingInterval})`);
+    await client.models.WorkspaceSubscription.create(subscription);
+    console.log(`✅ Created workspace subscription for workspace ${workspaceId} on plan ${planId} (${billingInterval})`);
   } catch (error) {
     console.error(`❌ Error creating subscription for user ${userId}:`, error);
     // Don't throw - continue with next user
@@ -249,6 +249,28 @@ async function seedUser(client: any, user: SeedUser): Promise<void> {
       console.log(`ℹ️  Using existing Stripe customer ${stripeCustomerId} for user: ${user.username}`);
     }
 
+    // Create personal workspace for user
+    const workspace = await client.models.Workspace.create({
+      name: `${user.username}'s Workspace`,
+      slug: `${userId}-personal`,
+      description: 'Personal workspace',
+      ownerId: userId,
+      isPersonal: true,
+      memberCount: 1,
+    });
+    console.log(`✅ Created personal workspace for user: ${user.username}`);
+
+    // Create WorkspaceMember
+    await client.models.WorkspaceMember.create({
+      workspaceId: workspace.data!.id,
+      userId: userId,
+      email: user.username,
+      name: user.attributes?.name || user.username,
+      role: 'OWNER',
+      joinedAt: new Date().toISOString(),
+    });
+    console.log(`✅ Added user as OWNER to personal workspace`);
+
     // Create subscription if planId is specified
     if (user.planId && user.billingInterval) {
       // Wait a bit for UserProfile to be created by post-confirmation
@@ -256,7 +278,7 @@ async function seedUser(client: any, user: SeedUser): Promise<void> {
 
       // Get current user info for subscription creation
       const currentUser = await auth.getCurrentUser();
-      await createUserSubscription(client, currentUser.userId, user.planId, user.billingInterval, user.paymentMethod);
+      await createWorkspaceSubscription(client, workspace.data!.id, currentUser.userId, user.planId, user.billingInterval, user.paymentMethod);
     }
   } catch (error) {
     console.warn(`⚠️  Could not create UserProfile for ${user.username}:`, error);

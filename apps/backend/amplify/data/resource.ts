@@ -1,6 +1,11 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { postConfirmation } from "../auth/post-confirmation/resource";
 
+/**
+ * UserProfile - User-level attributes and preferences
+ * Purpose: Store user-specific data like Stripe customer ID and future user preferences
+ * NOT deprecated - This is the correct place for user-level data
+ */
 const userProfileModel = a.model({
   userId: a.string().required(),
   stripeCustomerId: a.string(),
@@ -17,23 +22,8 @@ const subscriptionPlanModel = a.model({
   stripeYearlyPriceId: a.string(),
   stripeProductId: a.string().required(),
   isActive: a.boolean().required().default(true),
-  // userSubscriptions: a.hasMany('UserSubscription', 'planId'), // Removed
   workspaceSubscriptions: a.hasMany('WorkspaceSubscription', 'planId'),
 }).identifier(['planId'])
-
-const userSubscriptionModel = a.model({
-  userId: a.string().required(),
-  planId: a.string(),
-  status: a.enum(['active', 'past_due', 'canceled', 'trialing', 'incomplete', 'incomplete_expired', 'unpaid']),
-  stripeSubscriptionId: a.string(),
-  stripeCustomerId: a.string(),
-  currentPeriodStart: a.datetime(),
-  currentPeriodEnd: a.datetime(),
-  cancelAtPeriodEnd: a.boolean().default(false),
-  billingInterval: a.enum(['month', 'year']),
-  trialStart: a.datetime(),
-  trialEnd: a.datetime(),
-}).identifier(['userId'])
 
 const schema = a
   .schema({
@@ -47,12 +37,6 @@ const schema = a
         allow.publicApiKey(), // Para mostrar planes en landing page
         allow.authenticated().to(["read"]), // Usuarios autenticados leen
         allow.groups(["admin"]).to(["create", "update", "delete"]), // Solo admins modifican
-      ]),
-    UserSubscription: userSubscriptionModel
-      .authorization((allow) => [
-        allow.publicApiKey(), // Para webhooks de Stripe
-        allow.ownerDefinedIn("userId").to(["read"]), // Usuario solo lee su propia suscripción
-        allow.groups(["admin"]).to(["create", "update", "delete"]), // Admins y webhooks modifican
       ]),
 
     // Workspaces
