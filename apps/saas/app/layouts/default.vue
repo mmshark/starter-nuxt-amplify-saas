@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
-import type { DashboardMenuItem } from '~/app.config'
 
 const route = useRoute()
 const toast = useToast()
@@ -8,7 +7,7 @@ const appConfig = useAppConfig()
 
 const open = ref(false)
 
-const addOnSelectToMenuItem = (item: DashboardMenuItem): NavigationMenuItem => ({
+const addOnSelectToMenuItem = (item: NavigationMenuItem): NavigationMenuItem => ({
   ...item,
   onSelect: () => {
     open.value = false
@@ -16,8 +15,14 @@ const addOnSelectToMenuItem = (item: DashboardMenuItem): NavigationMenuItem => (
   children: item.children?.map(addOnSelectToMenuItem)
 })
 
-const links = computed(() =>
-  appConfig.dashboard?.navigation?.main?.map(group =>
+const mainLinks = computed(() =>
+  appConfig.saas?.navigation?.sidebar?.main?.map(group =>
+    group.map(addOnSelectToMenuItem)
+  ) as NavigationMenuItem[][] ?? [[]]
+)
+
+const footerLinks = computed(() =>
+  appConfig.saas?.navigation?.sidebar?.footer?.map(group =>
     group.map(addOnSelectToMenuItem)
   ) as NavigationMenuItem[][] ?? [[]]
 )
@@ -25,7 +30,7 @@ const links = computed(() =>
 const groups = computed(() => [{
   id: 'links',
   label: 'Go to',
-  items: links.value.flat()
+  items: [...mainLinks.value.flat(), ...footerLinks.value.flat()]
 }, {
   id: 'code',
   label: 'Code',
@@ -83,7 +88,7 @@ onMounted(async () => {
 
         <UNavigationMenu
           :collapsed="collapsed"
-          :items="links[0]"
+          :items="mainLinks[0]"
           orientation="vertical"
           tooltip
           popover
@@ -91,7 +96,7 @@ onMounted(async () => {
 
         <UNavigationMenu
           :collapsed="collapsed"
-          :items="links[1]"
+          :items="footerLinks[0]"
           orientation="vertical"
           tooltip
           class="mt-auto"

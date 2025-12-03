@@ -7,6 +7,7 @@
       <!-- Sidebar -->
       <AppSidebar
         :is-open="isSidebarOpen"
+        :items="sidebarItems"
         @close="isSidebarOpen = false"
       />
 
@@ -19,6 +20,9 @@
 </template>
 
 <script setup lang="ts">
+import type { NavigationMenuItem } from '@nuxt/ui'
+import { settingsSidebar } from '../config/navigation'
+
 // Enforce authentication
 definePageMeta({
   middleware: ['auth']
@@ -30,6 +34,15 @@ const isSidebarOpen = ref(false)
 // Load workspace context
 const { currentWorkspace } = useWorkspace()
 const { user } = useUser()
+
+// Get app config
+const appConfig = useAppConfig()
+
+// Compose sidebar items: app items + settings from layer
+const sidebarItems = computed<NavigationMenuItem[][]>(() => [
+  ...(appConfig.saas?.navigation?.sidebarExtra || []),
+  [settingsSidebar] // Settings menu from layer config
+])
 
 // Ensure user has workspace
 onMounted(() => {

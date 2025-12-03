@@ -9,7 +9,7 @@
     <nav class="p-4">
       <!-- Navigation Groups -->
       <div
-        v-for="(group, groupIndex) in config.navigation.sidebar"
+        v-for="(group, groupIndex) in items"
         :key="groupIndex"
         class="mb-6 last:mb-0"
       >
@@ -51,10 +51,11 @@
 </template>
 
 <script setup lang="ts">
-const config = useSaasConfig()
+import type { NavigationMenuItem } from '@nuxt/ui'
 
 const props = defineProps<{
   isOpen?: boolean
+  items?: NavigationMenuItem[][]
 }>()
 
 const emit = defineEmits<{

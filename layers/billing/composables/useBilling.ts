@@ -24,16 +24,16 @@ export const useBilling = (workspaceId: string | Ref<string>) => {
   const key = computed(() => `billing:${id.value}`)
 
   // State keyed by workspaceId
-  const isPortalLoading = useState<boolean>(() => `${key.value}:isPortalLoading`, () => false)
-  const subscription = useState<SubscriptionData | null>(() => `${key.value}:subscription`, () => null)
-  const invoices = useState<InvoicesData | null>(() => `${key.value}:invoices`, () => null)
-  const subscriptionLoading = useState<boolean>(() => `${key.value}:subscriptionLoading`, () => false)
-  const invoicesLoading = useState<boolean>(() => `${key.value}:invoicesLoading`, () => false)
-  const subscriptionError = useState<string | null>(() => `${key.value}:subscriptionError`, () => null)
-  const invoicesError = useState<string | null>(() => `${key.value}:invoicesError`, () => null)
-  const initialized = useState<boolean>(() => `${key.value}:initialized`, () => false)
+  const isPortalLoading = useState<boolean>(`${key.value}:isPortalLoading`, () => false)
+  const subscription = useState<SubscriptionData | null>(`${key.value}:subscription`, () => null)
+  const invoices = useState<InvoicesData | null>(`${key.value}:invoices`, () => null)
+  const subscriptionLoading = useState<boolean>(`${key.value}:subscriptionLoading`, () => false)
+  const invoicesLoading = useState<boolean>(`${key.value}:invoicesLoading`, () => false)
+  const subscriptionError = useState<string | null>(`${key.value}:subscriptionError`, () => null)
+  const invoicesError = useState<string | null>(`${key.value}:invoicesError`, () => null)
+  const initialized = useState<boolean>(`${key.value}:initialized`, () => false)
 
-  const inFlight = useState<Record<string, boolean>>(() => `${key.value}:inFlight`, () => ({
+  const inFlight = useState<Record<string, boolean>>(`${key.value}:inFlight`, () => ({
     init: false,
     subscription: false,
     invoices: false,

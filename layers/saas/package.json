@@ -6,7 +6,8 @@
   "author": "Starter Nuxt Amplify SaaS",
   "license": "MIT",
   "exports": {
-    ".": "./nuxt.config.ts"
+    ".": "./nuxt.config.ts",
+    "./config/navigation": "./config/navigation.ts"
   },
   "dependencies": {
     "@starter-nuxt-amplify-saas/amplify": "workspace:*",

@@ -28,21 +28,8 @@ const user = computed(() => {
   }
 })
 
-const items = computed<DropdownMenuItem[][]>(() => ([[{
-  type: 'label',
-  label: user.value.name,
-  avatar: user.value.avatar
-}], [{
-  label: 'Profile',
-  icon: 'i-lucide-user'
-}, {
-  label: 'Billing',
-  icon: 'i-lucide-credit-card'
-}, {
-  label: 'Settings',
-  icon: 'i-lucide-settings',
-  to: '/settings'
-}], [{
+// Build theme selector dynamically
+const themeSelector = {
   label: 'Theme',
   icon: 'i-lucide-palette',
   children: [{
@@ -61,7 +48,6 @@ const items = computed<DropdownMenuItem[][]>(() => ([[{
       type: 'checkbox',
       onSelect: (e) => {
         e.preventDefault()
-
         appConfig.ui.colors.primary = color
       }
     }))
@@ -81,12 +67,14 @@ const items = computed<DropdownMenuItem[][]>(() => ([[{
       checked: appConfig.ui.colors.neutral === color,
       onSelect: (e) => {
         e.preventDefault()
-
         appConfig.ui.colors.neutral = color
       }
     }))
   }]
-}, {
+}
+
+// Build appearance selector dynamically
+const appearanceSelector = {
   label: 'Appearance',
   icon: 'i-lucide-sun-moon',
   children: [{
@@ -96,7 +84,6 @@ const items = computed<DropdownMenuItem[][]>(() => ([[{
     checked: colorMode.value === 'light',
     onSelect(e: Event) {
       e.preventDefault()
-
       colorMode.preference = 'light'
     }
   }, {
@@ -113,52 +100,46 @@ const items = computed<DropdownMenuItem[][]>(() => ([[{
       e.preventDefault()
     }
   }]
-}], [{
-  label: 'Templates',
-  icon: 'i-lucide-layout-template',
-  children: [{
-    label: 'Starter',
-    to: 'https://ui-pro-starter.nuxt.dev/'
-  }, {
-    label: 'Landing',
-    to: 'https://landing-template.nuxt.dev/'
-  }, {
-    label: 'Docs',
-    to: 'https://docs-template.nuxt.dev/'
-  }, {
-    label: 'SaaS',
-    to: 'https://saas-template.nuxt.dev/'
-  }, {
-    label: 'Dashboard',
-    to: 'https://dashboard-template.nuxt.dev/',
-    checked: true,
-    type: 'checkbox'
-  }, {
-    label: 'Chat',
-    to: 'https://chat-template.nuxt.dev/'
-  }]
-}], [{
-  label: 'Documentation',
-  icon: 'i-lucide-book-open',
-  to: 'https://ui.nuxt.com/getting-started/installation/pro/nuxt',
-  target: '_blank'
-}, {
-  label: 'GitHub repository',
-  icon: 'i-simple-icons-github',
-  to: 'https://github.com/nuxt-ui-pro/dashboard',
-  target: '_blank'
-}, {
-  label: 'Upgrade to Pro',
-  icon: 'i-lucide-rocket',
-  to: 'https://ui.nuxt.com/pro/purchase',
-  target: '_blank'
-}], [{
-  label: 'Log out',
-  icon: 'i-lucide-log-out',
-  onSelect: async () => {
-    await signOut()
-  }
-}]]))
+}
+
+// Read menu configuration from app.config
+const menuConfig = appConfig.saas?.navigation?.userMenu || []
+
+// Build final items array
+const items = computed<DropdownMenuItem[][]>(() => {
+  // Start with user label
+  const result: DropdownMenuItem[][] = [[{
+    type: 'label',
+    label: user.value.name,
+    avatar: user.value.avatar
+  }]]
+
+  // Process each group from config
+  menuConfig.forEach((group: any[]) => {
+    const processedGroup = group.map((item: any) => {
+      // Replace special types with dynamic content
+      if (item.type === 'theme-selector') {
+        return themeSelector
+      }
+      if (item.type === 'appearance-selector') {
+        return appearanceSelector
+      }
+      return item
+    })
+    result.push(processedGroup)
+  })
+
+  // Add logout at the end
+  result.push([{
+    label: 'Log out',
+    icon: 'i-lucide-log-out',
+    onSelect: async () => {
+      await signOut()
+    }
+  }])
+
+  return result
+})
 </script>
 
 <template>
