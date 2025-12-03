@@ -1,0 +1,20 @@
+{
+  "name": "@starter-nuxt-amplify-saas/saas",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Complete SaaS application shell with layouts, pages, and navigation",
+  "author": "Starter Nuxt Amplify SaaS",
+  "license": "MIT",
+  "exports": {
+    ".": "./nuxt.config.ts"
+  },
+  "dependencies": {
+    "@starter-nuxt-amplify-saas/amplify": "workspace:*",
+    "@starter-nuxt-amplify-saas/auth": "workspace:*",
+    "@starter-nuxt-amplify-saas/billing": "workspace:*",
+    "@starter-nuxt-amplify-saas/workspaces": "workspace:*",
+    "@starter-nuxt-amplify-saas/entitlements": "workspace:*",
+    "@starter-nuxt-amplify-saas/uix": "workspace:*",
+    "@starter-nuxt-amplify-saas/i18n": "workspace:*"
+  }
+}

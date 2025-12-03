@@ -84,30 +84,12 @@ importers:
       '@iconify-json/lucide':
         specifier: ^1.2.77
         version: 1.2.77
-      '@starter-nuxt-amplify-saas/amplify':
-        specifier: workspace:*
-        version: link:../../layers/amplify
-      '@starter-nuxt-amplify-saas/auth':
-        specifier: workspace:*
-        version: link:../../layers/auth
-      '@starter-nuxt-amplify-saas/billing':
-        specifier: workspace:*
-        version: link:../../layers/billing
       '@starter-nuxt-amplify-saas/debug':
         specifier: workspace:*
         version: link:../../layers/debug
-      '@starter-nuxt-amplify-saas/entitlements':
+      '@starter-nuxt-amplify-saas/saas':
         specifier: workspace:*
-        version: link:../../layers/entitlements
-      '@starter-nuxt-amplify-saas/i18n':
-        specifier: workspace:*
-        version: link:../../layers/i18n
-      '@starter-nuxt-amplify-saas/uix':
-        specifier: workspace:*
-        version: link:../../layers/uix
-      '@starter-nuxt-amplify-saas/workspaces':
-        specifier: workspace:*
-        version: link:../../layers/workspaces
+        version: link:../../layers/saas
       '@unovis/ts':
         specifier: ^1.6.2
         version: 1.6.2
@@ -319,6 +301,30 @@ importers:
       '@nuxtjs/i18n':
         specifier: ^10.2.1
         version: 10.2.1(@netlify/blobs@9.1.2)(@vue/compiler-dom@3.5.25)(db0@0.3.4(better-sqlite3@12.2.0)(mysql2@3.9.9))(eslint@9.39.1(jiti@2.6.1))(ioredis@5.8.2)(magicast@0.5.1)(rollup@4.53.3)(vue@3.5.25(typescript@5.9.3))
+
+  layers/saas:
+    dependencies:
+      '@starter-nuxt-amplify-saas/amplify':
+        specifier: workspace:*
+        version: link:../amplify
+      '@starter-nuxt-amplify-saas/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@starter-nuxt-amplify-saas/billing':
+        specifier: workspace:*
+        version: link:../billing
+      '@starter-nuxt-amplify-saas/entitlements':
+        specifier: workspace:*
+        version: link:../entitlements
+      '@starter-nuxt-amplify-saas/i18n':
+        specifier: workspace:*
+        version: link:../i18n
+      '@starter-nuxt-amplify-saas/uix':
+        specifier: workspace:*
+        version: link:../uix
+      '@starter-nuxt-amplify-saas/workspaces':
+        specifier: workspace:*
+        version: link:../workspaces
 
   layers/trpc:
     dependencies:

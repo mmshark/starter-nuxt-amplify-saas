@@ -5,13 +5,10 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   extends: [
-    '@starter-nuxt-amplify-saas/uix',
-    '@starter-nuxt-amplify-saas/amplify',
-    '@starter-nuxt-amplify-saas/i18n',
-    '@starter-nuxt-amplify-saas/auth',
-    '@starter-nuxt-amplify-saas/workspaces',
-    '@starter-nuxt-amplify-saas/entitlements',
-    '@starter-nuxt-amplify-saas/billing',
+    // Use SaaS meta-layer (includes all necessary layers)
+    '@starter-nuxt-amplify-saas/saas',
+
+    // Debug layer (optional development tool)
     '@starter-nuxt-amplify-saas/debug'
   ],
   alias: {

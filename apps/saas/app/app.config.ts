@@ -1,12 +1,30 @@
 export default defineAppConfig({
+  // SaaS layer configuration
+  saas: {
+    brand: {
+      name: 'Starter SaaS',
+      logo: '/logo.svg',
+      description: 'Nuxt Amplify SaaS Starter',
+      favicon: '/favicon.ico'
+    },
+    // Navigation inherits from saas layer defaults
+    // Features inherit from saas layer defaults
+    // Layouts inherit from saas layer defaults
+    // Theme inherits from saas layer defaults
+  },
+
+  // Billing configuration
   billing: {},
-  // Instance-specific UI configuration
+
+  // UI configuration
   ui: {
     colors: {
       primary: 'blue',
       neutral: 'slate'
     }
   },
+
+  // Dashboard-specific navigation (for default layout)
   dashboard: {
     navigation: {
       main: [[{

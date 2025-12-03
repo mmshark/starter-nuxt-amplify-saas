@@ -16,10 +16,10 @@ const addOnSelectToMenuItem = (item: DashboardMenuItem): NavigationMenuItem => (
   children: item.children?.map(addOnSelectToMenuItem)
 })
 
-const links = computed(() => 
-  appConfig.dashboard.navigation.main.map(group => 
+const links = computed(() =>
+  appConfig.dashboard?.navigation?.main?.map(group =>
     group.map(addOnSelectToMenuItem)
-  ) as NavigationMenuItem[][]
+  ) as NavigationMenuItem[][] ?? [[]]
 )
 
 const groups = computed(() => [{
@@ -75,7 +75,7 @@ onMounted(async () => {
       :ui="{ footer: 'lg:border-t lg:border-default' }"
     >
       <template #header="{ collapsed }">
-        <TeamsMenu :collapsed="collapsed" />
+        <WorkspaceSwitcher :collapsed="collapsed" />
       </template>
 
       <template #default="{ collapsed }">

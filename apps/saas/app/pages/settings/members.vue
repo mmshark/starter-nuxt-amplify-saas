@@ -68,7 +68,7 @@ onMounted(async () => {
     </div>
 
     <!-- Members List -->
-    <TeamMembersList v-if="currentWorkspaceId" :workspace-id="currentWorkspaceId" />
+    <WorkspaceMembersList v-if="currentWorkspaceId" :workspace-id="currentWorkspaceId" />
 
     <!-- Pending Invitations -->
     <div v-if="invitations.length > 0" class="mt-8">
@@ -96,7 +96,7 @@ onMounted(async () => {
     </div>
 
     <!-- Invite Member Modal -->
-    <InviteTeamMemberModal
+    <InviteWorkspaceMemberModal
       v-if="currentWorkspaceId"
       v-model="showInviteModal"
       :workspace-id="currentWorkspaceId"

@@ -18,7 +18,7 @@
       :loading="loading"
     />
 
-    <InviteTeamMemberModal
+    <InviteWorkspaceMemberModal
       v-model="showInviteModal"
       :workspace-id="workspaceId"
       @invited="loadMembers"
