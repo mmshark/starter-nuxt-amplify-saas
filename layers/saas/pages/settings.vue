@@ -1,44 +1,18 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
+import { settingsSidebar } from '@starter-nuxt-amplify-saas/saas/config/navigation'
 
-definePageMeta({
-  middleware: 'auth'
-})
+definePageMeta({ middleware: 'auth' })
 
-const links = [[{
-  label: 'General',
-  icon: 'i-lucide-user',
-  to: '/settings',
-  exact: true
-}, {
-  label: 'Members',
-  icon: 'i-lucide-users',
-  to: '/settings/members'
-}, {
-  label: 'Notifications',
-  icon: 'i-lucide-bell',
-  to: '/settings/notifications'
-}, {
-  label: 'Security',
-  icon: 'i-lucide-shield',
-  to: '/settings/security'
-}], [{
-  label: 'Documentation',
-  icon: 'i-lucide-book-open',
-  to: 'https://ui.nuxt.com/getting-started/installation/pro/nuxt',
-  target: '_blank'
-}, {
-  label: 'Buy now',
-  icon: 'i-lucide-shopping-cart',
-  to: 'https://ui.nuxt.com/pro/purchase',
-  target: '_blank'
-}]] satisfies NavigationMenuItem[][]
+// Extract title and links from navigation config
+const title = computed(() => settingsSidebar.label || 'Settings')
+const links = computed(() => [settingsSidebar.children || []] as NavigationMenuItem[][])
 </script>
 
 <template>
   <UDashboardPanel id="settings" :ui="{ body: 'lg:py-12' }">
     <template #header>
-      <UDashboardNavbar title="Settings">
+      <UDashboardNavbar :title="title">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>

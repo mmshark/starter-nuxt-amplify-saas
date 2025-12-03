@@ -1,9 +1,4 @@
 <script setup lang="ts">
-definePageMeta({
-  middleware: ['auth'],
-  layout: 'default'
-})
-
 const { currentWorkspaceId, currentWorkspace, loadWorkspaces } = useWorkspaces()
 const showInviteModal = ref(false)
 const q = ref('')
@@ -44,28 +39,26 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Header -->
-    <div>
-      <h2 class="text-2xl font-bold">Team Members</h2>
-      <p class="text-gray-500 mt-1">Manage your workspace team members and invitations.</p>
-    </div>
-
-    <!-- Header Actions -->
-    <div class="flex items-center justify-between">
-      <UInput
-        v-model="q"
-        icon="i-lucide-search"
-        placeholder="Search members..."
-        class="w-full max-w-xs"
-      />
-      <UButton
-        icon="i-lucide-user-plus"
-        @click="showInviteModal = true"
-      >
-        Invite Member
-      </UButton>
-    </div>
+  <UPageCard
+    title="Team Members"
+    description="Manage your workspace team members and invitations."
+  >
+    <template #header>
+      <div class="flex items-center justify-between">
+        <UInput
+          v-model="q"
+          icon="i-lucide-search"
+          placeholder="Search members..."
+          class="w-full max-w-xs"
+        />
+        <UButton
+          icon="i-lucide-user-plus"
+          @click="showInviteModal = true"
+        >
+          Invite Member
+        </UButton>
+      </div>
+    </template>
 
     <!-- Members List -->
     <WorkspaceMembersList v-if="currentWorkspaceId" :workspace-id="currentWorkspaceId" />
@@ -101,5 +94,5 @@ onMounted(async () => {
       v-model="showInviteModal"
       :workspace-id="currentWorkspaceId"
     />
-  </div>
+  </UPageCard>
 </template>

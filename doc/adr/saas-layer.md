@@ -1,4 +1,4 @@
-# ARD: SaaS Meta-Layer Architecture
+# ADR: SaaS Meta-Layer Architecture
 
 **Date**: 2025-12-02
 **Status**: Approved

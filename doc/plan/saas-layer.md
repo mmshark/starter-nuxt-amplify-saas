@@ -1195,7 +1195,7 @@ See [PRD](../../doc/prd/saas-layer.md) for complete page list.
 - [ ] README.md complete
 - [ ] Configuration examples work
 - [ ] Override patterns documented
-- [ ] PRD and ARD updated
+- [ ] PRD and ADR updated
 
 ---
 
@@ -1226,9 +1226,9 @@ See [PRD](../../doc/prd/saas-layer.md) for complete page list.
 ## Related Documents
 
 - [PRD: SaaS Meta-Layer](../prd/saas-layer.md)
-- [ARD: SaaS Meta-Layer Architecture](../ard/saas-layer.md)
+- [ARD: SaaS Meta-Layer Architecture](../adr/saas-layer.md)
 - [Gap Analysis: Code vs PRD](../analysis/gap-analysis-code-vs-prd.md)
-- [Gap Analysis: Code vs ARD](../analysis/gap-analysis-code-vs-ard.md)
+- [Gap Analysis: Code vs ARD](../analysis/gap-analysis-code-vs-adr.md)
 
 ---
 

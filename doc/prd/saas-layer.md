@@ -658,6 +658,221 @@ const workspaceItems = computed(() => [
 </script>
 ```
 
+### 3.6 Settings and Profile Architecture
+
+The SaaS meta-layer provides a standardized architecture for settings and profile pages that clearly separates workspace-level configuration from user-level configuration.
+
+**Design Philosophy**:
+- **Clear Separation**: Workspace settings affect all team members; profile settings affect only the current user
+- **Proper Scoping**: Workspace settings require workspace context; profile settings work across all workspaces
+- **Consistent UX**: Both use parent layout pattern with horizontal navigation
+- **Multi-Tenancy**: Proper separation prevents data leaks and maintains security boundaries
+
+#### Workspace Settings (`/settings/*`)
+
+**Purpose**: Configure workspace-level settings that affect all team members
+
+**Pages**:
+
+| Page | Route | Description | Access |
+|------|-------|-------------|--------|
+| General | `/settings` | Workspace name, logo, description | Owner/Admin |
+| Members | `/settings/members` | Team member management | Owner/Admin |
+| Billing | `/settings/billing` | Workspace subscription and billing | Owner/Admin |
+| Workspaces | `/settings/workspaces` | Workspace switcher and list | All Members |
+
+**Location**: `layers/saas/pages/settings/`
+
+**Access Control**:
+- Most pages require workspace owner or admin role
+- Uses workspace context from `useWorkspace()` composable
+- Permissions checked via `useWorkspaceMembership()` composable
+
+**Parent Layout Pattern** (`layers/saas/pages/settings.vue`):
+
+```vue
+<script setup lang="ts">
+import type { NavigationMenuItem } from '@nuxt/ui'
+import { settingsSidebar } from '@starter-nuxt-amplify-saas/saas/config/navigation'
+
+definePageMeta({ middleware: 'auth' })
+
+// Extract title and links from navigation config
+const title = computed(() => settingsSidebar.label || 'Settings')
+const links = computed(() => [settingsSidebar.children || []] as NavigationMenuItem[][])
+</script>
+
+<template>
+  <UDashboardPanel id="settings" :ui="{ body: 'lg:py-12' }">
+    <template #header>
+      <UDashboardNavbar :title="title">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
+      </UDashboardNavbar>
+
+      <UDashboardToolbar>
+        <UNavigationMenu :items="links" highlight class="-mx-1 flex-1" />
+      </UDashboardToolbar>
+    </template>
+
+    <template #body>
+      <div class="flex flex-col gap-4 sm:gap-6 lg:gap-12 w-full lg:max-w-2xl mx-auto">
+        <NuxtPage />
+      </div>
+    </template>
+  </UDashboardPanel>
+</template>
+```
+
+**Child Page Pattern** (`layers/saas/pages/settings/index.vue`):
+
+```vue
+<script setup lang="ts">
+const { currentWorkspace } = useWorkspaces()
+const { isAdminOrOwner } = useWorkspaceMembership()
+</script>
+
+<template>
+  <UPageCard
+    title="Workspace Settings"
+    description="Manage your workspace name, logo, and general settings."
+  >
+    <WorkspaceGeneralForm />
+  </UPageCard>
+</template>
+```
+
+**Navigation Integration**:
+- Settings appears in sidebar menu as collapsible section
+- Configured via `settingsSidebar` in `layers/saas/config/navigation.ts`
+- Visible to all workspace members
+
+#### User Profile (`/profile/*`)
+
+**Purpose**: Configure user-level settings that affect only the current user
+
+**Pages**:
+
+| Page | Route | Description | Access |
+|------|-------|-------------|--------|
+| Profile | `/profile` | User name, avatar, bio | Current User |
+| Account | `/profile/account` | Email, password, delete account | Current User |
+| Security | `/profile/security` | 2FA, sessions, security logs | Current User |
+| Notifications | `/profile/notifications` | Notification preferences | Current User |
+
+**Location**: `layers/saas/pages/profile/`
+
+**Access Control**:
+- Any authenticated user can access their own profile
+- No workspace context required (user-scoped)
+- Uses `useUser()` composable for user data
+
+**Parent Layout Pattern** (`layers/saas/pages/profile.vue`):
+
+```vue
+<script setup lang="ts">
+import type { NavigationMenuItem } from '@nuxt/ui'
+import { profileSidebar } from '@starter-nuxt-amplify-saas/saas/config/navigation'
+
+definePageMeta({ middleware: 'auth' })
+
+// Extract title and links from navigation config
+const title = computed(() => `${profileSidebar.label} Settings`)
+const links = computed(() => [profileSidebar.children || []] as NavigationMenuItem[][])
+</script>
+
+<template>
+  <UDashboardPanel id="profile" :ui="{ body: 'lg:py-12' }">
+    <template #header>
+      <UDashboardNavbar :title="title">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
+      </UDashboardNavbar>
+
+      <UDashboardToolbar>
+        <UNavigationMenu :items="links" highlight class="-mx-1 flex-1" />
+      </UDashboardToolbar>
+    </template>
+
+    <template #body>
+      <div class="flex flex-col gap-4 sm:gap-6 lg:gap-12 w-full lg:max-w-2xl mx-auto">
+        <NuxtPage />
+      </div>
+    </template>
+  </UDashboardPanel>
+</template>
+```
+
+**Child Page Pattern** (`layers/saas/pages/profile/index.vue`):
+
+```vue
+<script setup lang="ts">
+const { userAttributes, userProfile } = useUser()
+</script>
+
+<template>
+  <UPageCard
+    title="Profile"
+    description="Manage your personal information and preferences."
+  >
+    <UserProfileSettings />
+  </UPageCard>
+</template>
+```
+
+**Navigation Integration**:
+- Profile items appear in user menu (footer of sidebar)
+- Configured via `profileSidebar` → `userMenuItems` in `layers/saas/config/navigation.ts`
+- Visible only to current user
+
+#### Component Distribution
+
+**Workspace-Specific Components** → `layers/workspaces/components/`:
+- `WorkspaceGeneralForm.vue` - Edit workspace details
+- `CreateWorkspaceModal.vue` - Create new workspace
+- `TeamMembersList.vue` - Manage team members
+- **Rule**: Components with workspace domain logic belong in workspaces layer
+
+**User-Specific Components** → `layers/auth/components/`:
+- `UserAccountForm.vue` - Edit user account settings
+- `UserProfileSettings.vue` - Edit user profile information
+- **Rule**: Components with user/auth domain logic belong in auth layer
+
+**Generic Shell Components** → `layers/saas/components/`:
+- `UserMenu.vue` - User dropdown menu (shell component)
+- `AppHeader.vue` - Application header (shell component)
+- `AppSidebar.vue` - Application sidebar (shell component)
+- **Rule**: Only generic shell components with no domain logic
+
+**Anti-Patterns to Avoid**:
+- ❌ Domain components in saas layer (WorkspaceGeneralForm should NOT be in `layers/saas/components/`)
+- ❌ Mixed workspace/user settings in single route (keep `/settings` and `/profile` separate)
+- ❌ Inconsistent navigation patterns (always use parent layout with UDashboardToolbar)
+
+#### Design Rationale
+
+**Separation of Concerns**:
+- Workspace settings affect team → require workspace context and permissions
+- Profile settings affect individual → work across all workspaces, no workspace context
+- Clear mental model for users: "Settings" for team, "Profile" for me
+
+**Multi-Tenancy**:
+- Workspace settings are workspace-scoped (data isolation per workspace)
+- Profile settings are user-scoped (same across all workspaces)
+- Proper scoping prevents data leaks and maintains security boundaries
+
+**Component Organization**:
+- Domain components live in feature layers (workspaces, auth)
+- Generic shell components live in saas layer
+- Clear boundaries prevent circular dependencies and coupling
+
+**User Experience**:
+- Consistent horizontal navigation pattern for both settings and profile
+- Parent layouts provide structure, child pages provide content
+- `UPageCard` wrapper for consistent styling across all pages
+
 ---
 
 ## 4. Configuration
@@ -1202,7 +1417,7 @@ See [SaaS Meta-Layer Implementation Plan](../plan/saas-layer.md).
 ---
 
 **Related Documents**:
-- [ARD: SaaS Meta-Layer Architecture](../ard/saas-layer.md)
+- [ARD: SaaS Meta-Layer Architecture](../adr/saas-layer.md)
 - [Plan: SaaS Meta-Layer Implementation](../plan/saas-layer.md)
 - [PRD: Auth Layer](./auth.md)
 - [PRD: Billing Layer](./billing.md)

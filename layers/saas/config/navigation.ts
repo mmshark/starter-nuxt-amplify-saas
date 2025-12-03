@@ -26,20 +26,44 @@ export const settingsSidebar: NavigationMenuItem = {
   }, {
     label: 'Billing',
     to: '/settings/billing'
+  }, {
+    label: 'Workspaces',
+    to: '/settings/workspaces'
   }]
 }
 
 /**
- * User menu items for the user dropdown
+ * Profile sidebar menu (for profile settings pages layout)
+ */
+export const profileSidebar: NavigationMenuItem = {
+  label: 'Profile',
+  to: '/profile',
+  icon: 'i-lucide-user',
+  children: [{
+    label: 'Profile',
+    icon: 'i-lucide-user',
+    to: '/profile',
+    exact: true
+  }, {
+    label: 'Account',
+    icon: 'i-lucide-settings',
+    to: '/profile/account'
+  }, {
+    label: 'Security',
+    icon: 'i-lucide-shield',
+    to: '/profile/security'
+  }, {
+    label: 'Notifications',
+    icon: 'i-lucide-bell',
+    to: '/profile/notifications'
+  }]
+}
+
+/**
+ * User menu items for the user dropdown (extracted from profileSidebar)
  */
 export const userMenuItems: NavigationMenuItem[][] = [
-  [
-    { label: 'Profile', icon: 'i-lucide-user', to: '/settings/profile' },
-    { label: 'Account', icon: 'i-lucide-settings', to: '/settings/account' }
-  ],
-  [
-    { label: 'Billing', icon: 'i-lucide-credit-card', to: '/billing' }
-  ]
+  profileSidebar.children || []
 ]
 
 /**

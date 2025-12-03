@@ -1,4 +1,4 @@
-import { settingsSidebar, footerNavigation } from '@starter-nuxt-amplify-saas/saas/config/navigation'
+import { settingsSidebar, footerNavigation, userMenuItems } from '@starter-nuxt-amplify-saas/saas/config/navigation'
 
 export default defineAppConfig({
   // SaaS layer configuration
@@ -36,28 +36,22 @@ export default defineAppConfig({
       // Header navigation (empty for now)
       header: [],
       // User menu configuration
-      userMenu: [[{
-        label: 'Profile',
-        icon: 'i-lucide-user'
-      }, {
-        label: 'Billing',
-        icon: 'i-lucide-credit-card'
-      }, {
-        label: 'Settings',
-        icon: 'i-lucide-settings',
-        to: '/settings'
-      }], [{
-        label: 'Theme',
-        icon: 'i-lucide-palette',
-        // Theme configuration will be handled dynamically in component
-        type: 'theme-selector'
-      }, {
-        label: 'Appearance',
-        icon: 'i-lucide-sun-moon',
-        // Appearance will be handled dynamically in component
-        type: 'appearance-selector'
-      }], [{
-        label: 'Templates',
+      userMenu: [
+        // User profile items from layer
+        ...userMenuItems,
+        // App-specific items
+        [{
+          label: 'Theme',
+          icon: 'i-lucide-palette',
+          // Theme configuration will be handled dynamically in component
+          type: 'theme-selector'
+        }, {
+          label: 'Appearance',
+          icon: 'i-lucide-sun-moon',
+          // Appearance will be handled dynamically in component
+          type: 'appearance-selector'
+        }], [{
+          label: 'Templates',
         icon: 'i-lucide-layout-template',
         children: [{
           label: 'Starter',

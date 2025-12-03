@@ -1,6 +1,4 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'auth' })
-
 import * as z from 'zod'
 import type { FormError } from '@nuxt/ui'
 

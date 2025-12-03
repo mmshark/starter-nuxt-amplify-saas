@@ -114,7 +114,7 @@ const items = computed<DropdownMenuItem[][]>(() => {
     avatar: user.value.avatar
   }]]
 
-  // Process each group from config
+  // Process each group from app config
   menuConfig.forEach((group: any[]) => {
     const processedGroup = group.map((item: any) => {
       // Replace special types with dynamic content

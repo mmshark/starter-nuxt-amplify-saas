@@ -109,7 +109,7 @@ feat(amplify): add Workspace GraphQL model
 - Add GSI for owner queries
 - Add timestamps (createdAt, updatedAt)
 
-Refs: doc/prd/workspaces.md, doc/ard/workspace-billing.md
+Refs: doc/prd/workspaces.md, doc/adr/workspace-billing.md
 ```
 
 **Ámbito**:
@@ -404,7 +404,7 @@ feat(workspaces): add REST API endpoints with CRUD operations
 - Add authorization checks
 - Integrate with Amplify context via withAmplifyAuth
 
-Refs: doc/ard/patterns/api-server.pattern.md, doc/prd/workspaces.md
+Refs: doc/adr/patterns/api-server.pattern.md, doc/prd/workspaces.md
 ```
 
 **Ámbito**:
@@ -757,7 +757,7 @@ Refs: doc/prd/auth.md, doc/prd/workspaces.md
 **Duración**: 1.5-2 semanas
 **Criticidad**: 🚨 CRITICAL (violación ADR actual)
 **Dependencias**: Wave 1 completa
-**Detalles**: Ver `doc/plan/billing.md`, `doc/ard/workspace-billing.md`
+**Detalles**: Ver `doc/plan/billing.md`, `doc/adr/workspace-billing.md`
 
 ### W2.1: Crear WorkspaceSubscription Model
 
@@ -773,7 +773,7 @@ feat(amplify): add WorkspaceSubscription model, deprecate UserSubscription
 - Mark UserSubscription as deprecated (keep for migration)
 - Add authorization rules workspace-scoped
 
-Refs: doc/ard/workspace-billing.md, doc/plan/billing.md
+Refs: doc/adr/workspace-billing.md, doc/plan/billing.md
 ```
 
 **Ámbito**:
@@ -790,7 +790,7 @@ Refs: doc/ard/workspace-billing.md, doc/plan/billing.md
 4. NO eliminar UserSubscription aún (necesario para migration)
 5. Deploy schema con ambos modelos
 
-**Detalles**: Ver `doc/ard/workspace-billing.md`
+**Detalles**: Ver `doc/adr/workspace-billing.md`
 
 **Dependencias**: W1.13 (Workspace model debe existir)
 
@@ -874,7 +874,7 @@ refactor(billing): update useBilling to use WorkspaceSubscription
 - Update type definitions
 - Maintain backward compatibility during transition
 
-Refs: doc/plan/billing.md, doc/ard/workspace-billing.md
+Refs: doc/plan/billing.md, doc/adr/workspace-billing.md
 ```
 
 **Ámbito**:
@@ -1131,7 +1131,7 @@ feat(billing): complete billing REST API endpoints for workspace-level
 - Add workspace authorization
 - Update Stripe integration
 
-Refs: doc/ard/patterns/api-server.pattern.md, doc/plan/billing.md
+Refs: doc/adr/patterns/api-server.pattern.md, doc/plan/billing.md
 ```
 
 **Ámbito**:
@@ -1179,7 +1179,7 @@ feat(workspaces): complete workspaces REST API endpoints
 - Complete authorization matrix
 - Add Zod validation
 
-Refs: doc/ard/patterns/api-server.pattern.md, doc/prd/workspaces.md
+Refs: doc/adr/patterns/api-server.pattern.md, doc/prd/workspaces.md
 ```
 
 **Ámbito**:
@@ -1226,7 +1226,7 @@ feat(auth): add user profile REST API endpoints
 - Add Zod validation
 - Integrate with Amplify Auth
 
-Refs: doc/ard/patterns/api-server.pattern.md, doc/prd/auth.md
+Refs: doc/adr/patterns/api-server.pattern.md, doc/prd/auth.md
 ```
 
 **Ámbito**:
@@ -1271,7 +1271,7 @@ feat(entitlements): complete entitlements REST API endpoints
 - Add plan-based feature validation
 - Add Zod validation
 
-Refs: doc/ard/patterns/api-server.pattern.md, doc/prd/entitlements.md
+Refs: doc/adr/patterns/api-server.pattern.md, doc/prd/entitlements.md
 ```
 
 **Ámbito**:
@@ -1367,7 +1367,7 @@ docs(amplify): document Amplify context integration utilities
 - Add examples in README
 - Verify all API endpoints use utilities correctly
 
-Refs: doc/ard/patterns/api-server.pattern.md, doc/prd/amplify.md
+Refs: doc/adr/patterns/api-server.pattern.md, doc/prd/amplify.md
 ```
 
 **Ámbito**:
@@ -1771,7 +1771,7 @@ feat(notifications): add REST API endpoints
 - Add preferences endpoints
 - Add pagination support
 
-Refs: doc/ard/patterns/api-server.pattern.md, doc/plan/notifications.md
+Refs: doc/adr/patterns/api-server.pattern.md, doc/plan/notifications.md
 ```
 
 **Ámbito**:
@@ -2267,7 +2267,7 @@ perf: optimize application performance
 - Optimize bundle size
 - Add performance monitoring
 
-Refs: doc/ard/performance-architecture.md
+Refs: doc/adr/performance-architecture.md
 ```
 
 **Ámbito**:
@@ -2291,7 +2291,7 @@ Refs: doc/ard/performance-architecture.md
    - Tree shaking
    - Dynamic imports
 
-**Detalles**: Ver `doc/ard/performance-architecture.md`
+**Detalles**: Ver `doc/adr/performance-architecture.md`
 
 **Dependencias**: Waves 1-4
 
@@ -2322,7 +2322,7 @@ security: complete security audit and fixes
 - Add security headers
 - Penetration testing
 
-Refs: doc/ard/saas.md
+Refs: doc/adr/saas.md
 ```
 
 **Ámbito**:
@@ -2345,7 +2345,7 @@ Refs: doc/ard/saas.md
    - Test XSS
    - Test auth bypass
 
-**Detalles**: Ver `doc/ard/saas.md` sección "Security"
+**Detalles**: Ver `doc/adr/saas.md` sección "Security"
 
 **Dependencias**: Waves 1-4
 
@@ -2684,7 +2684,7 @@ Si necesitas modificar el plan:
 
 - **Gap Analysis**: `doc/analysis/gap-analysis-report.md`
 - **PRDs**: `doc/prd/*.md`
-- **ARDs**: `doc/ard/*.md`
+- **ARDs**: `doc/adr/*.md`
 - **Planes Específicos**: `doc/plan/*.md`
 
 ### Planes Específicos por Layer
@@ -2704,7 +2704,7 @@ Si necesitas modificar el plan:
 
 > **Nota**: El plan de tRPC (`doc/plan/trpc.md`) ha sido deprecado. Ver `doc/prd/trpc.md` para más información.
 
-### ARDs Críticos
+### ADRs Críticos
 
 - **workspace-billing.md**: Define billing workspace-level (crítico para W2)
 - **layer-integration.md**: Patrones de integración entre capas
