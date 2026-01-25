@@ -1,45 +1,64 @@
 {
-  "name": "@starter-nuxt-amplify-saas/billing",
+  "name": "@starter-nuxt-amplify-saas/billing-layer",
+  "version": "0.1.0",
+  "description": "Stripe billing integration with subscriptions, customer portal, and webhooks",
   "type": "module",
-  "version": "0.0.1",
   "main": "./nuxt.config.ts",
   "exports": {
     ".": "./nuxt.config.ts",
-    "./utils": "./utils/index.ts",
-    "./types": "./types/index.ts",
-    "./composables/*": "./composables/*"
+    "./composables/*": "./composables/*",
+    "./components/*": "./components/*",
+    "./utils/*": "./utils/*",
+    "./config/*": "./config/*",
+    "./types/*": "./types/*"
   },
-  "scripts": {
-    "build": "nuxt build",
-    "dev": "nuxt dev",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
-    "lint": "eslint .",
-    "sandbox:stripe:listen": "stripe listen --forward-to localhost:3000/api/billing/webhook",
-    "sandbox:stripe:seed": "stripe fixtures --api-key $STRIPE_SECRET_KEY",
-    "sandbox:stripe:sync": "tsx scripts/stripe-sync.ts"
+  "files": [
+    "app.config.ts",
+    "nuxt.config.ts",
+    "composables",
+    "components",
+    "layouts",
+    "pages",
+    "middleware",
+    "plugins",
+    "server",
+    "utils",
+    "config",
+    "types",
+    "assets",
+    "public",
+    "README.md"
+  ],
+  "keywords": [
+    "nuxt",
+    "nuxt-layer",
+    "nuxt4",
+    "saas",
+    "billing",
+    "stripe",
+    "subscriptions",
+    "payments",
+    "webhooks"
+  ],
+  "author": "MMShark",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mmshark/starter-nuxt-amplify-saas.git",
+    "directory": "layers/billing"
   },
-  "dependencies": {
-    "@starter-nuxt-amplify-saas/amplify": "workspace:*",
-    "@starter-nuxt-amplify-saas/auth": "workspace:*",
-    "@starter-nuxt-amplify-saas/backend": "workspace:*",
-    "@starter-nuxt-amplify-saas/i18n": "workspace:*",
-    "@starter-nuxt-amplify-saas/uix": "workspace:*",
-    "@stripe/stripe-js": "^4.10.0",
-    "aws-amplify": "^6.15.8",
-    "jsonwebtoken": "^9.0.2",
-    "stripe": "^17.7.0"
+  "bugs": {
+    "url": "https://github.com/mmshark/starter-nuxt-amplify-saas/issues"
   },
-  "devDependencies": {
-    "@aws-amplify/seed": "^1.1.0",
-    "@nuxt/eslint": "latest",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@vueuse/core": "^13.9.0",
-    "eslint": "^9.39.1",
-    "nuxt": "^4.2.1",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
-    "vue": "latest"
+  "homepage": "https://github.com/mmshark/starter-nuxt-amplify-saas/tree/master/layers/billing#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "peerDependencies": {
+    "nuxt": "^4.0.0",
+    "@starter-nuxt-amplify-saas/amplify-layer": "^1.0.0",
+    "@starter-nuxt-amplify-saas/auth-layer": "^1.0.0",
+    "stripe": "^14.0.0"
   }
 }

@@ -1,0 +1,78 @@
+name: Auto-publish on Tag
+
+on:
+  push:
+    tags:
+      - '*/v*'  # Matches tags like: amplify/v1.0.0, auth/v2.1.0
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.13.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@mmshark'
+
+      - name: Detect layer from tag
+        id: layer
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          LAYER=$(echo "$TAG" | cut -d'/' -f1)
+          VERSION=$(echo "$TAG" | cut -d'/' -f2)
+          echo "layer=$LAYER" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing layer: $LAYER at version: $VERSION"
+
+      - name: Verify layer exists
+        run: |
+          if [ ! -d "layers/${{ steps.layer.outputs.layer }}" ]; then
+            echo "Error: Layer directory not found"
+            exit 1
+          fi
+
+      - name: Publish layer
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd layers/${{ steps.layer.outputs.layer }}
+
+          # Verify version in package.json matches tag
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${{ steps.layer.outputs.version }}"
+          TAG_VERSION="${TAG_VERSION#v}"  # Remove 'v' prefix
+
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+            echo "Warning: Version mismatch!"
+            echo "  package.json: $PACKAGE_VERSION"
+            echo "  Git tag: $TAG_VERSION"
+            echo "Publishing with package.json version: $PACKAGE_VERSION"
+          fi
+
+          pnpm publish --no-git-checks
+
+      - name: Create comment on success
+        uses: actions/github-script@v7
+        if: success()
+        with:
+          script: |
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `✅ Successfully published @mmshark/${{ steps.layer.outputs.layer }}-layer@${{ steps.layer.outputs.version }} to GitHub Packages`
+            })

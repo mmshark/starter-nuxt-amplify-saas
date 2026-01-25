@@ -1,0 +1,111 @@
+name: Publish Layers to GitHub Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - prerelease
+      layers:
+        description: 'Layers to publish (comma-separated, or "all")'
+        required: true
+        default: 'all'
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.13.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@mmshark'
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install pnpm
+        run: corepack enable && corepack prepare pnpm@latest --activate
+
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh scripts/*.js
+
+      - name: Verify layers configuration
+        run: ./scripts/verify-layers.sh
+
+      - name: Publish layers
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event.inputs.layers }}" == "all" ]; then
+            ./scripts/publish-all-layers.sh ${{ github.event.inputs.version_type }}
+          else
+            IFS=',' read -ra LAYERS <<< "${{ github.event.inputs.layers }}"
+            for layer in "${LAYERS[@]}"; do
+              layer=$(echo "$layer" | xargs)  # Trim whitespace
+              ./scripts/publish-layer.sh "$layer" ${{ github.event.inputs.version_type }}
+            done
+          fi
+
+      - name: Commit version changes
+        run: |
+          git add layers/*/package.json
+          if git diff --staged --quiet; then
+            echo "No version changes to commit"
+          else
+            git commit -m "chore: publish layers (${{ github.event.inputs.version_type }})"
+            git push
+          fi
+
+      - name: Create release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: layers-${{ github.run_number }}
+          release_name: Layers Release ${{ github.run_number }}
+          body: |
+            ## 📦 Layers Published
+
+            **Version bump**: ${{ github.event.inputs.version_type }}
+            **Layers**: ${{ github.event.inputs.layers }}
+
+            ### Installation
+
+            ```bash
+            # Configure authentication
+            echo "@mmshark:registry=https://npm.pkg.github.com" >> .npmrc
+
+            # Install layers
+            pnpm add @mmshark/amplify-layer @mmshark/auth-layer
+            ```
+
+            ### View Packages
+            https://github.com/mmshark/starter-nuxt-amplify-saas/packages
+          draft: false
+          prerelease: false

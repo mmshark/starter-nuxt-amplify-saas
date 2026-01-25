@@ -29,8 +29,8 @@
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.77",
-    "@starter-nuxt-amplify-saas/saas": "workspace:*",
-    "@starter-nuxt-amplify-saas/debug": "workspace:*",
+    "@starter-nuxt-amplify-saas/saas-layer": "workspace:*",
+    "@starter-nuxt-amplify-saas/debug-layer": "workspace:*",
     "@unovis/ts": "^1.6.2",
     "@unovis/vue": "^1.6.2",
     "@vue/server-renderer": "3.5.21",

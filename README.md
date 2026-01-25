@@ -12,28 +12,44 @@ This is a **monorepo** containing:
 - **`apps/landing/`** - Marketing landing page (Nuxt 4 SSG)
 
 ### Nuxt Layers
+
+**Foundation Layers** (Infrastructure & UI):
+- **`layers/amplify/`** - AWS Amplify integration layer (GraphQL client + storage utilities)
 - **`layers/uix/`** - UI foundation layer (Nuxt UI Pro + Tailwind + design system)
-- **`layers/amplify/`** - AWS Amplify integration layer (GraphQL client + storage)
-- **`layers/auth/`** - Authentication layer (AWS Cognito + middleware + components)
-- **`layers/billing/`** - Stripe billing integration (subscriptions + webhooks + API)
 - **`layers/i18n/`** - Internationalization layer (multi-language support + formatting)
+
+**Feature Layers** (Business Capabilities):
+- **`layers/auth/`** - Authentication layer (AWS Cognito + middleware + session management)
+- **`layers/billing/`** - Stripe billing integration (subscriptions + customer portal + webhooks)
+- **`layers/workspaces/`** - Multi-tenant workspace management (team collaboration + invitations)
+- **`layers/entitlements/`** - Authorization & RBAC (role-based access control + feature gating)
+
+**Meta-Layer** (Complete Application Shell):
+- **`layers/saas/`** - SaaS meta-layer (complete dashboard app composing all layers + navigation + layouts)
+
+**Development Layers**:
 - **`layers/debug/`** - Development debugging tools and utilities
 
-**Layer Dependencies**: `uix` → `amplify` → `auth` → `billing` → `debug` → `i18n`
+**Layer Architecture**: Foundation → Feature Layers → Meta-Layer (SaaS)
 
 ## ✨ Features
 
-- **🔐 Authentication**: Complete auth flow (signup, signin, password reset) with AWS Cognito
-- **💳 Billing & Subscriptions**: Stripe integration with subscription management and customer portal
+- **🔐 Authentication**: Complete auth flow (signup, signin, password reset, email verification) with AWS Cognito
+- **💳 Billing & Subscriptions**: Stripe integration with portal-first approach, subscription management, and webhooks
+- **👥 Multi-Tenancy**: Workspace management with team collaboration, member invitations, and role-based access
+- **🔐 Authorization**: RBAC system with role-based access control and feature entitlements
 - **🌐 Internationalization**: Multi-language support with auto-formatting for dates/currency
-- **📊 Dashboard**: Professional dashboard interface with collapsible sidebar and dark mode
-- **🎨 UI Components**: Built with Nuxt UI Pro for consistent, beautiful design
-- **📱 Responsive**: Mobile-first design that works on all devices
+- **📊 Dashboard**: Professional dashboard with SaaS meta-layer (layouts, navigation, pages out-of-the-box)
+- **⚙️ Navigation System**: 3-layer configuration architecture (layer defaults + app customization + component consumption)
+- **🎨 UI Components**: Built with Nuxt UI Pro (v4) for consistent, modern design
+- **📱 Responsive**: Mobile-first design with adaptive layouts for all devices
 - **⚡ Performance**: Optimized with Nuxt 4's latest performance improvements
-- **🔧 Configurable**: Easy-to-customize navigation, theming, and billing plans
-- **🏗️ Modular Architecture**: Layer-based system for scalable, maintainable code
-- **☁️ AWS Ready**: Full AWS Amplify integration with DynamoDB and GraphQL API
+- **🔧 Configuration-Driven**: Customize via `app.config.ts` without modifying layer code
+- **🏗️ Modular Architecture**: Layer-based system (foundation → features → meta-layer) for scalable code
+- **☁️ AWS Ready**: Full AWS Amplify Gen2 integration with Cognito, DynamoDB, and AppSync GraphQL
 - **🛠️ Debug Tools**: Comprehensive development and debugging utilities
+- **🌙 Dark Mode**: Full dark mode support via Nuxt UI theming
+- **♿ Accessible**: WCAG 2.1 AA compliant components and pages
 
 ## 📋 Prerequisites
 
@@ -617,6 +633,54 @@ This ensures:
 - Verify `BACKEND_APP_ID` environment variable is set correctly
 - Check that the service role has access to the backend resources
 
+## 📦 Using Published Layers in Your Project
+
+All layers in this repository are published as npm packages to GitHub Packages, allowing you to use them in your own Nuxt projects without copying code.
+
+### Quick Start
+
+```bash
+# Install the complete SaaS meta-layer (includes all dependencies)
+pnpm add -D @mmshark/saas-layer
+
+# Or install individual layers
+pnpm add -D @mmshark/amplify-layer
+pnpm add -D @mmshark/auth-layer
+pnpm add -D @mmshark/billing-layer
+```
+
+### Authentication Setup
+
+Configure npm to authenticate with GitHub Packages:
+
+```bash
+# Add to ~/.npmrc
+echo "@mmshark:registry=https://npm.pkg.github.com" >> ~/.npmrc
+echo "//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN" >> ~/.npmrc
+```
+
+You'll need a GitHub Personal Access Token with `read:packages` scope. [Generate one here](https://github.com/settings/tokens).
+
+### Configuration in Your Project
+
+```typescript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  extends: [
+    '@mmshark/saas-layer'  // Complete SaaS application shell
+  ],
+
+  // Or compose individual layers
+  extends: [
+    '@mmshark/amplify-layer',
+    '@mmshark/uix-layer',
+    '@mmshark/auth-layer',
+  ]
+})
+```
+
+For detailed installation instructions, available layers, and usage examples, see [Using Published Layers Guide](doc/guides/using-published-layers.md).
+
 ## 📚 Documentation
 
 This project includes comprehensive documentation for developers and AI agents:
@@ -624,21 +688,26 @@ This project includes comprehensive documentation for developers and AI agents:
 ### Core Documentation
 - **[AGENTS.md](AGENTS.md)** - Complete guide for AI agents and developers working with this repository
 - **Project README** - This file, for project overview and setup
+- **[Using Published Layers](doc/guides/using-published-layers.md)** - Guide for consuming layers in external projects
 
 ### Layer-Specific Documentation
 Each layer includes detailed documentation with specific implementation details:
 
 | Layer | Documentation | Purpose |
 |-------|--------------|---------|
-| **UIX** | [layers/uix/README.md](layers/uix/README.md) | UI foundation, design system, Nuxt UI Pro integration |
+| **SaaS** | [layers/saas/README.md](layers/saas/README.md) | Meta-layer composing complete SaaS application shell |
 | **Amplify** | [layers/amplify/README.md](layers/amplify/README.md) | AWS integration, GraphQL client, storage utilities |
-| **Auth** | [layers/auth/README.md](layers/auth/README.md) | Authentication system, AWS Cognito, middleware |
-| **Billing** | [layers/billing/README.md](layers/billing/README.md) | Stripe integration, subscriptions, payment processing |
+| **UIX** | [layers/uix/README.md](layers/uix/README.md) | UI foundation, design system, Nuxt UI Pro integration |
+| **Auth** | [layers/auth/README.md](layers/auth/README.md) | Authentication system, AWS Cognito, middleware, session management |
+| **Billing** | [layers/billing/README.md](layers/billing/README.md) | Stripe integration, subscriptions, portal-first approach |
+| **Workspaces** | [layers/workspaces/README.md](layers/workspaces/README.md) | Multi-tenant workspace management, team collaboration |
+| **Entitlements** | [layers/entitlements/README.md](layers/entitlements/README.md) | Authorization, RBAC, feature gating |
 | **I18n** | [layers/i18n/README.md](layers/i18n/README.md) | Internationalization, translations, formatting |
 | **Debug** | [layers/debug/README.md](layers/debug/README.md) | Development tools, debugging utilities |
 
 ### When to Use Each Documentation
 - **Quick Reference**: Use this README for setup and overview
+- **Using Published Layers**: See the [published layers guide](doc/guides/using-published-layers.md) for consuming layers externally
 - **Development Guidance**: Use AGENTS.md for architectural decisions and patterns
 - **Implementation Details**: Use layer READMEs for specific component usage and API details
 - **Troubleshooting**: Check layer-specific READMEs for detailed troubleshooting

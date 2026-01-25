@@ -1,6 +1,60 @@
 {
-  "name": "@starter-nuxt-amplify-saas/debug",
+  "name": "@starter-nuxt-amplify-saas/debug-layer",
+  "version": "0.1.0",
+  "description": "Development debugging tools and utilities for local development",
   "type": "module",
-  "version": "0.0.1",
-  "main": "./nuxt.config.ts"
+  "main": "./nuxt.config.ts",
+  "exports": {
+    ".": "./nuxt.config.ts",
+    "./composables/*": "./composables/*",
+    "./components/*": "./components/*",
+    "./utils/*": "./utils/*",
+    "./config/*": "./config/*",
+    "./types/*": "./types/*"
+  },
+  "files": [
+    "app.config.ts",
+    "nuxt.config.ts",
+    "composables",
+    "components",
+    "layouts",
+    "pages",
+    "middleware",
+    "plugins",
+    "server",
+    "utils",
+    "config",
+    "types",
+    "assets",
+    "public",
+    "README.md"
+  ],
+  "keywords": [
+    "nuxt",
+    "nuxt-layer",
+    "nuxt4",
+    "saas",
+    "debug",
+    "development",
+    "devtools",
+    "utilities"
+  ],
+  "author": "MMShark",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mmshark/starter-nuxt-amplify-saas.git",
+    "directory": "layers/debug"
+  },
+  "bugs": {
+    "url": "https://github.com/mmshark/starter-nuxt-amplify-saas/issues"
+  },
+  "homepage": "https://github.com/mmshark/starter-nuxt-amplify-saas/tree/master/layers/debug#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "peerDependencies": {
+    "nuxt": "^4.0.0"
+  }
 }

@@ -1,21 +1,68 @@
 {
-  "name": "@starter-nuxt-amplify-saas/saas",
+  "name": "@starter-nuxt-amplify-saas/saas-layer",
   "version": "0.1.0",
+  "description": "Complete SaaS meta-layer with dashboard shell, navigation system, and pre-built pages",
   "type": "module",
-  "description": "Complete SaaS application shell with layouts, pages, and navigation",
-  "author": "Starter Nuxt Amplify SaaS",
-  "license": "MIT",
+  "main": "./nuxt.config.ts",
   "exports": {
     ".": "./nuxt.config.ts",
-    "./config/navigation": "./config/navigation.ts"
+    "./composables/*": "./composables/*",
+    "./components/*": "./components/*",
+    "./utils/*": "./utils/*",
+    "./config/*": "./config/*",
+    "./types/*": "./types/*"
   },
-  "dependencies": {
-    "@starter-nuxt-amplify-saas/amplify": "workspace:*",
-    "@starter-nuxt-amplify-saas/auth": "workspace:*",
-    "@starter-nuxt-amplify-saas/billing": "workspace:*",
-    "@starter-nuxt-amplify-saas/workspaces": "workspace:*",
-    "@starter-nuxt-amplify-saas/entitlements": "workspace:*",
-    "@starter-nuxt-amplify-saas/uix": "workspace:*",
-    "@starter-nuxt-amplify-saas/i18n": "workspace:*"
+  "files": [
+    "app.config.ts",
+    "nuxt.config.ts",
+    "composables",
+    "components",
+    "layouts",
+    "pages",
+    "middleware",
+    "plugins",
+    "server",
+    "utils",
+    "config",
+    "types",
+    "assets",
+    "public",
+    "README.md"
+  ],
+  "keywords": [
+    "nuxt",
+    "nuxt-layer",
+    "nuxt4",
+    "saas",
+    "saas",
+    "dashboard",
+    "meta-layer",
+    "complete-app",
+    "navigation"
+  ],
+  "author": "MMShark",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mmshark/starter-nuxt-amplify-saas.git",
+    "directory": "layers/saas"
+  },
+  "bugs": {
+    "url": "https://github.com/mmshark/starter-nuxt-amplify-saas/issues"
+  },
+  "homepage": "https://github.com/mmshark/starter-nuxt-amplify-saas/tree/master/layers/saas#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "peerDependencies": {
+    "nuxt": "^4.0.0",
+    "@starter-nuxt-amplify-saas/amplify-layer": "^1.0.0",
+    "@starter-nuxt-amplify-saas/uix-layer": "^1.0.0",
+    "@starter-nuxt-amplify-saas/i18n-layer": "^1.0.0",
+    "@starter-nuxt-amplify-saas/auth-layer": "^1.0.0",
+    "@starter-nuxt-amplify-saas/billing-layer": "^1.0.0",
+    "@starter-nuxt-amplify-saas/workspaces-layer": "^1.0.0",
+    "@starter-nuxt-amplify-saas/entitlements-layer": "^1.0.0"
   }
 }

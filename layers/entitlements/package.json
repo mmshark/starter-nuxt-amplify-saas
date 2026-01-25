@@ -1,26 +1,63 @@
 {
-  "name": "@starter-nuxt-amplify-saas/entitlements",
+  "name": "@starter-nuxt-amplify-saas/entitlements-layer",
   "version": "0.1.0",
-  "description": "Authorization and feature access control layer for Nuxt 4 SaaS application",
+  "description": "Authorization and RBAC system with role-based access control and feature gating",
   "type": "module",
   "main": "./nuxt.config.ts",
-  "scripts": {
-    "build": "nuxt build",
-    "dev": "nuxt dev",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
-    "lint": "eslint ."
+  "exports": {
+    ".": "./nuxt.config.ts",
+    "./composables/*": "./composables/*",
+    "./components/*": "./components/*",
+    "./utils/*": "./utils/*",
+    "./config/*": "./config/*",
+    "./types/*": "./types/*"
   },
-  "dependencies": {
-    "@starter-nuxt-amplify-saas/auth": "workspace:*",
-    "zod": "^3.25.76"
+  "files": [
+    "app.config.ts",
+    "nuxt.config.ts",
+    "composables",
+    "components",
+    "layouts",
+    "pages",
+    "middleware",
+    "plugins",
+    "server",
+    "utils",
+    "config",
+    "types",
+    "assets",
+    "public",
+    "README.md"
+  ],
+  "keywords": [
+    "nuxt",
+    "nuxt-layer",
+    "nuxt4",
+    "saas",
+    "authorization",
+    "rbac",
+    "permissions",
+    "access-control",
+    "roles"
+  ],
+  "author": "MMShark",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mmshark/starter-nuxt-amplify-saas.git",
+    "directory": "layers/entitlements"
   },
-  "devDependencies": {
-    "@nuxt/eslint": "latest",
-    "eslint": "^9.39.1",
-    "nuxt": "^4.2.1",
-    "typescript": "^5.9.3",
-    "vue": "latest"
+  "bugs": {
+    "url": "https://github.com/mmshark/starter-nuxt-amplify-saas/issues"
+  },
+  "homepage": "https://github.com/mmshark/starter-nuxt-amplify-saas/tree/master/layers/entitlements#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "peerDependencies": {
+    "nuxt": "^4.0.0",
+    "@starter-nuxt-amplify-saas/amplify-layer": "^1.0.0",
+    "@starter-nuxt-amplify-saas/auth-layer": "^1.0.0"
   }
 }

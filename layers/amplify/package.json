@@ -1,35 +1,64 @@
 {
-  "name": "@starter-nuxt-amplify-saas/amplify",
+  "name": "@starter-nuxt-amplify-saas/amplify-layer",
+  "version": "0.1.0",
+  "description": "AWS Amplify Gen2 integration layer with GraphQL client and storage utilities",
   "type": "module",
-  "version": "0.0.1",
   "main": "./nuxt.config.ts",
   "exports": {
     ".": "./nuxt.config.ts",
-    "./server/utils/amplify": "./server/utils/amplify.ts"
+    "./composables/*": "./composables/*",
+    "./components/*": "./components/*",
+    "./utils/*": "./utils/*",
+    "./config/*": "./config/*",
+    "./types/*": "./types/*"
   },
-  "scripts": {
-    "build": "nuxt build",
-    "dev": "nuxt dev",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
-    "lint": "eslint .",
-    "sandbox:generate-outputs": "ampx generate outputs --stack $SANDBOX_STACK_NAME",
-    "sandbox:generate-graphql-client-code": "ampx generate graphql-client-code --stack $SANDBOX_STACK_NAME --out utils/graphql",
-    "generate-outputs": "ampx generate outputs --branch $AWS_BRANCH --app-id $BACKEND_APP_ID",
-    "generate-graphql-client-code": "ampx generate graphql-client-code --branch $AWS_BRANCH --app-id $BACKEND_APP_ID --out utils/graphql"
+  "files": [
+    "app.config.ts",
+    "nuxt.config.ts",
+    "composables",
+    "components",
+    "layouts",
+    "pages",
+    "middleware",
+    "plugins",
+    "server",
+    "utils",
+    "config",
+    "types",
+    "assets",
+    "public",
+    "README.md"
+  ],
+  "keywords": [
+    "nuxt",
+    "nuxt-layer",
+    "nuxt4",
+    "saas",
+    "amplify",
+    "aws",
+    "graphql",
+    "cognito",
+    "appsync"
+  ],
+  "author": "MMShark",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mmshark/starter-nuxt-amplify-saas.git",
+    "directory": "layers/amplify"
   },
-  "dependencies": {
-    "@aws-amplify/api-graphql": "^4.8.1",
-    "@aws-amplify/core": "^6.14.0",
-    "aws-amplify": "^6.15.8"
+  "bugs": {
+    "url": "https://github.com/mmshark/starter-nuxt-amplify-saas/issues"
   },
-  "devDependencies": {
-    "@nuxt/eslint": "latest",
-    "@starter-nuxt-amplify-saas/backend": "workspace:*",
-    "eslint": "^9.39.1",
-    "nuxt": "^4.2.1",
-    "typescript": "^5.9.3",
-    "vue": "latest"
+  "homepage": "https://github.com/mmshark/starter-nuxt-amplify-saas/tree/master/layers/amplify#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "peerDependencies": {
+    "nuxt": "^4.0.0",
+    "@aws-amplify/auth": "^6.0.0",
+    "@aws-amplify/api": "^6.0.0",
+    "@aws-amplify/storage": "^6.0.0"
   }
 }
