@@ -4,24 +4,31 @@ import type { Workspace } from '../../../types/workspaces'
 /**
  * GET /api/workspaces
  * List all workspaces for the authenticated user
+ *
+ * Query params:
+ * - limit: number (default 20, max 100)
+ * - nextToken: string (pagination token)
  */
-export default defineEventHandler(async (event): Promise<Workspace[]> => {
+export default defineEventHandler(async (event) => {
   const user = event.context.user
-
-  console.log('Listing workspaces for user:', user.userId)
+  const query = getQuery(event)
+  const limit = Math.min(Number(query.limit) || 20, 100)
+  const nextToken = query.nextToken as string | undefined
 
   return await withAmplifyPublic(async (contextSpec) => {
     const client = getServerPublicDataClient()
 
     // Get all workspace memberships for this user
-    const { data: memberships } = await client.models.WorkspaceMember.list(contextSpec, {
-      filter: { userId: { eq: user.userId } }
-    })
+    const membershipOptions: any = {
+      filter: { userId: { eq: user.userId } },
+      limit,
+    }
+    if (nextToken) membershipOptions.nextToken = nextToken
 
-    console.log('Found memberships:', JSON.stringify(memberships, null, 2))
+    const { data: memberships, nextToken: memberNextToken } = await client.models.WorkspaceMember.list(contextSpec, membershipOptions)
 
     if (!memberships || memberships.length === 0) {
-      return []
+      return { workspaces: [], nextToken: null }
     }
 
     // Get all workspaces for these memberships
@@ -32,7 +39,7 @@ export default defineEventHandler(async (event): Promise<Workspace[]> => {
       }
     })
 
-    return (workspaces || []).map(ws => ({
+    const items: Workspace[] = (workspaces || []).map(ws => ({
       id: ws.id,
       name: ws.name,
       slug: ws.slug || undefined,
@@ -43,5 +50,10 @@ export default defineEventHandler(async (event): Promise<Workspace[]> => {
       createdAt: ws.createdAt,
       updatedAt: ws.updatedAt
     }))
+
+    return {
+      workspaces: items,
+      nextToken: memberNextToken || null
+    }
   })
 })

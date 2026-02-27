@@ -1,3 +1,5 @@
+import { getRedirectUrl } from '../utils'
+
 export default defineNuxtRouteMiddleware(async (to) => {
   const { fetchUser, isAuthenticated } = process.server ? useUserServer() : useUser()
 
@@ -9,12 +11,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   // If authenticated, redirect to dashboard
   if (isAuthenticated.value) {
-    // Check if there's a redirect query parameter
-    const redirect = to.query.redirect as string
-    const redirectTo = redirect && redirect !== '/auth/login' && redirect !== '/auth/signup'
-      ? redirect
-      : '/'
-
+    const redirectTo = getRedirectUrl(to.query)
     return navigateTo(redirectTo, { replace: true })
   }
 })

@@ -164,7 +164,6 @@ async function onSignUpSubmit(event: FormSubmitEvent<z.infer<typeof signUpSchema
 
   loading.value = true
   try {
-    console.log('onSignUpSubmit', event.data.email, event.data.password, event.data.firstName, event.data.lastName)
     const { isSignUpComplete, nextStep } = await Auth.signUp({
       username: event.data.email,
       password: event.data.password,

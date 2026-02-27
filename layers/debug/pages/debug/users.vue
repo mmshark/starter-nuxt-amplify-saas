@@ -3,6 +3,10 @@ definePageMeta({
   layout: false
 })
 
+if (!import.meta.dev) {
+  throw createError({ statusCode: 404, statusMessage: 'Not Found' })
+}
+
 // State
 const users = ref([])
 const loading = ref(false)

@@ -17,9 +17,6 @@ export default defineEventHandler(async (event): Promise<Workspace> => {
   const userAttributes = event.context.userAttributes
   const body = await readBody(event)
 
-  console.log('Creating workspace - User data:', JSON.stringify(user, null, 2))
-  console.log('User attributes:', JSON.stringify(userAttributes, null, 2))
-
   // Validate input
   const input = createWorkspaceSchema.parse(body)
 
@@ -58,15 +55,13 @@ export default defineEventHandler(async (event): Promise<Workspace> => {
       role: 'OWNER',
       joinedAt: new Date().toISOString()
     }
-    console.log('Creating workspace member:', JSON.stringify(memberData, null, 2))
-
     const { data: member, errors: memberErrors } = await client.models.WorkspaceMember.create(contextSpec, memberData)
 
     if (memberErrors) {
       console.error('Failed to create workspace member:', memberErrors)
 
       // Rollback: Delete the workspace to avoid orphans
-      console.log('Rolling back: Deleting orphaned workspace', workspace.id)
+      // Rollback: Delete the orphaned workspace
       await client.models.Workspace.delete(contextSpec, { id: workspace.id })
 
       throw createError({
@@ -78,8 +73,6 @@ export default defineEventHandler(async (event): Promise<Workspace> => {
           details: memberErrors
         }
       })
-    } else {
-      console.log('Workspace member created:', JSON.stringify(member, null, 2))
     }
 
     return {

@@ -5,6 +5,10 @@ definePageMeta({
   layout: false
 })
 
+if (!import.meta.dev) {
+  throw createError({ statusCode: 404, statusMessage: 'Not Found' })
+}
+
 // Composables
 const {
   user,

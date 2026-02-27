@@ -3,12 +3,16 @@ import * as queries from '../../amplify/utils/graphql/queries'
 import * as mutations from '../../amplify/utils/graphql/mutations'
 import { handleAuthError } from '../utils'
 
+// Client-only sensitive state (tokens/session never serialized to SSR payload)
+const _clientAuthSession = ref<any>(null)
+const _clientTokens = ref<any>(null)
+
 // Base state: Use useState for SSR-safe, serializable shared state
 const useUserState = () => ({
   isAuthenticated: useState<boolean>('user:isAuthenticated', () => false),
   authStep: useState<string>('user:authStep', () => 'initial'),
-  authSession: useState<any>('user:authSession', () => null),
-  tokens: useState<any>('user:tokens', () => null),
+  authSession: _clientAuthSession,
+  tokens: _clientTokens,
   currentUser: useState<any>('user:currentUser', () => null),
   userAttributes: useState<any>('user:userAttributes', () => null),
   userProfile: useState<any>('user:userProfile', () => null),
