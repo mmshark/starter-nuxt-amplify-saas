@@ -89,7 +89,6 @@ Available PRDs:
 - [Entitlements Layer](doc/prd/entitlements.md) - Authorization, RBAC, and feature gating
 - [Workspaces Layer](doc/prd/workspaces.md) - Multi-tenancy and team management
 - [i18n Layer](doc/prd/i18n.md) - Internationalization functionality
-- [tRPC Layer](doc/prd/trpc.md) - Type-safe API communication
 - [UIX Layer](doc/prd/uix.md) - UI components and design system
 - [SaaS App](doc/prd/saas.md) - Main dashboard application
 - [Notifications](doc/prd/notifications.md) - Notification system
@@ -106,7 +105,6 @@ Available PRDs:
 - **[Git Conventions](doc/ard/patterns/git-conventions.pattern.md)** - Commit message format
 - **[Layers Pattern](doc/ard/patterns/layers.pattern.md)** - Layer structure and composition
 - **[Repository Structure](doc/ard/patterns/repository-structure.pattern.md)** - File organization
-- **[tRPC Pattern](doc/ard/patterns/trpc.pattern.md)** - Type-safe API communication
 
 #### Compliance Analysis (doc/analysis/)
 Automated and manual compliance reports for code quality validation:
@@ -180,7 +178,6 @@ For consistency and scalability, we follow strict architectural patterns. Refer 
 | **Nuxt Layers** | Structure, encapsulation, composition, and dependency management. | [layers.pattern.md](doc/ard/patterns/layers.pattern.md) |
 | **Composables** | SSR-safe state management and logic sharing. | [composables.pattern.md](doc/ard/patterns/composables.pattern.md) |
 | **API Server** | Secure and consistent server-side API routes (standard). | [api-server.pattern.md](doc/ard/patterns/api-server.pattern.md) |
-| **tRPC** | ~~End-to-end type safety~~ **DEPRECATED** | [trpc.pattern.md](doc/ard/patterns/trpc.pattern.md) |
 | **Git Conventions** | Semantic versioning and commit message format. | [git-conventions.pattern.md](doc/ard/patterns/git-conventions.pattern.md) |
 | **Repository Structure** | Organization of context, operations, and infrastructure. | [repository-structure.pattern.md](doc/ard/patterns/repository-structure.pattern.md) |
 
@@ -194,8 +191,6 @@ For all server-side API development, **REST API endpoints** are the standard pat
 - **Errors**: Use `createError()` for consistent error responses.
 
 See [api-server.pattern.md](doc/ard/patterns/api-server.pattern.md) for the complete pattern documentation.
-
-> **Note**: tRPC has been **DEPRECATED** in favor of REST API endpoints. See [prd/trpc.md](doc/prd/trpc.md) for historical reference.
 
 ## Quick Start
 ```bash
@@ -280,7 +275,7 @@ pnpm saas:dev
 We follow the **Conventional Commits** pattern. Refer to [git-conventions.pattern.md](doc/ard/patterns/git-conventions.pattern.md) for the full specification and type definitions.
 
 **Project Scopes:**
-- `billing`, `auth`, `i18n`, `saas`, `amplify`, `uix`, `workspaces`, `entitlements`, `trpc`, `debug`, `deps`, `docs`
+- `billing`, `auth`, `i18n`, `saas`, `amplify`, `uix`, `workspaces`, `entitlements`, `debug`, `deps`, `docs`
 
 ### Code Standards
 - **TypeScript**: Strict mode enabled
