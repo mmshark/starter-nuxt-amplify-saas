@@ -24,10 +24,10 @@ interface WorkspaceContext {
  * @throws 401 if user is not authenticated
  */
 export async function getWorkspaceContext(event: H3Event): Promise<WorkspaceContext> {
-  // Get authenticated user from Auth Layer
-  const { user, isAuthenticated } = useUser()
+  // Get authenticated user from event context (set by auth middleware)
+  const user = event.context.user
 
-  if (!isAuthenticated.value || !user.value) {
+  if (!user?.userId) {
     throw createError({
       statusCode: 401,
       statusMessage: 'Unauthorized',
@@ -59,10 +59,10 @@ export async function getWorkspaceContext(event: H3Event): Promise<WorkspaceCont
       headers: event.headers,
     })
 
-    const membership = members.find(m => m.userId === user.value?.id) || null
+    const membership = members.find(m => m.userId === user.userId) || null
 
     // Extract plan from workspace subscription
-    const planId = workspace?.subscription?.planId
+    const planId = (workspace as any)?.subscription?.planId
     let plan: Plan = 'free'
 
     // Validate plan is one of our known plans

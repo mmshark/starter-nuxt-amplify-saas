@@ -11,10 +11,8 @@ export const useWorkspaceMembership = () => {
   const { currentUser } = useUser()
   const { currentWorkspace, currentWorkspaceId } = useWorkspaces()
 
-  // Only initialize if we have a workspace ID
-  const { members, loadMembers } = currentWorkspaceId.value
-    ? useWorkspaceMembers(currentWorkspaceId.value)
-    : { members: ref([]), loadMembers: async () => {} }
+  // Always call composable unconditionally (Vue composable rules)
+  const { members, loadMembers } = useWorkspaceMembers(currentWorkspaceId)
 
   /**
    * Current user's membership in the active workspace

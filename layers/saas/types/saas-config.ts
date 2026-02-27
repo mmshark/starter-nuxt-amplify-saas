@@ -55,4 +55,4 @@ declare module 'nuxt/schema' {
   }
 }
 
-export {}
+export type SaasConfig = NonNullable<AppConfigInput['saas']>

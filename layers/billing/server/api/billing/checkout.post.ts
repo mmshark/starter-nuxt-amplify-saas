@@ -16,12 +16,19 @@ export default defineEventHandler(async (event) => {
 
   // Parse request body
   const body = await readBody(event)
-  const { priceId, planId, billingInterval } = body
+  const { priceId, planId, billingInterval, workspaceId } = body
 
   if (!priceId || !planId || !billingInterval) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Missing required parameters: priceId, planId, billingInterval'
+    })
+  }
+
+  if (!workspaceId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Missing required parameter: workspaceId'
     })
   }
 
@@ -92,7 +99,8 @@ export default defineEventHandler(async (event) => {
         metadata: {
           userId,
           planId,
-          billingInterval
+          billingInterval,
+          workspaceId
         },
         success_url: `${getBaseUrl(event)}/settings/billing?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${getBaseUrl(event)}/pricing`,

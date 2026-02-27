@@ -1,4 +1,4 @@
-import type { SaasConfig } from '../types/saas'
+import type { SaasConfig } from '../types/saas-config'
 
 export function useSaasConfig(): SaasConfig {
   const appConfig = useAppConfig()

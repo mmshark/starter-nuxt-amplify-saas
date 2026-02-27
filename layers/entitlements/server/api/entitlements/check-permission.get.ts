@@ -7,30 +7,20 @@
 
 import { z } from 'zod'
 import { roleHasPermission, getRequiredRole } from '../../../config/permissions'
-import type { Permission, Role } from '../../../types/entitlements'
+import type { Permission } from '../../../types/entitlements'
+import { getWorkspaceContext } from '../../utils/getWorkspaceContext'
 
 const querySchema = z.object({
   permission: z.string(),
 })
 
 export default defineEventHandler(async (event) => {
-  // Require authentication
-  const { user, isAuthenticated } = useUser()
-
-  if (!isAuthenticated.value || !user.value) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-      message: 'Authentication required',
-    })
-  }
-
   // Validate query parameters
   const query = await getValidatedQuery(event, querySchema.parse)
   const permission = query.permission as Permission
 
-  // TODO: Get role from workspace membership when Workspaces layer is implemented
-  const currentRole: Role = 'user'
+  // Get role from workspace membership
+  const { role: currentRole } = await getWorkspaceContext(event)
 
   // Check if current role has the permission
   const hasPermission = roleHasPermission(currentRole, permission)

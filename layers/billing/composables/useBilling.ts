@@ -19,8 +19,17 @@ interface InvoicesData {
 }
 
 // Core logic: Environment-agnostic where possible
-export const useBilling = (workspaceId: string | Ref<string>) => {
-  const id = computed(() => unref(workspaceId))
+export const useBilling = (workspaceId?: string | Ref<string>) => {
+  const id = computed(() => {
+    if (workspaceId) return unref(workspaceId)
+    // Fallback to current workspace from useWorkspaces()
+    try {
+      const { currentWorkspaceId } = useWorkspaces()
+      return currentWorkspaceId.value || ''
+    } catch {
+      return ''
+    }
+  })
   const key = computed(() => `billing:${id.value}`)
 
   // State keyed by workspaceId
@@ -311,10 +320,8 @@ export const useBilling = (workspaceId: string | Ref<string>) => {
   // Ensure one-time initialization
   const ensureInitialized = async () => {
     if (initialized.value || inFlight.value.init) {
-      console.log('[useBilling] Already initialized or in flight, skipping')
       return
     }
-    console.log('[useBilling] Starting initialization...')
     try {
       inFlight.value.init = true
       await Promise.all([
@@ -322,7 +329,6 @@ export const useBilling = (workspaceId: string | Ref<string>) => {
         fetchInvoices({ limit: 10 })
       ])
       initialized.value = true
-      console.log('[useBilling] Initialization complete')
     } finally {
       inFlight.value.init = false
     }
