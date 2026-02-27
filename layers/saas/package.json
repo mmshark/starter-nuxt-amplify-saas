@@ -1,5 +1,5 @@
 {
-  "name": "@starter-nuxt-amplify-saas/saas-layer",
+  "name": "@mmshark/saas-layer",
   "version": "0.1.0",
   "description": "Complete SaaS meta-layer with dashboard shell, navigation system, and pre-built pages",
   "type": "module",
@@ -8,25 +8,18 @@
     ".": "./nuxt.config.ts",
     "./composables/*": "./composables/*",
     "./components/*": "./components/*",
-    "./utils/*": "./utils/*",
     "./config/*": "./config/*",
     "./types/*": "./types/*"
   },
   "files": [
     "app.config.ts",
     "nuxt.config.ts",
-    "composables",
     "components",
+    "composables",
+    "config",
     "layouts",
     "pages",
-    "middleware",
-    "plugins",
-    "server",
-    "utils",
-    "config",
     "types",
-    "assets",
-    "public",
     "README.md"
   ],
   "keywords": [
@@ -57,12 +50,12 @@
   },
   "peerDependencies": {
     "nuxt": "^4.0.0",
-    "@starter-nuxt-amplify-saas/amplify-layer": "^1.0.0",
-    "@starter-nuxt-amplify-saas/uix-layer": "^1.0.0",
-    "@starter-nuxt-amplify-saas/i18n-layer": "^1.0.0",
-    "@starter-nuxt-amplify-saas/auth-layer": "^1.0.0",
-    "@starter-nuxt-amplify-saas/billing-layer": "^1.0.0",
-    "@starter-nuxt-amplify-saas/workspaces-layer": "^1.0.0",
-    "@starter-nuxt-amplify-saas/entitlements-layer": "^1.0.0"
+    "@mmshark/amplify-layer": "^1.0.0",
+    "@mmshark/uix-layer": "^1.0.0",
+    "@mmshark/i18n-layer": "^1.0.0",
+    "@mmshark/auth-layer": "^1.0.0",
+    "@mmshark/billing-layer": "^1.0.0",
+    "@mmshark/workspaces-layer": "^1.0.0",
+    "@mmshark/entitlements-layer": "^1.0.0"
   }
 }

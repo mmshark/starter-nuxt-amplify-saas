@@ -1,5 +1,5 @@
 {
-  "name": "@starter-nuxt-amplify-saas/auth-layer",
+  "name": "@mmshark/auth-layer",
   "version": "0.1.0",
   "description": "Authentication layer with AWS Cognito, session management, and route protection",
   "type": "module",
@@ -8,25 +8,16 @@
     ".": "./nuxt.config.ts",
     "./composables/*": "./composables/*",
     "./components/*": "./components/*",
-    "./utils/*": "./utils/*",
-    "./config/*": "./config/*",
-    "./types/*": "./types/*"
+    "./utils/*": "./utils/*"
   },
   "files": [
-    "app.config.ts",
     "nuxt.config.ts",
-    "composables",
     "components",
-    "layouts",
-    "pages",
+    "composables",
     "middleware",
     "plugins",
     "server",
     "utils",
-    "config",
-    "types",
-    "assets",
-    "public",
     "README.md"
   ],
   "keywords": [
@@ -57,6 +48,6 @@
   },
   "peerDependencies": {
     "nuxt": "^4.0.0",
-    "@starter-nuxt-amplify-saas/amplify-layer": "^1.0.0"
+    "@mmshark/amplify-layer": "^1.0.0"
   }
 }

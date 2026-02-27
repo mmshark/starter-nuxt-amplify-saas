@@ -1,32 +1,15 @@
 {
-  "name": "@starter-nuxt-amplify-saas/i18n-layer",
+  "name": "@mmshark/i18n-layer",
   "version": "0.1.0",
   "description": "Internationalization layer with multi-language support and formatting utilities",
   "type": "module",
   "main": "./nuxt.config.ts",
   "exports": {
-    ".": "./nuxt.config.ts",
-    "./composables/*": "./composables/*",
-    "./components/*": "./components/*",
-    "./utils/*": "./utils/*",
-    "./config/*": "./config/*",
-    "./types/*": "./types/*"
+    ".": "./nuxt.config.ts"
   },
   "files": [
-    "app.config.ts",
     "nuxt.config.ts",
-    "composables",
-    "components",
-    "layouts",
-    "pages",
-    "middleware",
-    "plugins",
-    "server",
-    "utils",
-    "config",
-    "types",
-    "assets",
-    "public",
+    "i18n",
     "README.md"
   ],
   "keywords": [

@@ -1,12 +1,13 @@
 export default defineNuxtConfig({
   modules: ['@nuxtjs/i18n'],
   i18n: {
-    // Configuración base común para todas las layers
+    // Base configuration common to all layers
     defaultLocale: 'en',
     strategy: 'prefix_except_default',
     lazy: true,
-    
-    // Formatos comunes para números y fechas
+    langDir: 'i18n/locales',
+
+    // Common number formats
     numberFormats: {
       en: {
         currency: { 
@@ -42,7 +43,7 @@ export default defineNuxtConfig({
       }
     },
     
-    // Formatos comunes para fechas
+    // Common date/time formats
     dateTimeFormats: {
       en: {
         short: { 
@@ -72,7 +73,7 @@ export default defineNuxtConfig({
       }
     },
     
-    // Solo locales base - cada layer agregará los suyos automáticamente
+    // Base locales - each layer can add its own locale files
     locales: [
       { 
         code: 'en', 

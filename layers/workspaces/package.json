@@ -1,5 +1,5 @@
 {
-  "name": "@starter-nuxt-amplify-saas/workspaces-layer",
+  "name": "@mmshark/workspaces-layer",
   "version": "0.1.0",
   "description": "Multi-tenant workspace management with team collaboration and invitations",
   "type": "module",
@@ -8,25 +8,14 @@
     ".": "./nuxt.config.ts",
     "./composables/*": "./composables/*",
     "./components/*": "./components/*",
-    "./utils/*": "./utils/*",
-    "./config/*": "./config/*",
     "./types/*": "./types/*"
   },
   "files": [
-    "app.config.ts",
     "nuxt.config.ts",
-    "composables",
     "components",
-    "layouts",
-    "pages",
-    "middleware",
-    "plugins",
+    "composables",
     "server",
-    "utils",
-    "config",
     "types",
-    "assets",
-    "public",
     "README.md"
   ],
   "keywords": [
@@ -57,7 +46,8 @@
   },
   "peerDependencies": {
     "nuxt": "^4.0.0",
-    "@starter-nuxt-amplify-saas/amplify-layer": "^1.0.0",
-    "@starter-nuxt-amplify-saas/auth-layer": "^1.0.0"
+    "@mmshark/amplify-layer": "^1.0.0",
+    "@mmshark/auth-layer": "^1.0.0",
+    "zod": "^3.0.0"
   }
 }

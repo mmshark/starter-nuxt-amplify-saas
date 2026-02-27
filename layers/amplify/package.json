@@ -1,32 +1,20 @@
 {
-  "name": "@starter-nuxt-amplify-saas/amplify-layer",
+  "name": "@mmshark/amplify-layer",
   "version": "0.1.0",
   "description": "AWS Amplify Gen2 integration layer with GraphQL client and storage utilities",
   "type": "module",
   "main": "./nuxt.config.ts",
   "exports": {
     ".": "./nuxt.config.ts",
-    "./composables/*": "./composables/*",
-    "./components/*": "./components/*",
     "./utils/*": "./utils/*",
-    "./config/*": "./config/*",
     "./types/*": "./types/*"
   },
   "files": [
-    "app.config.ts",
     "nuxt.config.ts",
-    "composables",
-    "components",
-    "layouts",
-    "pages",
-    "middleware",
     "plugins",
     "server",
-    "utils",
-    "config",
     "types",
-    "assets",
-    "public",
+    "utils",
     "README.md"
   ],
   "keywords": [
@@ -57,6 +45,8 @@
   },
   "peerDependencies": {
     "nuxt": "^4.0.0",
+    "aws-amplify": "^6.0.0",
+    "@aws-amplify/core": "^6.0.0",
     "@aws-amplify/auth": "^6.0.0",
     "@aws-amplify/api": "^6.0.0",
     "@aws-amplify/storage": "^6.0.0"

@@ -1,5 +1,5 @@
 {
-  "name": "@starter-nuxt-amplify-saas/entitlements-layer",
+  "name": "@mmshark/entitlements-layer",
   "version": "0.1.0",
   "description": "Authorization and RBAC system with role-based access control and feature gating",
   "type": "module",
@@ -13,20 +13,14 @@
     "./types/*": "./types/*"
   },
   "files": [
-    "app.config.ts",
     "nuxt.config.ts",
-    "composables",
     "components",
-    "layouts",
-    "pages",
-    "middleware",
-    "plugins",
-    "server",
-    "utils",
+    "composables",
     "config",
+    "middleware",
+    "server",
     "types",
-    "assets",
-    "public",
+    "utils",
     "README.md"
   ],
   "keywords": [
@@ -57,7 +51,8 @@
   },
   "peerDependencies": {
     "nuxt": "^4.0.0",
-    "@starter-nuxt-amplify-saas/amplify-layer": "^1.0.0",
-    "@starter-nuxt-amplify-saas/auth-layer": "^1.0.0"
+    "@mmshark/amplify-layer": "^1.0.0",
+    "@mmshark/auth-layer": "^1.0.0",
+    "zod": "^3.0.0"
   }
 }
