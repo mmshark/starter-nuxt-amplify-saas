@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from '@nuxt/ui'
 
-const { userAttributes } = useUser()
+const { userAttributes, updateAttributes } = useUser()
 const toast = useToast()
 
 interface AccountForm {
@@ -25,8 +25,11 @@ async function onSubmit(event: FormSubmitEvent<AccountForm>) {
   isLoading.value = true
 
   try {
-    // TODO: Implement user account update
-    // await updateUserAccount(event.data)
+    await updateAttributes({
+      userAttributes: {
+        email: event.data.email
+      }
+    })
 
     toast.add({
       title: 'Account updated',

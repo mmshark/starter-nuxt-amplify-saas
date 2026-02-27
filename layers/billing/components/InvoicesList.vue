@@ -174,9 +174,9 @@ const handleDownload = (invoiceId: string) => {
     emit('downloadInvoice', invoiceId)
   } else {
     const invoice = billing.invoices.value?.invoices.find(inv => inv.id === invoiceId)
-    if (invoice?.downloadUrl) {
+    if (invoice?.downloadUrl && import.meta.client) {
       window.open(invoice.downloadUrl, '_blank')
-    } else {
+    } else if (!invoice?.downloadUrl) {
       void billing.updateSubscription()
     }
   }

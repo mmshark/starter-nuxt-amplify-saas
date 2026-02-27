@@ -173,9 +173,8 @@ const handleSelect = async (plan: InputPlan) => {
 }
 
 function formatPrice(value: number, currency?: string): string {
-  // Heuristic: treat as cents if >= 10
-  const isCents = value > 10
-  const amount = isCents ? value / 100 : value
+  // Stripe prices are always in cents
+  const amount = value / 100
   try {
     return new Intl.NumberFormat(undefined, {
       style: 'currency',

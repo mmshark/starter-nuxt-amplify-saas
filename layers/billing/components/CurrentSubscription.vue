@@ -116,9 +116,6 @@ const emit = defineEmits<{
 // Dual-mode: props first, fallback to useBilling
 const billing = useBilling()
 
-onMounted(() => {
-  console.log('[CurrentSubscription] Mounted')
-})
 
 const effectiveSubscription = computed<Subscription | null>(() => {
   if (props.subscription) return props.subscription

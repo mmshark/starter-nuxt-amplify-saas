@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from '@nuxt/ui'
-import type { Workspace } from '../types/workspaces'
 
 const { workspace } = useWorkspace()
 const toast = useToast()
@@ -31,11 +30,18 @@ watch(workspace, (newWorkspace) => {
 const isLoading = ref(false)
 
 async function onSubmit(event: FormSubmitEvent<WorkspaceForm>) {
+  if (!workspace.value?.id) return
+
   isLoading.value = true
 
   try {
-    // TODO: Implement workspace update mutation
-    // await updateWorkspace(workspace.value!.id, event.data)
+    await $fetch(`/api/workspaces/${workspace.value.id}`, {
+      method: 'PUT',
+      body: {
+        name: event.data.name,
+        description: event.data.description
+      }
+    })
 
     toast.add({
       title: 'Workspace updated',
@@ -45,7 +51,7 @@ async function onSubmit(event: FormSubmitEvent<WorkspaceForm>) {
   } catch (error: any) {
     toast.add({
       title: 'Update failed',
-      description: error.message || 'Failed to update workspace settings.',
+      description: error.data?.message || error.message || 'Failed to update workspace settings.',
       color: 'red'
     })
   } finally {

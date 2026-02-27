@@ -102,8 +102,8 @@ const getPriceId = (plan: Plan): string | null => {
 }
 
 const formatPrice = (value: number, currency?: string): string => {
-  const isCents = value > 10
-  const amount = isCents ? value / 100 : value
+  // Stripe prices are always in cents
+  const amount = value / 100
   try {
     return new Intl.NumberFormat(undefined, {
       style: 'currency',
