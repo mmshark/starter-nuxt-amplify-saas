@@ -44,10 +44,4 @@ const sidebarItems = computed<NavigationMenuItem[][]>(() => [
   [settingsSidebar] // Settings menu from layer config
 ])
 
-// Ensure user has workspace
-onMounted(() => {
-  if (!currentWorkspace.value) {
-    console.warn('No workspace selected')
-  }
-})
 </script>

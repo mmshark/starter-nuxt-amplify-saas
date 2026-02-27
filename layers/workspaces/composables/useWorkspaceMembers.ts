@@ -6,7 +6,6 @@ export const useWorkspaceMembers = (workspaceId: MaybeRef<string | null | undefi
     () => `members-${toValue(workspaceId)}`,
     async () => {
       const id = toValue(workspaceId)
-      console.log('useWorkspaceMembers: Fetching members for workspace:', id)
       if (!id) return []
       return $fetch(`/api/workspaces/${id}/members`)
     },
