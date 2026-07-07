@@ -1,4 +1,4 @@
-import { withAmplifyPublic, getServerPublicDataClient } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { withAmplifyPublic, getServerPublicDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
 
 export default defineEventHandler(async (event) => {
   try {

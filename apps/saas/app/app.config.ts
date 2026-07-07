@@ -1,4 +1,4 @@
-import { settingsSidebar, footerNavigation, userMenuItems } from '@starter-nuxt-amplify-saas/saas/config/navigation'
+import { settingsSidebar, footerNavigation, userMenuItems } from '@mmshark/saas-layer/config/navigation'
 
 export default defineAppConfig({
   // SaaS layer configuration

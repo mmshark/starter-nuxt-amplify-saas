@@ -1,4 +1,4 @@
-import { withAmplifyPublic } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { withAmplifyPublic } from '@mmshark/amplify-layer/server/utils/amplify'
 import type { Schema } from '@starter-nuxt-amplify-saas/backend/schema'
 import { generateClient } from 'aws-amplify/data/server'
 import Stripe from 'stripe'

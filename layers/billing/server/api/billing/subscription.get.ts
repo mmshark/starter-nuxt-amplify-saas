@@ -1,4 +1,4 @@
-import { getServerUserPoolDataClient, withAmplifyAuth } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { getServerUserPoolDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import { fetchAuthSession } from 'aws-amplify/auth/server'
 import Stripe from 'stripe'
 

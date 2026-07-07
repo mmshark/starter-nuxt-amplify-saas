@@ -51,8 +51,8 @@
   },
   "peerDependencies": {
     "nuxt": "^4.0.0",
-    "@mmshark/amplify-layer": "^1.0.0",
-    "@mmshark/auth-layer": "^1.0.0",
+    "@mmshark/amplify-layer": "workspace:*",
+    "@mmshark/auth-layer": "workspace:*",
     "zod": "^3.0.0"
   }
 }

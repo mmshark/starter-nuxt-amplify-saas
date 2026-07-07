@@ -5,8 +5,8 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   extends: [
-    '@starter-nuxt-amplify-saas/uix',
-    '@starter-nuxt-amplify-saas/amplify'
+    '@mmshark/uix-layer',
+    '@mmshark/amplify-layer'
   ],
   alias: {
     '@': path.resolve(__dirname)

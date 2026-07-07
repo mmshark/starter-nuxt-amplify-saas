@@ -1,4 +1,4 @@
-import { getServerPublicDataClient, withAmplifyPublic } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { getServerPublicDataClient, withAmplifyPublic } from '@mmshark/amplify-layer/server/utils/amplify'
 
 /**
  * POST /api/workspaces/[id]/invitations/[invitationId]/decline

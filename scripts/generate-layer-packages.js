@@ -44,7 +44,7 @@ const layers = {
     keywords: ['auth', 'authentication', 'cognito', 'security', 'session'],
     peerDependencies: {
       'nuxt': '^4.0.0',
-      [`${ORG_NAME}/amplify-layer`]: '^1.0.0'
+      [`${ORG_NAME}/amplify-layer`]: '0.1.0'
     }
   },
   billing: {
@@ -52,8 +52,8 @@ const layers = {
     keywords: ['billing', 'stripe', 'subscriptions', 'payments', 'webhooks'],
     peerDependencies: {
       'nuxt': '^4.0.0',
-      [`${ORG_NAME}/amplify-layer`]: '^1.0.0',
-      [`${ORG_NAME}/auth-layer`]: '^1.0.0',
+      [`${ORG_NAME}/amplify-layer`]: '0.1.0',
+      [`${ORG_NAME}/auth-layer`]: '0.1.0',
       'stripe': '^14.0.0'
     }
   },
@@ -62,8 +62,8 @@ const layers = {
     keywords: ['workspaces', 'multi-tenancy', 'teams', 'collaboration', 'invitations'],
     peerDependencies: {
       'nuxt': '^4.0.0',
-      [`${ORG_NAME}/amplify-layer`]: '^1.0.0',
-      [`${ORG_NAME}/auth-layer`]: '^1.0.0'
+      [`${ORG_NAME}/amplify-layer`]: '0.1.0',
+      [`${ORG_NAME}/auth-layer`]: '0.1.0'
     }
   },
   entitlements: {
@@ -71,8 +71,8 @@ const layers = {
     keywords: ['authorization', 'rbac', 'permissions', 'access-control', 'roles'],
     peerDependencies: {
       'nuxt': '^4.0.0',
-      [`${ORG_NAME}/amplify-layer`]: '^1.0.0',
-      [`${ORG_NAME}/auth-layer`]: '^1.0.0'
+      [`${ORG_NAME}/amplify-layer`]: '0.1.0',
+      [`${ORG_NAME}/auth-layer`]: '0.1.0'
     }
   },
   saas: {
@@ -80,13 +80,13 @@ const layers = {
     keywords: ['saas', 'dashboard', 'meta-layer', 'complete-app', 'navigation'],
     peerDependencies: {
       'nuxt': '^4.0.0',
-      [`${ORG_NAME}/amplify-layer`]: '^1.0.0',
-      [`${ORG_NAME}/uix-layer`]: '^1.0.0',
-      [`${ORG_NAME}/i18n-layer`]: '^1.0.0',
-      [`${ORG_NAME}/auth-layer`]: '^1.0.0',
-      [`${ORG_NAME}/billing-layer`]: '^1.0.0',
-      [`${ORG_NAME}/workspaces-layer`]: '^1.0.0',
-      [`${ORG_NAME}/entitlements-layer`]: '^1.0.0'
+      [`${ORG_NAME}/amplify-layer`]: '0.1.0',
+      [`${ORG_NAME}/uix-layer`]: '0.1.0',
+      [`${ORG_NAME}/i18n-layer`]: '0.1.0',
+      [`${ORG_NAME}/auth-layer`]: '0.1.0',
+      [`${ORG_NAME}/billing-layer`]: '0.1.0',
+      [`${ORG_NAME}/workspaces-layer`]: '0.1.0',
+      [`${ORG_NAME}/entitlements-layer`]: '0.1.0'
     }
   },
   debug: {

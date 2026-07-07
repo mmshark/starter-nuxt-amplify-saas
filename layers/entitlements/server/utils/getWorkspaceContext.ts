@@ -7,7 +7,7 @@
 
 import type { H3Event } from 'h3'
 import type { Plan, Role } from '../../types/entitlements'
-import type { Workspace, WorkspaceMember, WorkspaceRole } from '@starter-nuxt-amplify-saas/workspaces/types/workspaces'
+import type { Workspace, WorkspaceMember, WorkspaceRole } from '@mmshark/workspaces-layer/types/workspaces'
 
 interface WorkspaceContext {
   plan: Plan

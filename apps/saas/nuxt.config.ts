@@ -6,10 +6,10 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   extends: [
     // Use SaaS meta-layer (includes all necessary layers)
-    '@starter-nuxt-amplify-saas/saas',
+    '@mmshark/saas-layer',
 
     // Debug layer (optional development tool)
-    '@starter-nuxt-amplify-saas/debug'
+    '@mmshark/debug-layer'
   ],
   alias: {
     '@': path.resolve(__dirname)
