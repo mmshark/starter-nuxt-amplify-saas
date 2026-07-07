@@ -16,7 +16,7 @@ const client = generateClient<Schema>()
 // The Stripe SDK instance is only used for `webhooks.constructEvent`
 // (signature verification); no Stripe API calls are made from here.
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-02-24.acacia',
+  apiVersion: '2025-08-27.basil',
 })
 
 /**

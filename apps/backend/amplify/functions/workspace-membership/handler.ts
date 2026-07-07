@@ -28,7 +28,7 @@ Amplify.configure(resourceConfig, libraryOptions)
 const client = generateClient<Schema>()
 const cognito = new CognitoIdentityProviderClient()
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-02-24.acacia',
+  apiVersion: '2025-08-27.basil',
 })
 
 /**

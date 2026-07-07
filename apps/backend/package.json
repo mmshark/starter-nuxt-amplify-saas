@@ -36,7 +36,7 @@
     "aws-cdk-lib": "2.204.0",
     "constructs": "^10.4.3",
     "esbuild": "^0.25.12",
-    "stripe": "^17.7.0",
+    "stripe": "^18.5.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },

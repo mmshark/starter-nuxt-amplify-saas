@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const stripe = new Stripe(config.stripe.secretKey, {
-    apiVersion: '2025-02-24.acacia'
+    apiVersion: '2025-08-27.basil'
   })
 
   // Parse request body. `return_url`/`configuration_id` are intentionally NOT

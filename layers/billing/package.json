@@ -46,14 +46,15 @@
     "access": "restricted"
   },
   "dependencies": {
-    "@aws-sdk/client-lambda": "^3.700.0"
+    "@aws-sdk/client-lambda": "^3.700.0",
+    "stripe": "^18.5.0"
   },
   "peerDependencies": {
     "nuxt": "^4.0.0",
     "@mmshark/amplify-layer": "workspace:*",
     "@mmshark/auth-layer": "workspace:*",
     "@mmshark/entitlements-layer": "workspace:*",
-    "stripe": "^14.0.0"
+    "stripe": "^18.0.0"
   },
   "devDependencies": {
     "@mmshark/uix-layer": "workspace:*",
