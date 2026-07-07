@@ -71,7 +71,7 @@ const onSubmit = async () => {
     toast.add({ title: 'Workspace created successfully' })
   } catch (error) {
     console.error(error)
-    toast.add({ title: 'Failed to create workspace', color: 'red' })
+    toast.add({ title: 'Failed to create workspace', color: 'error' })
   } finally {
     loading.value = false
   }

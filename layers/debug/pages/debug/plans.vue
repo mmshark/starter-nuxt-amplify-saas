@@ -58,11 +58,11 @@ const formatPrice = (price: number, currency: string = 'USD') => {
 
 // Format plan status
 const getPlanStatus = (plan: any) => {
-  if (plan.isActive === false) return { color: 'red', label: 'Inactive' }
-  if (plan.planId === 'free' || plan.id === 'free') return { color: 'gray', label: 'Free Plan' }
-  if (plan.stripeMonthlyPriceId && plan.stripeYearlyPriceId) return { color: 'green', label: 'Complete' }
-  if (plan.stripeMonthlyPriceId || plan.stripeYearlyPriceId) return { color: 'yellow', label: 'Partial' }
-  return { color: 'red', label: 'No Pricing' }
+  if (plan.isActive === false) return { color: 'error', label: 'Inactive' }
+  if (plan.planId === 'free' || plan.id === 'free') return { color: 'neutral', label: 'Free Plan' }
+  if (plan.stripeMonthlyPriceId && plan.stripeYearlyPriceId) return { color: 'success', label: 'Complete' }
+  if (plan.stripeMonthlyPriceId || plan.stripeYearlyPriceId) return { color: 'warning', label: 'Partial' }
+  return { color: 'error', label: 'No Pricing' }
 }
 </script>
 
@@ -95,7 +95,7 @@ const getPlanStatus = (plan: any) => {
       <!-- Error State -->
       <UAlert
         v-if="error && !loading"
-        color="red"
+        color="error"
         variant="soft"
         :title="error"
         icon="i-lucide-alert-circle"
@@ -174,7 +174,7 @@ const getPlanStatus = (plan: any) => {
                 </UBadge>
                 <UBadge
                   v-if="!plan.isActive"
-                  color="red"
+                  color="error"
                   variant="soft"
                 >
                   Inactive
@@ -284,7 +284,7 @@ const getPlanStatus = (plan: any) => {
           <UButton
             to="/api/billing/plans"
             target="_blank"
-            color="gray"
+            color="neutral"
             variant="solid"
             size="sm"
             icon="i-lucide-external-link"
@@ -294,7 +294,7 @@ const getPlanStatus = (plan: any) => {
 
           <UButton
             @click="console.log('Plans data:', plans)"
-            color="gray"
+            color="neutral"
             variant="soft"
             size="sm"
             icon="i-lucide-bug"

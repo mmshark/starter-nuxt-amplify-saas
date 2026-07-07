@@ -171,7 +171,7 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
       useToast().add({
         title: 'Portal Error',
         description: error.data?.message || error.message || 'Failed to open billing portal',
-        color: 'red'
+        color: 'error'
       })
     } finally {
       isPortalLoading.value = false
@@ -203,7 +203,7 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
       useToast().add({
         title: 'Subscription Error',
         description: subscriptionError.value,
-        color: 'red'
+        color: 'error'
       })
     } finally {
       subscriptionLoading.value = false
@@ -246,7 +246,7 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
       useToast().add({
         title: 'Invoices Error',
         description: invoicesError.value,
-        color: 'red'
+        color: 'error'
       })
     } finally {
       invoicesLoading.value = false

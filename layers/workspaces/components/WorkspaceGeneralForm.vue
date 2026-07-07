@@ -46,13 +46,13 @@ async function onSubmit(event: FormSubmitEvent<WorkspaceForm>) {
     toast.add({
       title: 'Workspace updated',
       description: 'Your workspace settings have been saved.',
-      color: 'green'
+      color: 'success'
     })
   } catch (error: any) {
     toast.add({
       title: 'Update failed',
       description: error.data?.message || error.message || 'Failed to update workspace settings.',
-      color: 'red'
+      color: 'error'
     })
   } finally {
     isLoading.value = false

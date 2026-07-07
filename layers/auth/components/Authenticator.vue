@@ -137,21 +137,21 @@ async function onSignInSubmit(event: FormSubmitEvent<z.infer<typeof signInSchema
       toast.add({
         title: 'Success',
         description: 'Logged in successfully',
-        color: 'green'
+        color: 'success'
       })
       emit('signedIn')
     } else {
       toast.add({
         title: 'Error',
         description: 'Failed to login',
-        color: 'red'
+        color: 'error'
       })
     }
   } catch (error) {
     toast.add({
       title: 'Error',
       description: error.message || 'Failed to sign in',
-      color: 'red'
+      color: 'error'
     })
   } finally {
     loading.value = false
@@ -181,14 +181,14 @@ async function onSignUpSubmit(event: FormSubmitEvent<z.infer<typeof signUpSchema
       toast.add({
         title: 'Verification Required',
         description: 'Please check your email for the verification code',
-        color: 'blue'
+        color: 'info'
       })
     }
   } catch (error) {
     toast.add({
       title: 'Error',
       description: error.message || 'Failed to create account',
-      color: 'red'
+      color: 'error'
     })
   } finally {
     loading.value = false
@@ -208,14 +208,14 @@ async function onVerifySubmit(event: FormSubmitEvent<z.infer<typeof verifySchema
     toast.add({
       title: 'Success',
       description: 'Account verified successfully',
-      color: 'green'
+      color: 'success'
     })
     currentStep.value = 'signin'
   } catch (error) {
     toast.add({
       title: 'Error',
       description: error.message || 'Failed to verify account',
-      color: 'red'
+      color: 'error'
     })
   } finally {
     loading.value = false
@@ -232,13 +232,13 @@ async function resendCode() {
     toast.add({
       title: 'Success',
       description: 'Verification code resent successfully',
-      color: 'green'
+      color: 'success'
     })
   } catch (error) {
     toast.add({
       title: 'Error',
       description: error.message || 'Failed to resend code',
-      color: 'red'
+      color: 'error'
     })
   } finally {
     resendLoading.value = false

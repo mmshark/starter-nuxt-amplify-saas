@@ -37,13 +37,13 @@ async function onRequestSubmit(event: FormSubmitEvent<z.infer<typeof requestSche
     toast.add({
       title: 'Code sent',
       description: 'Check your email for the reset code',
-      color: 'blue'
+      color: 'info'
     })
   } else {
     toast.add({
       title: 'Error',
       description: result.error || 'Failed to send reset code',
-      color: 'red'
+      color: 'error'
     })
   }
 }
@@ -59,14 +59,14 @@ async function onConfirmSubmit(event: FormSubmitEvent<z.infer<typeof confirmSche
     toast.add({
       title: 'Password reset',
       description: 'Your password has been reset. Please sign in.',
-      color: 'green'
+      color: 'success'
     })
     navigateTo('/auth/login')
   } else {
     toast.add({
       title: 'Error',
       description: result.error || 'Failed to reset password',
-      color: 'red'
+      color: 'error'
     })
   }
 }

@@ -12,7 +12,7 @@
           </UFormField>
 
           <UFormField label="Role" name="role" required>
-            <USelect v-model="form.role" :options="roleOptions" />
+            <USelect v-model="form.role" :items="roleOptions" />
           </UFormField>
 
           <UFormField label="Message" name="message">
@@ -81,7 +81,7 @@ const onSubmit = async () => {
     toast.add({ title: 'Invitation sent successfully' })
   } catch (error) {
     console.error(error)
-    toast.add({ title: 'Failed to send invitation', color: 'red' })
+    toast.add({ title: 'Failed to send invitation', color: 'error' })
   } finally {
     loading.value = false
   }

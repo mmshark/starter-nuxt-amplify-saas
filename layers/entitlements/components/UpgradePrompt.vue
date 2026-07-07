@@ -54,7 +54,7 @@ const navigateToUpgrade = () => {
       </div>
 
       <div class="flex items-center space-x-2 text-sm">
-        <UBadge color="gray" variant="subtle">
+        <UBadge color="neutral" variant="subtle">
           Current: {{ currentPlanName }}
         </UBadge>
         <UIcon name="i-heroicons-arrow-right" class="h-4 w-4 text-gray-400" />

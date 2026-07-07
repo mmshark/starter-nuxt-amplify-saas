@@ -164,7 +164,7 @@ const handleSelect = async (plan: InputPlan) => {
       useToast().add({
         title: 'Checkout error',
         description: result?.error || 'No checkout URL returned',
-        color: 'red'
+        color: 'error'
       })
     }
   } finally {

@@ -57,30 +57,30 @@ const formatDate = (dateString: string) => {
 
 // Get subscription status color
 const getSubscriptionStatus = (subscription: any) => {
-  if (!subscription) return { color: 'gray', label: 'No Subscription' }
+  if (!subscription) return { color: 'neutral', label: 'No Subscription' }
 
   const statusMap = {
-    'active': { color: 'green', label: 'Active' },
-    'past_due': { color: 'yellow', label: 'Past Due' },
-    'canceled': { color: 'red', label: 'Canceled' },
-    'trialing': { color: 'blue', label: 'Trialing' },
-    'incomplete': { color: 'orange', label: 'Incomplete' },
-    'incomplete_expired': { color: 'red', label: 'Expired' },
-    'unpaid': { color: 'red', label: 'Unpaid' }
+    'active': { color: 'success', label: 'Active' },
+    'past_due': { color: 'warning', label: 'Past Due' },
+    'canceled': { color: 'error', label: 'Canceled' },
+    'trialing': { color: 'info', label: 'Trialing' },
+    'incomplete': { color: 'warning', label: 'Incomplete' },
+    'incomplete_expired': { color: 'error', label: 'Expired' },
+    'unpaid': { color: 'error', label: 'Unpaid' }
   }
 
-  return statusMap[subscription.status] || { color: 'gray', label: subscription.status }
+  return statusMap[subscription.status] || { color: 'neutral', label: subscription.status }
 }
 
 // Get plan badge color
 const getPlanBadgeColor = (planId: string) => {
   const planColors = {
-    'free': 'gray',
-    'starter': 'blue',
-    'pro': 'green',
-    'enterprise': 'purple'
+    'free': 'neutral',
+    'starter': 'info',
+    'pro': 'success',
+    'enterprise': 'secondary'
   }
-  return planColors[planId] || 'gray'
+  return planColors[planId] || 'neutral'
 }
 </script>
 
@@ -113,7 +113,7 @@ const getPlanBadgeColor = (planId: string) => {
       <!-- Error State -->
       <UAlert
         v-if="error && !loading"
-        color="red"
+        color="error"
         variant="soft"
         :title="error"
         icon="i-lucide-alert-circle"
@@ -189,7 +189,7 @@ const getPlanBadgeColor = (planId: string) => {
                 </UBadge>
                 <UBadge
                   v-else
-                  color="gray"
+                  color="neutral"
                   variant="soft"
                 >
                   No Subscription
@@ -304,7 +304,7 @@ const getPlanBadgeColor = (planId: string) => {
           <UButton
             to="/api/debug/users"
             target="_blank"
-            color="gray"
+            color="neutral"
             variant="solid"
             size="sm"
             icon="i-lucide-external-link"
@@ -314,7 +314,7 @@ const getPlanBadgeColor = (planId: string) => {
 
           <UButton
             @click="console.log('Users data:', users)"
-            color="gray"
+            color="neutral"
             variant="soft"
             size="sm"
             icon="i-lucide-bug"

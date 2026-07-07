@@ -77,7 +77,7 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
       toast.add({
         title: 'No changes',
         description: 'No changes were made to your profile',
-        color: 'blue'
+        color: 'info'
       })
       return
     }
@@ -87,13 +87,13 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
     toast.add({
       title: 'Success',
       description: 'Your profile has been updated successfully',
-      color: 'green'
+      color: 'success'
     })
   } catch (error) {
     toast.add({
       title: 'Error',
       description: error.message || 'Failed to update profile',
-      color: 'red'
+      color: 'error'
     })
   }
 }

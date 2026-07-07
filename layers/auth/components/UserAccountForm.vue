@@ -34,13 +34,13 @@ async function onSubmit(event: FormSubmitEvent<AccountForm>) {
     toast.add({
       title: 'Account updated',
       description: 'Your account settings have been saved.',
-      color: 'green'
+      color: 'success'
     })
   } catch (error: any) {
     toast.add({
       title: 'Update failed',
       description: error.message || 'Failed to update account settings.',
-      color: 'red'
+      color: 'error'
     })
   } finally {
     isLoading.value = false

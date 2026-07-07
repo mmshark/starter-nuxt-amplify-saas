@@ -118,7 +118,7 @@ const handleReset = () => {
         <Icon name="i-lucide-alert-triangle" class="w-12 h-12 mx-auto text-red-500 mb-4" />
         <h3 class="text-lg font-medium text-red-900 mb-2">Not Authenticated</h3>
         <p class="text-red-700 mb-4">You need to be logged in to edit your profile.</p>
-        <UButton to="/auth/login" color="red">Go to Login</UButton>
+        <UButton to="/auth/login" color="error">Go to Login</UButton>
       </div>
 
       <!-- Profile Form -->

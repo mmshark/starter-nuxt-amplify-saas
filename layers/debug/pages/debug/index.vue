@@ -174,7 +174,7 @@ function getComposablesStatus(): string[] {
       <!-- Error Alert -->
       <UAlert 
         v-if="error" 
-        color="red" 
+        color="error" 
         variant="soft" 
         :title="error"
         icon="i-lucide-alert-circle"
@@ -406,7 +406,7 @@ function getComposablesStatus(): string[] {
               <h4 class="text-sm font-semibold text-gray-700">Stripe API Test</h4>
               <UButton
                 @click="clearResponses"
-                color="gray"
+                color="neutral"
                 variant="ghost"
                 size="sm"
                 icon="i-lucide-x"
@@ -453,7 +453,7 @@ function getComposablesStatus(): string[] {
               <UButton
                 @click="testCancel"
                 :loading="loadingStates.cancel"
-                color="red"
+                color="error"
                 variant="solid"
                 size="sm"
                 icon="i-lucide-x-circle"
@@ -466,12 +466,12 @@ function getComposablesStatus(): string[] {
           <!-- Billing Error -->
           <UAlert
             v-if="billingError"
-            color="red"
+            color="error"
             variant="soft"
             icon="i-lucide-alert-circle"
             title="Billing Error"
             :description="billingError"
-            :close-button="{ icon: 'i-lucide-x', color: 'gray', variant: 'link', padded: false }"
+            :close-button="{ icon: 'i-lucide-x', color: 'neutral', variant: 'link', padded: false }"
             @close="clearBillingError"
           />
 
@@ -480,7 +480,7 @@ function getComposablesStatus(): string[] {
             <div class="flex items-center justify-between">
               <h4 class="text-sm font-semibold text-gray-700">API Response</h4>
               <UBadge 
-                :color="billingResponse.success ? 'green' : 'red'"
+                :color="billingResponse.success ? 'success' : 'error'"
                 variant="soft"
               >
                 {{ billingResponse.success ? 'Success' : 'Failed' }}
