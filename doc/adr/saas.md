@@ -22,8 +22,9 @@ We distinguish between two types of layers to maintain separation of concerns:
 #### Enabling Layers (Infrastructure & Foundation)
 These layers provide technical capabilities used by other layers.
 - **Amplify Layer** (`layers/amplify`): AWS integration, GraphQL client, storage.
-- **UIX Layer** (`layers/uix`): Design system, Nuxt UI Pro, Tailwind CSS.
+- **UIX Layer** (`layers/uix`): Design system, Nuxt UI (v4), Tailwind CSS.
 - **I18n Layer** (`layers/i18n`): Internationalization and formatting.
+- **Debug Layer** (`layers/debug`): Development-time debugging and diagnostics tooling.
 
 
 #### Feature Layers (Business Capabilities)
@@ -32,8 +33,6 @@ These layers implement specific business domains.
 - **Billing Layer** (`layers/billing`): Subscription management (Stripe).
 - **Workspaces Layer** (`layers/workspaces`): Multi-tenancy and team management.
 - **Entitlements Layer** (`layers/entitlements`): RBAC and feature access control.
-- **Onboarding Layer** (`layers/onboarding`): User activation flows.
-- **Notifications Layer** (`layers/notifications`): System-wide notifications.
 
 ### 3. Technology Stack & Dependencies
 - **Framework**: Nuxt 4 (Vue 3)
@@ -41,7 +40,7 @@ These layers implement specific business domains.
 - **Package Manager**: pnpm
 - **Backend**: AWS Amplify Gen2 (Cognito, AppSync, DynamoDB)
 - **API**: GraphQL (Amplify) + Server API Endpoints (Custom Logic)
-- **UI Library**: Nuxt UI Pro + Tailwind CSS
+- **UI Library**: Nuxt UI (v4) + Tailwind CSS
 - **Payments**: Stripe
 - **Testing**: Playwright (E2E), Vitest (Unit)
 
@@ -58,6 +57,7 @@ graph TD
         Amplify[Amplify Layer]
         UIX[UIX Layer]
         I18n[I18n Layer]
+        Debug[Debug Layer]
 
     end
 
@@ -67,8 +67,6 @@ graph TD
         Workspaces[Workspaces Layer]
         Billing[Billing Layer]
         Entitlements[Entitlements Layer]
-        Onboarding[Onboarding Layer]
-        Notifications[Notifications Layer]
     end
 
     %% Relationships
@@ -88,19 +86,11 @@ graph TD
     Entitlements --> Workspaces
     Entitlements --> Auth
 
-    Onboarding --> Workspaces
-    Onboarding --> Auth
-    Onboarding --> UIX
-
-    Notifications --> Auth
-    Notifications --> Amplify
-    Notifications --> UIX
-
     %% Styling
     classDef foundation fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
     classDef feature fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
-    class Amplify,UIX,I18n,TRPC foundation;
-    class Auth,Workspaces,Billing,Entitlements,Onboarding,Notifications feature;
+    class Amplify,UIX,I18n,Debug foundation;
+    class Auth,Workspaces,Billing,Entitlements feature;
 ```
 
 #### Rationale
@@ -113,8 +103,7 @@ graph TD
     *   **Workspaces** (to check the User's Role).
     *   **Auth** (to check User identity).
     It aggregates this information to answer: *"Can this user perform this action in this workspace?"*
-5.  **Onboarding Layer**: Orchestrates the initial setup. Depends on **Auth** and **Workspaces** to create the initial environment.
-6.  **Notifications Layer**: Depends on **Auth** to target users and **Amplify** for delivery/storage.
+5.  **Debug Layer**: An enabling layer providing development-time debugging and diagnostics tooling. It has no runtime dependency on the feature layers.
 
 #### Specific Case: Billing vs. Workspaces
 *   **Billing depends on Workspaces**: ✅ Yes. The `WorkspaceSubscription` model has a foreign key to `Workspace`. The checkout flow requires a `workspaceId`.

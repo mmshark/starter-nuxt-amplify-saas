@@ -135,7 +135,7 @@ export const footerNavigation: NavigationMenuItem[] = [{
 **File**: `apps/saas/app/app.config.ts`
 
 ```typescript
-import { settingsSidebar, footerNavigation, userMenuItems } from '@starter-nuxt-amplify-saas/saas/config/navigation'
+import { settingsSidebar, footerNavigation, userMenuItems } from '@mmshark/saas-layer/config/navigation'
 
 export default defineAppConfig({
   saas: {
@@ -296,7 +296,7 @@ const items = computed<DropdownMenuItem[][]>(() => {
 ```vue
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
-import { settingsSidebar } from '@starter-nuxt-amplify-saas/saas/config/navigation'
+import { settingsSidebar } from '@mmshark/saas-layer/config/navigation'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -441,7 +441,7 @@ export default defineAppConfig({
 ```vue
 <!-- WRONG: Component imports directly from layer -->
 <script setup>
-import { userMenuItems } from '@starter-nuxt-amplify-saas/saas/config/navigation'
+import { userMenuItems } from '@mmshark/saas-layer/config/navigation'
 
 // This creates duplicate menu items when app.config also spreads userMenuItems
 </script>
@@ -455,7 +455,7 @@ import { userMenuItems } from '@starter-nuxt-amplify-saas/saas/config/navigation
 
 ```typescript
 // WRONG: Trying to mutate layer config
-import { settingsSidebar } from '@starter-nuxt-amplify-saas/saas/config/navigation'
+import { settingsSidebar } from '@mmshark/saas-layer/config/navigation'
 
 settingsSidebar.children.push({ label: 'New Item' })  // DON'T DO THIS
 ```

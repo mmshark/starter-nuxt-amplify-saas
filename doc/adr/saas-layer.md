@@ -35,7 +35,7 @@ The starter-nuxt-amplify-saas project currently has multiple feature layers (aut
 
 ### Option 1: Monolithic Meta-Layer (CHOSEN)
 
-Create a single `@starter-nuxt-amplify-saas/saas` layer that:
+Create a single `@mmshark/saas-layer` layer that:
 - Extends all necessary feature and foundation layers
 - Provides complete application shell (layouts, pages, components)
 - Offers configuration via `app.config.ts`
@@ -59,7 +59,7 @@ Create a layer that provides utilities to help apps compose their own layer sele
 
 ```typescript
 // apps/custom/nuxt.config.ts
-import { composeSaasLayers } from '@starter-nuxt-amplify-saas/composer'
+import { composeSaasLayers } from '@mmshark/composer-layer'
 
 export default defineNuxtConfig({
   extends: composeSaasLayers({
@@ -83,9 +83,9 @@ export default defineNuxtConfig({
 ### Option 3: Multiple Specialized Meta-Layers
 
 Create multiple meta-layers for different use cases:
-- `@starter-nuxt-amplify-saas/saas-full` - Complete SaaS
-- `@starter-nuxt-amplify-saas/saas-minimal` - Auth + billing only
-- `@starter-nuxt-amplify-saas/saas-multi-tenant` - Full + workspaces
+- `@mmshark/saas-full-layer` - Complete SaaS
+- `@mmshark/saas-minimal-layer` - Auth + billing only
+- `@mmshark/saas-multi-tenant-layer` - Full + workspaces
 
 **Pros**:
 - ✅ Optimized for specific scenarios
@@ -398,9 +398,9 @@ Page Request:
 // App that doesn't want full saas layer
 export default defineNuxtConfig({
   extends: [
-    '@starter-nuxt-amplify-saas/amplify',
-    '@starter-nuxt-amplify-saas/auth',
-    '@starter-nuxt-amplify-saas/billing',
+    '@mmshark/amplify-layer',
+    '@mmshark/auth-layer',
+    '@mmshark/billing-layer',
     // Skip saas meta-layer, build custom UI
   ]
 })
@@ -462,7 +462,7 @@ Applications **extend** the saas meta-layer:
 // apps/saas/nuxt.config.ts
 export default defineNuxtConfig({
   extends: [
-    '@starter-nuxt-amplify-saas/saas'  // Extend meta-layer
+    '@mmshark/saas-layer'  // Extend meta-layer
   ],
 
   // App-specific configuration
@@ -503,12 +503,12 @@ Apps currently composing individual layers can migrate gradually:
 export default defineNuxtConfig({
   extends: [
     // Keep existing layers
-    '@starter-nuxt-amplify-saas/auth',
-    '@starter-nuxt-amplify-saas/billing',
+    '@mmshark/auth-layer',
+    '@mmshark/billing-layer',
     // ... other layers
 
     // Add saas layer
-    '@starter-nuxt-amplify-saas/saas'
+    '@mmshark/saas-layer'
   ]
 })
 ```
@@ -517,7 +517,7 @@ export default defineNuxtConfig({
 ```typescript
 export default defineNuxtConfig({
   extends: [
-    '@starter-nuxt-amplify-saas/saas'  // Replaces all individual layers
+    '@mmshark/saas-layer'  // Replaces all individual layers
   ]
 })
 ```
@@ -563,13 +563,13 @@ If saas meta-layer doesn't fit, apps can revert to manual composition:
 export default defineNuxtConfig({
   extends: [
     // Go back to individual layers
-    '@starter-nuxt-amplify-saas/amplify',
-    '@starter-nuxt-amplify-saas/auth',
-    '@starter-nuxt-amplify-saas/billing',
-    '@starter-nuxt-amplify-saas/workspaces',
-    '@starter-nuxt-amplify-saas/entitlements',
-    '@starter-nuxt-amplify-saas/uix',
-    '@starter-nuxt-amplify-saas/i18n'
+    '@mmshark/amplify-layer',
+    '@mmshark/auth-layer',
+    '@mmshark/billing-layer',
+    '@mmshark/workspaces-layer',
+    '@mmshark/entitlements-layer',
+    '@mmshark/uix-layer',
+    '@mmshark/i18n-layer'
   ]
 })
 ```

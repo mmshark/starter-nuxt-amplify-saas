@@ -46,7 +46,7 @@ Use wrappers provided by the `amplify` layer:
 For protected endpoints requiring authentication:
 
 ```typescript
-import { withAmplifyAuth } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 
 export default defineEventHandler(async (event) => {
   return withAmplifyAuth(event, async (context) => {
@@ -64,7 +64,7 @@ export default defineEventHandler(async (event) => {
 For public endpoints (no auth required):
 
 ```typescript
-import { withAmplifyPublic } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { withAmplifyPublic } from '@mmshark/amplify-layer/server/utils/amplify'
 
 export default defineEventHandler(async (event) => {
   return withAmplifyPublic(async (contextSpec) => {
@@ -197,7 +197,7 @@ return {
 ```typescript
 // layers/workspaces/server/api/workspaces/index.post.ts
 import { z } from 'zod'
-import { withAmplifyAuth, getServerUserPoolDataClient } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { withAmplifyAuth, getServerUserPoolDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
 
 const CreateWorkspaceSchema = z.object({
   name: z.string().min(1).max(100),

@@ -34,7 +34,7 @@ This Nuxt Amplify SaaS Starter offers aproduction-ready SaaS starter kit built w
 - Complete authentication system with AWS Cognito
 - Stripe subscription billing with customer portal
 - Multi-language internationalization (i18n)
-- Professional dashboard UI with Nuxt UI Pro
+- Professional dashboard UI with Nuxt UI (v4)
 - AWS backend infrastructure (DynamoDB, AppSync GraphQL)
 - Modular layer-based architecture
 - Development and debug tooling
@@ -53,7 +53,7 @@ This Nuxt Amplify SaaS Starter offers aproduction-ready SaaS starter kit built w
 - **Workspaces**: Multi-tenant workspace management where subscriptions and data are scoped to the workspace.
 - **Billing & Subscriptions**: Stripe integration with **Workspace-level** subscription management and customer portal.
 - **Internationalization**: Multi-language support with auto-formatting for dates/currency.
-- **UI Components**: Built with Nuxt UI Pro for consistent, beautiful design.
+- **UI Components**: Built with Nuxt UI (v4) for consistent, beautiful design.
 - **Responsive**: Mobile-first design that works on all devices.
 - **Dashboard**: Professional dashboard interface with collapsible sidebar and dark mode.
 - **Configurable**: Easy-to-customize navigation, theming, and billing plans.
@@ -142,10 +142,13 @@ Nuxt automatically imports from all extended layers:
 
 ```typescript
 // Available everywhere without explicit imports:
-useUser()           // from @starter-nuxt-amplify-saas/auth
-useBilling()        // from @starter-nuxt-amplify-saas/billing
-useGraphQL()        // from @starter-nuxt-amplify-saas/amplify
-useTranslation()    // from @starter-nuxt-amplify-saas/i18n
+useUser()           // from @mmshark/auth-layer
+useBilling()        // from @mmshark/billing-layer
+useI18n()           // from @mmshark/i18n-layer (via @nuxtjs/i18n)
+
+// Injected Nuxt plugin property (not a composable), from @mmshark/amplify-layer:
+const { $Amplify } = useNuxtApp()
+$Amplify.GraphQL.client   // Amplify Data (GraphQL) client, userPool-authenticated
 
 // Components auto-imported:
 <Authenticator />   <!-- from auth layer -->
@@ -471,7 +474,7 @@ starter-nuxt-amplify-saas/
 │   ├── auth/            # Authentication (AWS Cognito + middleware + components)
 │   ├── billing/         # Stripe billing integration (subscriptions + webhooks + API)
 │   ├── amplify/         # AWS Amplify integration (GraphQL client + storage)
-│   ├── uix/             # UI foundation layer (Nuxt UI Pro + Tailwind + design system)
+│   ├── uix/             # UI foundation layer (Nuxt UI (v4) + Tailwind + design system)
 │   ├── i18n/            # Internationalization (multi-language support + formatting)
 │   └── <other-layer>/   # ... other reusable layers ...
 ├── package.json         # Workspace root package

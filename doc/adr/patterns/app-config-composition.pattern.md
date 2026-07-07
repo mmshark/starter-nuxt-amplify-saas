@@ -180,7 +180,7 @@ import {
   settingsSidebar,
   footerNavigation,
   userMenuItems
-} from '@starter-nuxt-amplify-saas/saas/config/navigation'
+} from '@mmshark/saas-layer/config/navigation'
 
 export default defineAppConfig({
   saas: {
@@ -479,7 +479,7 @@ When multiple layers and app provide app.config.ts, Nuxt deep merges them:
 
 ```typescript
 // apps/saas/app/app.config.ts
-import { userMenuItems } from '@starter-nuxt-amplify-saas/saas/config/navigation'
+import { userMenuItems } from '@mmshark/saas-layer/config/navigation'
 
 export default defineAppConfig({
   saas: {
@@ -539,7 +539,7 @@ export default defineAppConfig({
 ```vue
 <!-- WRONG -->
 <script setup>
-import { userMenuItems } from '@starter-nuxt-amplify-saas/saas/config/navigation'
+import { userMenuItems } from '@mmshark/saas-layer/config/navigation'
 // This bypasses app.config and creates duplication
 </script>
 ```
@@ -550,7 +550,7 @@ import { userMenuItems } from '@starter-nuxt-amplify-saas/saas/config/navigation
 
 ```typescript
 // WRONG
-import { settingsSidebar } from '@starter-nuxt-amplify-saas/saas/config/navigation'
+import { settingsSidebar } from '@mmshark/saas-layer/config/navigation'
 settingsSidebar.children.push({ label: 'New' })  // Mutates shared config
 ```
 
