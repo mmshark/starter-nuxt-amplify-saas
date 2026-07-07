@@ -1,4 +1,5 @@
 import type Stripe from 'stripe'
+import { workspaceGroupFields } from '@mmshark/amplify-layer/server/utils/workspaceGroups'
 
 /**
  * ensureWorkspaceBilling
@@ -78,6 +79,9 @@ export async function ensureWorkspaceBilling(
     billingInterval: null,
     trialStart: null,
     trialEnd: null,
+    // Group-per-workspace authorization (see apps/backend/amplify/data/resource.ts):
+    // members read the subscription, admins manage it.
+    ...workspaceGroupFields(workspaceId),
   })
 
   if (errors) {

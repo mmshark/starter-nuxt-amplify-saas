@@ -41,6 +41,8 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.700.0",
+    "@mmshark/amplify-layer": "workspace:*",
     "@mmshark/billing-layer": "workspace:*",
     "aws-amplify": "^6.15.8",
     "zod": "3.25.17"
