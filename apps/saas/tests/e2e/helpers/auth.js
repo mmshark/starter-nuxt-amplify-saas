@@ -33,7 +33,9 @@ function connectToGmail() {
       host: 'imap.gmail.com',
       port: 993,
       tls: true,
-      tlsOptions: { rejectUnauthorized: false }
+      // Keep TLS certificate verification on (Gmail presents a valid cert);
+      // do NOT disable rejectUnauthorized — that would allow MITM.
+      tlsOptions: { servername: 'imap.gmail.com' }
     })
 
     imap.once('ready', () => resolve(imap))
