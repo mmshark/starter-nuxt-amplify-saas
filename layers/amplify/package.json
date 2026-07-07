@@ -6,9 +6,9 @@
   "main": "./nuxt.config.ts",
   "exports": {
     ".": "./nuxt.config.ts",
-    "./utils/*": "./utils/*",
-    "./types/*": "./types/*",
-    "./server/*": "./server/*"
+    "./utils/*": "./utils/*.ts",
+    "./types/*": "./types/*.ts",
+    "./server/*": "./server/*.ts"
   },
   "files": [
     "nuxt.config.ts",

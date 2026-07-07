@@ -65,6 +65,8 @@
     "@mmshark/auth-layer": "workspace:*",
     "@mmshark/billing-layer": "workspace:*",
     "@mmshark/workspaces-layer": "workspace:*",
-    "@mmshark/entitlements-layer": "workspace:*"
+    "@mmshark/entitlements-layer": "workspace:*",
+    "@nuxt/ui": "^4.9.0",
+    "zod": "^4.4.3"
   }
 }

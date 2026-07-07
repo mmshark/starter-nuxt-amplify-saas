@@ -6,9 +6,9 @@
   "main": "./nuxt.config.ts",
   "exports": {
     ".": "./nuxt.config.ts",
-    "./composables/*": "./composables/*",
-    "./components/*": "./components/*",
-    "./server/*": "./server/*"
+    "./composables/*": "./composables/*.ts",
+    "./components/*": "./components/*.vue",
+    "./server/*": "./server/*.ts"
   },
   "files": [
     "nuxt.config.ts",
