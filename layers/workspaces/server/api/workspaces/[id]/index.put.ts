@@ -1,5 +1,6 @@
-import { getServerUserPoolDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import { z } from 'zod'
+import { getSessionAccessToken, invokeWorkspaceMembership } from '../../../utils/workspaceMembership'
 import type { Workspace } from '../../../../types/workspaces'
 
 const updateWorkspaceSchema = z.object({
@@ -10,9 +11,14 @@ const updateWorkspaceSchema = z.object({
 /**
  * PUT /api/workspaces/[id]
  * Update a workspace (OWNER or ADMIN only)
+ *
+ * Delegates to the `workspace-membership` function: tenant tables are
+ * READ-ONLY for client principals, so the Workspace row can only be updated
+ * by the Lambda. The Lambda re-verifies the caller's OWNER/ADMIN role from
+ * the forwarded (Cognito-verified) access token and only ever updates
+ * `name`/`description` — never `slug`, `ownerId` or the group fields.
  */
 export default defineEventHandler(async (event): Promise<Workspace> => {
-  const user = event.context.user
   const workspaceId = getRouterParam(event, 'id')
 
   if (!workspaceId) {
@@ -25,62 +31,14 @@ export default defineEventHandler(async (event): Promise<Workspace> => {
   const body = await readBody(event)
   const input = updateWorkspaceSchema.parse(body)
 
-  return await withAmplifyAuth(event, async (contextSpec) => {
-    // userPool client: the update is authorized by the caller's
-    // `ws:<id>:admins` group claim (writerGroups rule) — defense-in-depth on
-    // top of the explicit role check below.
-    const client = getServerUserPoolDataClient()
+  const accessToken = getSessionAccessToken(event)
 
-    // Verify workspace exists
-    const { data: workspace } = await client.models.Workspace.get(contextSpec, { id: workspaceId })
-
-    if (!workspace) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Workspace not found'
-      })
-    }
-
-    // Check permissions: must be OWNER or ADMIN
-    const { data: memberships } = await client.models.WorkspaceMember.list(contextSpec, {
-      filter: {
-        workspaceId: { eq: workspaceId },
-        userId: { eq: user.userId }
-      }
+  return await withAmplifyAuth(event, (contextSpec) =>
+    invokeWorkspaceMembership<Workspace>(contextSpec, accessToken, {
+      action: 'updateWorkspace',
+      workspaceId,
+      name: input.name,
+      description: input.description
     })
-
-    const membership = memberships?.[0]
-    if (!membership || !['OWNER', 'ADMIN'].includes(membership.role)) {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'Only workspace owners and admins can update workspace settings'
-      })
-    }
-
-    // Build update payload
-    const updatePayload: Record<string, any> = { id: workspaceId }
-    if (input.name !== undefined) updatePayload.name = input.name
-    if (input.description !== undefined) updatePayload.description = input.description
-
-    const { data: updatedWorkspace, errors } = await client.models.Workspace.update(contextSpec, updatePayload)
-
-    if (errors || !updatedWorkspace) {
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'Failed to update workspace'
-      })
-    }
-
-    return {
-      id: updatedWorkspace.id,
-      name: updatedWorkspace.name,
-      slug: updatedWorkspace.slug || undefined,
-      description: updatedWorkspace.description || undefined,
-      ownerId: updatedWorkspace.ownerId,
-      isPersonal: updatedWorkspace.isPersonal || false,
-      memberCount: updatedWorkspace.memberCount || 0,
-      createdAt: updatedWorkspace.createdAt,
-      updatedAt: updatedWorkspace.updatedAt
-    }
-  })
+  )
 })

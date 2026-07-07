@@ -1,7 +1,7 @@
 import Stripe from 'stripe'
 import { withAmplifyAuth, getServerUserPoolDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
+import { invokeWorkspaceMembership } from '@mmshark/amplify-layer/server/utils/workspaceMembership'
 import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth/server'
-import { ensureWorkspaceBilling } from '../../utils/ensureWorkspaceBilling'
 
 const BILLING_INTERVALS = ['monthly', 'yearly'] as const
 type BillingInterval = (typeof BILLING_INTERVALS)[number]
@@ -93,15 +93,33 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Resolve (or create) the WORKSPACE's Stripe customer — never per-user.
-    const { stripeCustomerId } = await ensureWorkspaceBilling({
-      workspaceId,
-      stripe,
-      client,
+    // Resolve the WORKSPACE's Stripe customer — never per-user. Tenant tables
+    // are READ-ONLY for client principals, so this route never writes
+    // WorkspaceSubscription itself: reads use the caller's userPool client
+    // (readerGroups rule), and if the row is unexpectedly missing (workspace
+    // creation provisions billing atomically, so this is a self-heal) it is
+    // (re)provisioned via the workspace-membership Lambda, which re-verifies
+    // the caller is the workspace OWNER and holds the only write grant.
+    const { data: workspaceSubscription } = await client.models.WorkspaceSubscription.get(
       contextSpec,
-      customerEmail: email,
-      customerName: userAttributes?.name
-    })
+      { workspaceId }
+    )
+    let stripeCustomerId = workspaceSubscription?.stripeCustomerId
+    if (!stripeCustomerId) {
+      const accessToken = session.tokens?.accessToken?.toString()
+      if (!accessToken) {
+        throw createError({
+          statusCode: 401,
+          statusMessage: 'No access token available for this session'
+        })
+      }
+      const ensured = await invokeWorkspaceMembership<{ stripeCustomerId: string }>(
+        contextSpec,
+        accessToken,
+        { action: 'ensureBilling', workspaceId }
+      )
+      stripeCustomerId = ensured.stripeCustomerId
+    }
 
     // Create Stripe checkout session
     const checkoutSession = await stripe.checkout.sessions.create({

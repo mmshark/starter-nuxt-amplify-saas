@@ -9,16 +9,16 @@ import { workspaceGroupFields } from '@mmshark/amplify-layer/server/utils/worksp
  * Stripe customer id lives on `WorkspaceSubscription.stripeCustomerId`, never
  * on `UserProfile`.
  *
- * Callable from two different runtimes with two different Amplify Data
- * client shapes:
- *  - Nitro server routes: `generateClient<Schema>({ authMode: 'iam' })` from
- *    `aws-amplify/data/server`, whose model methods take `(contextSpec, input)`.
- *  - The `post-confirmation` and `stripe-webhook` Lambda functions:
- *    `generateClient<Schema>()` from `aws-amplify/data`, whose model methods
- *    take `(input)` only.
+ * PRIVILEGED-LAMBDA ONLY: tenant tables are READ-ONLY for client principals
+ * (see apps/backend/amplify/data/resource.ts), so the WorkspaceSubscription
+ * write below only succeeds for functions holding an `allow.resource(...)`
+ * grant. Callers today: the `post-confirmation` trigger and the
+ * `workspace-membership` function (createWorkspace + ensureBilling actions).
+ * Nitro routes must NOT call this with a userPool client — they go through
+ * the workspace-membership Lambda's `ensureBilling` action instead.
  *
- * Pass `contextSpec` when calling from a Nitro route (inside `withAmplifyAuth`
- * / `withAmplifyPublic`); omit it when calling from a Lambda function.
+ * The `contextSpec` parameter remains for Amplify Data server clients whose
+ * model methods take `(contextSpec, input)`; Lambda clients omit it.
  *
  * Idempotency:
  *  - DB-first: if a `WorkspaceSubscription` already exists for the workspace,

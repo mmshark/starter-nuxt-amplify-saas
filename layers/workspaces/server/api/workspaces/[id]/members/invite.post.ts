@@ -1,6 +1,6 @@
-import { getServerUserPoolDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
-import { workspaceGroupFields } from '@mmshark/amplify-layer/server/utils/workspaceGroups'
+import { withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import { z } from 'zod'
+import { getSessionAccessToken, invokeWorkspaceMembership } from '../../../../utils/workspaceMembership'
 
 const inviteMemberSchema = z.object({
   email: z.string().email('Valid email is required'),
@@ -10,11 +10,18 @@ const inviteMemberSchema = z.object({
 
 /**
  * POST /api/workspaces/[id]/members/invite
- * Invite a new member to the workspace
+ * Invite a new member to the workspace (OWNER/ADMIN only)
+ *
+ * Delegates to the `workspace-membership` function: tenant tables are
+ * READ-ONLY for client principals, so the invitation row can only be created
+ * by the Lambda. The Lambda re-verifies the caller's OWNER/ADMIN role from
+ * the forwarded (Cognito-verified) access token, derives the invitation's
+ * `readerGroups`/`writerGroups` from the workspace id itself — never from
+ * client input — and stamps `invitedBy`/`inviterEmail` from the VERIFIED
+ * caller identity.
  */
 export default defineEventHandler(async (event) => {
   const workspaceId = getRouterParam(event, 'id')
-  const user = event.context.user
   const body = await readBody(event)
 
   if (!workspaceId) {
@@ -29,82 +36,19 @@ export default defineEventHandler(async (event) => {
   // Validate input
   const input = inviteMemberSchema.parse(body)
 
-  return await withAmplifyAuth(event, async (contextSpec) => {
-    // userPool client: creating the invitation is authorized by the caller's
-    // `ws:<id>:admins` group claim (writerGroups rule) — defense-in-depth on
-    // top of the explicit role check below.
-    const client = getServerUserPoolDataClient()
+  const accessToken = getSessionAccessToken(event)
 
-    // Verify user is admin/owner
-    const { data: membership } = await client.models.WorkspaceMember.list(contextSpec, {
-      filter: {
-        and: [
-          { workspaceId: { eq: workspaceId } },
-          { userId: { eq: user.userId } }
-        ]
+  return await withAmplifyAuth(event, (contextSpec) =>
+    invokeWorkspaceMembership<{ id: string; success: boolean; message: string }>(
+      contextSpec,
+      accessToken,
+      {
+        action: 'createInvitation',
+        workspaceId,
+        email: input.email,
+        role: input.role,
+        message: input.message
       }
-    })
-
-    if (!membership || membership.length === 0) {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'Forbidden',
-        message: 'You are not a member of this workspace',
-        data: { code: 'FORBIDDEN' }
-      })
-    }
-
-    const userRole = membership[0].role
-    if (userRole !== 'OWNER' && userRole !== 'ADMIN') {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'Forbidden',
-        message: 'Only workspace owners and admins can invite members',
-        data: {
-          code: 'FORBIDDEN',
-          details: { requiredRole: ['OWNER', 'ADMIN'] }
-        }
-      })
-    }
-
-    // Create invitation
-    const token = crypto.randomUUID()
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7) // 7 days
-
-    const { data: invitation, errors } = await client.models.WorkspaceInvitation.create(contextSpec, {
-      workspaceId,
-      email: input.email,
-      role: input.role,
-      invitedBy: user.userId,
-      inviterName: user.username || '',
-      inviterEmail: user.signInDetails?.loginId || '',
-      message: input.message,
-      token,
-      expiresAt: expiresAt.toISOString(),
-      status: 'PENDING',
-      ...workspaceGroupFields(workspaceId)
-    })
-
-    if (errors || !invitation) {
-      console.error('Failed to create invitation:', errors)
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'Internal Server Error',
-        message: 'Failed to create invitation',
-        data: {
-          code: 'INTERNAL_ERROR',
-          details: errors
-        }
-      })
-    }
-
-    // TODO: Send invitation email via Notifications layer
-
-    return {
-      id: invitation.id,
-      success: true,
-      message: 'Invitation sent successfully'
-    }
-  })
+    )
+  )
 })

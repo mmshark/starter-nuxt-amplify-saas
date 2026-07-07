@@ -59,11 +59,14 @@ interface Caller {
 interface MembershipEvent {
   action:
     | 'createWorkspace'
+    | 'updateWorkspace'
+    | 'createInvitation'
     | 'acceptInvitation'
     | 'declineInvitation'
     | 'updateMemberRole'
     | 'removeMember'
     | 'deleteWorkspace'
+    | 'ensureBilling'
   /** The CALLER's Cognito access token; verified via GetUser, never trusted raw. */
   accessToken: string
   name?: string
@@ -73,6 +76,8 @@ interface MembershipEvent {
   invitationId?: string
   targetUserId?: string
   role?: string
+  email?: string
+  message?: string
 }
 
 type MembershipResult =
@@ -115,6 +120,10 @@ export const handler: Handler<MembershipEvent, MembershipResult> = async (event)
     switch (event.action) {
       case 'createWorkspace':
         return ok(await createWorkspace(caller, event))
+      case 'updateWorkspace':
+        return ok(await updateWorkspace(caller, event))
+      case 'createInvitation':
+        return ok(await createInvitation(caller, event))
       case 'acceptInvitation':
         return ok(await acceptInvitation(caller, event))
       case 'declineInvitation':
@@ -125,6 +134,8 @@ export const handler: Handler<MembershipEvent, MembershipResult> = async (event)
         return ok(await removeMember(caller, event))
       case 'deleteWorkspace':
         return ok(await deleteWorkspace(caller, event))
+      case 'ensureBilling':
+        return ok(await ensureBilling(caller, event))
       default:
         return fail(400, `Unknown action: ${String(event.action)}`)
     }
@@ -364,6 +375,112 @@ async function createWorkspace(caller: Caller, event: MembershipEvent) {
   }
 }
 
+/**
+ * Update a workspace's name/description. Tenant tables are read-only for
+ * client principals (see amplify/data/resource.ts), so this is the ONLY path
+ * that updates a Workspace row on behalf of a user. Only `name` and
+ * `description` are updatable — `slug`, `ownerId`, `memberCount` and the
+ * group fields can never be changed from client-supplied input.
+ */
+async function updateWorkspace(caller: Caller, event: MembershipEvent) {
+  const workspaceId = requireParam(event.workspaceId, 'workspaceId')
+
+  // AUTHORIZATION: verified caller must be OWNER or ADMIN of the workspace.
+  await requireRole(
+    workspaceId,
+    caller.userId,
+    ['OWNER', 'ADMIN'],
+    'Only workspace owners and admins can update workspace settings'
+  )
+
+  const { data: workspace } = await client.models.Workspace.get({ id: workspaceId })
+  if (!workspace) {
+    throw new MembershipError(404, 'Workspace not found')
+  }
+
+  const updatePayload: { id: string; name?: string; description?: string } = { id: workspaceId }
+  if (typeof event.name === 'string' && event.name.trim().length > 0) {
+    updatePayload.name = event.name
+  }
+  if (typeof event.description === 'string') {
+    updatePayload.description = event.description
+  }
+
+  const { data: updated, errors } = await client.models.Workspace.update(updatePayload)
+  if (errors || !updated) {
+    console.error('Failed to update workspace:', errors)
+    throw new MembershipError(500, 'Failed to update workspace')
+  }
+
+  return {
+    id: updated.id,
+    name: updated.name,
+    slug: updated.slug || undefined,
+    description: updated.description ?? undefined,
+    ownerId: updated.ownerId,
+    isPersonal: updated.isPersonal || false,
+    memberCount: updated.memberCount || 0,
+    createdAt: updated.createdAt,
+    updatedAt: updated.updatedAt,
+  }
+}
+
+/**
+ * Create a workspace invitation. This is the ONLY path that creates
+ * WorkspaceInvitation rows (clients are read-only on the table), so every
+ * invitation is guaranteed to have:
+ *  - `readerGroups`/`writerGroups` derived from the workspace id
+ *    (`workspaceGroupFields`) — NEVER from client input;
+ *  - `invitedBy`/`inviterEmail` taken from the VERIFIED caller identity;
+ *  - a role limited to ADMIN|MEMBER (an invitation can never grant OWNER);
+ *  - an inviter whose OWNER/ADMIN role was re-checked here.
+ */
+async function createInvitation(caller: Caller, event: MembershipEvent) {
+  const workspaceId = requireParam(event.workspaceId, 'workspaceId')
+  const email = requireParam(event.email, 'email').trim().toLowerCase()
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new MembershipError(400, 'A valid email is required')
+  }
+
+  const role = event.role
+  if (role !== 'ADMIN' && role !== 'MEMBER') {
+    throw new MembershipError(400, 'role must be ADMIN or MEMBER')
+  }
+
+  // AUTHORIZATION: verified caller must be OWNER or ADMIN of the workspace.
+  await requireRole(
+    workspaceId,
+    caller.userId,
+    ['OWNER', 'ADMIN'],
+    'Only workspace owners and admins can invite members'
+  )
+
+  const expiresAt = new Date()
+  expiresAt.setDate(expiresAt.getDate() + 7) // 7 days
+
+  const { data: invitation, errors } = await client.models.WorkspaceInvitation.create({
+    workspaceId,
+    email,
+    role,
+    invitedBy: caller.userId,
+    inviterName: caller.name || caller.email,
+    inviterEmail: caller.email,
+    message: typeof event.message === 'string' ? event.message : undefined,
+    token: randomUUID(),
+    expiresAt: expiresAt.toISOString(),
+    status: 'PENDING',
+    // Group fields derive ONLY from the workspace id — never from the event.
+    ...workspaceGroupFields(workspaceId),
+  })
+
+  if (errors || !invitation) {
+    console.error('Failed to create invitation:', errors)
+    throw new MembershipError(500, 'Failed to create invitation')
+  }
+
+  return { id: invitation.id, success: true, message: 'Invitation sent successfully' }
+}
+
 async function acceptInvitation(caller: Caller, event: MembershipEvent) {
   const workspaceId = requireParam(event.workspaceId, 'workspaceId')
   const invitationId = requireParam(event.invitationId, 'invitationId')
@@ -555,4 +672,28 @@ async function deleteWorkspace(caller: Caller, event: MembershipEvent) {
   await deleteWorkspaceGroups(workspaceId)
 
   return { success: true }
+}
+
+/**
+ * (Re)provision a workspace's Stripe customer + free WorkspaceSubscription
+ * row. Normally billing is bootstrapped atomically at workspace creation
+ * (here and in post-confirmation); this action is the self-heal used by the
+ * billing checkout route when the row is unexpectedly missing — clients hold
+ * no write grant on WorkspaceSubscription, so the write MUST happen here.
+ */
+async function ensureBilling(caller: Caller, event: MembershipEvent) {
+  const workspaceId = requireParam(event.workspaceId, 'workspaceId')
+
+  // AUTHORIZATION: only the workspace OWNER manages billing.
+  await requireRole(workspaceId, caller.userId, ['OWNER'], 'Only the workspace owner can manage billing')
+
+  const { stripeCustomerId, created } = await ensureWorkspaceBilling({
+    workspaceId,
+    stripe,
+    client,
+    customerEmail: caller.email,
+    customerName: caller.name,
+  })
+
+  return { stripeCustomerId, created }
 }
