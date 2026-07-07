@@ -85,6 +85,19 @@ export async function ensureWorkspaceBilling(
   })
 
   if (errors) {
+    // Rollback: don't leave an orphaned Stripe customer behind when the
+    // WorkspaceSubscription row could not be written. (The idempotency key
+    // above refers to the CREATE call, so a later retry after this delete
+    // creates a fresh customer.)
+    try {
+      await stripe.customers.del(customer.id)
+    } catch (cleanupError) {
+      console.error(
+        `Failed to delete orphaned Stripe customer ${customer.id} for workspace ${workspaceId}:`,
+        cleanupError
+      )
+    }
+
     throw new Error(
       `Failed to create WorkspaceSubscription for workspace ${workspaceId}: ${JSON.stringify(errors)}`
     )
