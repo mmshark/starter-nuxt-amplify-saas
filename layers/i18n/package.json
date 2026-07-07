@@ -39,6 +39,6 @@
   },
   "peerDependencies": {
     "nuxt": "^4.0.0",
-    "@nuxtjs/i18n": "^8.0.0"
+    "@nuxtjs/i18n": "^10.0.0"
   }
 }
