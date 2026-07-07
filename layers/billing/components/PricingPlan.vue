@@ -124,7 +124,7 @@ const handleSelect = async () => {
       billingInterval: props.interval
     })
     if (result?.success && result?.data?.url) {
-      if (process.client) {
+      if (import.meta.client) {
         window.location.href = result.data.url
       } else {
         await navigateTo(result.data.url, { external: true })

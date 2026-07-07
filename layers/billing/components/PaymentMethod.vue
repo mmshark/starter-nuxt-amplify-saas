@@ -47,8 +47,8 @@
 
       <UButton
         variant="outline"
-        @click="handleClick"
         :loading="effectiveLoading"
+        @click="handleClick"
       >
         {{ effectivePaymentMethod ? 'Update' : 'Add Payment Method' }}
       </UButton>

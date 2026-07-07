@@ -1,6 +1,5 @@
 import type { H3Event, EventHandlerRequest } from 'h3'
 import { parseCookies } from 'h3'
-import type { CookieRef } from 'nuxt/app'
 import {
   createKeyValueStorageFromCookieStorageAdapter,
   createUserPoolsTokenProvider,
@@ -65,6 +64,14 @@ const createCookieStorageFromEvent = (event: H3Event<EventHandlerRequest>) => {
       amplifyCookies[name] = value
     },
     delete(name) {
+      // `name` is a token-storage key (idToken/accessToken/refreshToken/
+      // clockDrift) supplied by the Amplify adapter-core contract, not user
+      // input; setting it to `undefined` instead of deleting it would leave
+      // the key present in `getAll()`'s enumeration, which the Amplify
+      // cookie storage adapter treats as "cookie exists" — this is auth
+      // session/token storage, left as-is rather than reshaped for this
+      // lint pass.
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete amplifyCookies[name]
     }
   })

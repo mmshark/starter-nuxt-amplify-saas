@@ -64,8 +64,8 @@ const planOptions = computed(() =>
 
 const systemInfo = computed(() => ({
   environment: {
-    isDev: process.dev,
-    runtime: process.client ? 'client' : 'server'
+    isDev: import.meta.dev,
+    runtime: import.meta.client ? 'client' : 'server'
   },
   composables: getComposablesStatus(),
   config: {
@@ -407,58 +407,58 @@ function getComposablesStatus(): string[] {
             <div class="flex items-center justify-between">
               <h4 class="text-sm font-semibold text-gray-700">Stripe API Test</h4>
               <UButton
-                @click="clearResponses"
                 color="neutral"
                 variant="ghost"
                 size="sm"
                 icon="i-lucide-x"
                 :disabled="!billingResponse && !billingError"
+                @click="clearResponses"
               >
                 Clear
               </UButton>
             </div>
             <div class="flex flex-wrap gap-3">
               <UButton
-                @click="testCheckout"
                 :loading="loadingStates.checkout"
                 :disabled="availablePlans.length === 0"
                 color="primary"
                 variant="solid"
                 size="sm"
                 icon="i-lucide-shopping-cart"
+                @click="testCheckout"
               >
                 Test Checkout
               </UButton>
               
               <UButton
-                @click="testPortal"
                 :loading="loadingStates.portal"
                 color="primary"
                 variant="solid"
                 size="sm"
                 icon="i-lucide-settings"
+                @click="testPortal"
               >
                 Test Portal
               </UButton>
               
               <UButton
-                @click="fetchSubscriptionData"
                 :loading="loadingStates.subscription"
                 color="primary"
                 variant="solid"
                 size="sm"
                 icon="i-lucide-refresh-cw"
+                @click="fetchSubscriptionData"
               >
                 Get Subscription
               </UButton>
               
               <UButton
-                @click="testCancel"
                 :loading="loadingStates.cancel"
                 color="error"
                 variant="solid"
                 size="sm"
                 icon="i-lucide-x-circle"
+                @click="testCancel"
               >
                 Test Cancel
               </UButton>

@@ -110,11 +110,11 @@ const getPlanStatus = (plan: any) => {
               <h3 class="font-semibold">Plans Summary</h3>
             </div>
             <UButton
-              @click="fetchPlans"
               size="sm"
               variant="soft"
               icon="i-lucide-refresh-cw"
               :loading="loading"
+              @click="fetchPlans"
             >
               Refresh
             </UButton>
@@ -231,7 +231,8 @@ const getPlanStatus = (plan: any) => {
             </div>
 
             <!-- Raw Data -->
-            <UAccordion :items="[{
+            <UAccordion
+:items="[{
               label: `View Raw Data for ${plan.name}`,
               icon: 'i-lucide-code-2'
             }]">
@@ -271,12 +272,12 @@ const getPlanStatus = (plan: any) => {
 
         <div class="flex flex-wrap gap-3">
           <UButton
-            @click="fetchPlans"
             :loading="loading"
             color="primary"
             variant="solid"
             size="sm"
             icon="i-lucide-refresh-cw"
+            @click="fetchPlans"
           >
             Refresh Plans
           </UButton>
@@ -293,11 +294,11 @@ const getPlanStatus = (plan: any) => {
           </UButton>
 
           <UButton
-            @click="console.log('Plans data:', plans)"
             color="neutral"
             variant="soft"
             size="sm"
             icon="i-lucide-bug"
+            @click="console.log('Plans data:', plans)"
           >
             Log to Console
           </UButton>

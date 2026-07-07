@@ -5,8 +5,8 @@
       <UButton
         v-if="canInvite"
         icon="i-heroicons-user-plus"
-        @click="showInviteModal = true"
         color="primary"
+        @click="showInviteModal = true"
       >
         Invite Member
       </UButton>

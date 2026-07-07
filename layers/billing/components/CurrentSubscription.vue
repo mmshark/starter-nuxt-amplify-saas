@@ -57,13 +57,13 @@
         name="actions"
         :subscription="effectiveSubscription"
         :loading="effectiveLoading"
-        :openPortal="handleClick"
+        :open-portal="handleClick"
       >
         <!-- Botón por defecto si no se usa el slot -->
         <UButton
           variant="outline"
-          @click="handleClick"
           :loading="effectiveLoading"
+          @click="handleClick"
         >
           Change Plan
         </UButton>

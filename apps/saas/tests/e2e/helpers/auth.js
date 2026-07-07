@@ -5,6 +5,13 @@ import fs from 'fs'
 import path from 'path'
 
 // ============================================================================
+// User Management
+// ============================================================================
+
+import { TestCache } from '../utils/cache.js'
+import { Selectors } from '../utils/selectors.js'
+
+// ============================================================================
 // Test Data
 // ============================================================================
 
@@ -12,13 +19,6 @@ import path from 'path'
 export function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
-
-// ============================================================================
-// User Management
-// ============================================================================
-
-import { TestCache } from '../utils/cache.js'
-import { Selectors } from '../utils/selectors.js'
 // Removed TestDataManager dependency; inline minimal data generation below
 
 // ============================================================================

@@ -141,7 +141,7 @@ const handleReset = () => {
             </div>
           </template>
           
-          <form @submit.prevent="handleSubmit" class="space-y-6">
+          <form class="space-y-6" @submit.prevent="handleSubmit">
             <div class="space-y-4">
               <!-- Display Name -->
               <div>
@@ -155,7 +155,7 @@ const handleReset = () => {
                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your display name"
                   maxlength="50"
-                />
+                >
               </div>
 
               <!-- First Name -->
@@ -170,7 +170,7 @@ const handleReset = () => {
                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your first name"
                   maxlength="50"
-                />
+                >
               </div>
 
               <!-- Last Name -->
@@ -185,7 +185,7 @@ const handleReset = () => {
                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your last name"
                   maxlength="50"
-                />
+                >
               </div>
 
             </div>
@@ -203,10 +203,10 @@ const handleReset = () => {
 
               <UButton
                 type="button"
-                @click="handleReset"
                 :disabled="saving"
                 color="primary"
                 variant="soft"
+                @click="handleReset"
               >
                 Reset
               </UButton>

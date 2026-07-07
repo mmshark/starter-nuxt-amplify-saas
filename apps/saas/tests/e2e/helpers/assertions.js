@@ -335,7 +335,7 @@ export class AssertionHelpers {
     } catch (error) {
       const currentUrl = this.page.url()
       console.error(`❌ Redirect failed. Expected: ${expectedUrlPattern}, Actual: ${currentUrl}`)
-      throw new Error(`Redirect timeout. Expected: ${expectedUrlPattern}, Actual: ${currentUrl}`)
+      throw new Error(`Redirect timeout. Expected: ${expectedUrlPattern}, Actual: ${currentUrl}`, { cause: error })
     }
   }
 
@@ -447,7 +447,7 @@ export class AssertionHelpers {
       return true
     } catch (error) {
       console.error(`❌ ${errorMessage}`)
-      throw new Error(errorMessage)
+      throw new Error(errorMessage, { cause: error })
     }
   }
 

@@ -92,12 +92,12 @@
       </div>
     </div>
 
-    <template #footer v-if="effectiveInvoices.length > 0">
+    <template v-if="effectiveInvoices.length > 0" #footer>
       <div class="flex justify-between items-center">
         <UButton
           variant="ghost"
-          @click="handleViewAll()"
           :loading="effectivePortalLoading"
+          @click="handleViewAll()"
         >
           View All Invoices
         </UButton>
@@ -105,8 +105,8 @@
         <UButton
           v-if="effectiveHasMore"
           variant="outline"
-          @click="handleLoadMore()"
           :loading="effectiveInvoicesLoading"
+          @click="handleLoadMore()"
         >
           Load More
         </UButton>

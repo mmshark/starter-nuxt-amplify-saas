@@ -6,7 +6,7 @@
           Create Workspace
         </h3>
 
-        <form @submit.prevent="onSubmit" class="space-y-4">
+        <form class="space-y-4" @submit.prevent="onSubmit">
           <UFormField label="Workspace Name" name="name" required>
             <UInput v-model="form.name" placeholder="My Awesome Team" />
           </UFormField>

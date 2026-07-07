@@ -14,7 +14,7 @@
 
         <!-- Logo -->
         <NuxtLink to="/" class="flex items-center gap-2">
-          <img :src="config.brand.logo" :alt="config.brand.name" class="h-8" />
+          <img :src="config.brand.logo" :alt="config.brand.name" class="h-8" >
           <span class="font-semibold text-lg hidden md:inline">{{ config.brand.name }}</span>
         </NuxtLink>
 

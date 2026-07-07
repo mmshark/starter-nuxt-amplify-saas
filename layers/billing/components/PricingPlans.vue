@@ -155,7 +155,7 @@ const handleSelect = async (plan: InputPlan) => {
     })
     if (result?.success && result?.data?.url) {
       // Use window.location for maximum reliability opening Stripe
-      if (process.client) {
+      if (import.meta.client) {
         window.location.href = result.data.url
       } else {
         await navigateTo(result.data.url, { external: true })

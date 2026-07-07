@@ -61,7 +61,7 @@ async function onSubmit(event: FormSubmitEvent<WorkspaceForm>) {
 </script>
 
 <template>
-  <UForm :state="state" @submit="onSubmit" class="space-y-6">
+  <UForm :state="state" class="space-y-6" @submit="onSubmit">
     <UFormField label="Workspace Name" name="name" required>
       <UInput
         v-model="state.name"

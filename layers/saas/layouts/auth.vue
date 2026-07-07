@@ -7,7 +7,7 @@
           :src="config.brand.logo"
           :alt="config.brand.name"
           class="h-12 mx-auto mb-4"
-        />
+        >
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
           {{ config.brand.name }}
         </h1>

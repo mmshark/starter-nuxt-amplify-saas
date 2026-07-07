@@ -6,7 +6,7 @@
           Invite Team Member
         </h3>
 
-        <form @submit.prevent="onSubmit" class="space-y-4">
+        <form class="space-y-4" @submit.prevent="onSubmit">
           <UFormField label="Email Address" name="email" required>
             <UInput v-model="form.email" type="email" placeholder="colleague@company.com" />
           </UFormField>
