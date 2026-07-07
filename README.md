@@ -1,6 +1,6 @@
 # Nuxt Amplify SaaS Starter
 
-A modern full-stack SaaS application built with Nuxt 4, AWS Amplify Gen2, and Nuxt UI Pro. This project provides a complete foundation for building scalable SaaS applications with authentication, dashboard, and AWS backend integration.
+A modern full-stack SaaS application built with Nuxt 4, AWS Amplify Gen2, and Nuxt UI (v4). This project provides a complete foundation for building scalable SaaS applications with authentication, dashboard, and AWS backend integration.
 
 ## 🏗️ Architecture
 
@@ -15,7 +15,7 @@ This is a **monorepo** containing:
 
 **Foundation Layers** (Infrastructure & UI):
 - **`layers/amplify/`** - AWS Amplify integration layer (GraphQL client + storage utilities)
-- **`layers/uix/`** - UI foundation layer (Nuxt UI Pro + Tailwind + design system)
+- **`layers/uix/`** - UI foundation layer (Nuxt UI v4, MIT + Tailwind v4 + design system)
 - **`layers/i18n/`** - Internationalization layer (multi-language support + formatting)
 
 **Feature Layers** (Business Capabilities):
@@ -41,7 +41,7 @@ This is a **monorepo** containing:
 - **🌐 Internationalization**: Multi-language support with auto-formatting for dates/currency
 - **📊 Dashboard**: Professional dashboard with SaaS meta-layer (layouts, navigation, pages out-of-the-box)
 - **⚙️ Navigation System**: 3-layer configuration architecture (layer defaults + app customization + component consumption)
-- **🎨 UI Components**: Built with Nuxt UI Pro (v4) for consistent, modern design
+- **🎨 UI Components**: Built with Nuxt UI (v4, MIT) for consistent, modern design
 - **📱 Responsive**: Mobile-first design with adaptive layouts for all devices
 - **⚡ Performance**: Optimized with Nuxt 4's latest performance improvements
 - **🔧 Configuration-Driven**: Customize via `app.config.ts` without modifying layer code
@@ -55,7 +55,7 @@ This is a **monorepo** containing:
 
 Before you begin, ensure you have:
 
-- **Node.js** >= 18.0.0 (recommended: 18+ for Nuxt 4 compatibility)
+- **Node.js** >= 20.19 (required for Nuxt 4 compatibility; Amplify Console builds should override to Node 22 — see below)
 - **pnpm** 10.13.1+ (installed automatically via corepack)
 - **AWS CLI** configured with appropriate credentials
 - **AWS Account** with Amplify access
@@ -232,7 +232,7 @@ Your applications will be available at:
 
 ### Step 6: Configure Stripe Integration (Optional)
 
-If you want to test billing functionality:
+If you want to test billing functionality. Billing plans are **not** defined in a local config file — Stripe is the source of truth, and the backend syncs `SubscriptionPlan` rows FROM Stripe. The Stripe webhook is also **not** a Nuxt/Nitro route: it's a dedicated AWS Lambda exposed via a public Function URL, verified by Stripe's signature (`STRIPE_WEBHOOK_SECRET`), that only `apps/backend` knows about.
 
 #### A. Setup Stripe Account
 
@@ -246,44 +246,55 @@ If you want to test billing functionality:
    ```
 3. Login to your Stripe account:
    ```bash
-   stripe login
+   pnpm billing:stripe:login   # runs `stripe login`
    ```
 
-#### B. Configure Environment Variables
+#### B. Set the backend's Stripe secrets
 
-Create a `.env` file in `apps/saas/`:
+`STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are **Amplify sandbox secrets**, not `.env` values — they're consumed by `apps/backend` (the seed scripts and the `stripe-webhook`/`workspace-membership` Lambdas), not by the Nuxt apps directly:
 
 ```bash
-# Stripe Configuration
+export STRIPE_SECRET_KEY=sk_test_your_secret_key_here
+export STRIPE_WEBHOOK_SECRET=whsec_placeholder   # updated for real in step D below
+pnpm backend:sandbox:secrets
+```
+
+Separately, `apps/saas` needs its own `.env` (copy `layers/billing/.env.example`) with the keys the Nuxt app itself reads at runtime:
+
+```bash
+# apps/saas/.env
+APP_BASE_URL=http://localhost:3000
 STRIPE_SECRET_KEY=sk_test_your_secret_key_here
 STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
-
-# Optional: Stripe Webhook Endpoint Secret (for webhooks)
-STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 ```
 
-#### C. Sync Billing Plans to Stripe
-
-The application includes predefined billing plans that need to be synchronized with your Stripe account:
+#### C. Create Stripe products/prices and sync plans
 
 ```bash
-# Actually create products and prices in Stripe
-pnpm billing:stripe:sync
+# Create the fixture products/prices in your Stripe test account
+pnpm billing:sandbox:stripe:seed
+
+# Sync SubscriptionPlan rows FROM Stripe (reads products/prices + metadata)
+pnpm backend:sandbox:seed:plans
 ```
 
-This will:
-- Create products in Stripe for each plan (Free, Pro, Enterprise)
-- Generate price objects for subscriptions
-- Update `apps/saas/app/billing-plans.json` with the new Stripe price IDs
+This reads Stripe Products' metadata (`app_plan_id`, `monthly_price`, `yearly_price`, `currency`, pipe-separated `features`) and upserts matching `SubscriptionPlan` rows — there is no `billing-plans.json` to hand-edit. To change plans, edit the Products/Prices in Stripe (or the `amplify/seed/data/stripe.json` fixture) and re-run `pnpm backend:sandbox:seed:plans`.
 
-#### D. Test Billing (Optional)
+#### D. Point Stripe at the webhook Function URL
 
-1. Start webhook listener in a separate terminal:
-   ```bash
-   pnpm billing:stripe:listen
-   ```
-2. Access the debug page at http://localhost:3000/debug
-3. Use the Billing section to test subscription flows
+After a sandbox deploy, read `custom.stripeWebhookUrl` from `apps/backend/amplify_outputs.json` — that's the `stripe-webhook` Lambda's public Function URL.
+
+- **Local testing**: forward events to it with the Stripe CLI:
+  ```bash
+  STRIPE_WEBHOOK_URL=<value of custom.stripeWebhookUrl> pnpm billing:stripe:listen
+  ```
+  The CLI prints its own signing secret (`whsec_...`) on startup — set that as `STRIPE_WEBHOOK_SECRET` (re-run `pnpm backend:sandbox:secrets` with it) for locally-forwarded events to verify.
+- **Persistent/dashboard testing**: register `custom.stripeWebhookUrl` as an endpoint at https://dashboard.stripe.com/webhooks (events: `customer.subscription.created|updated|deleted`, `checkout.session.completed`, `invoice.payment_succeeded`, `invoice.payment_failed`), then set the endpoint's signing secret as `STRIPE_WEBHOOK_SECRET`.
+
+#### E. Test Billing (Optional)
+
+1. Access the debug page at http://localhost:3000/debug
+2. Use the Billing section to test subscription flows (checkout, portal, plan display)
 
 ### 🛠️ Development and Debug Tools
 
@@ -347,8 +358,13 @@ Each application uses its own `amplify.yml` configuration file to build the corr
 In the Amplify Console, go to **App Settings** → **Secrets** and add:
 
 ```bash
-STRIPE_SECRET_KEY=sk_live_...    # Your Stripe production secret key
+STRIPE_SECRET_KEY=sk_live_...        # Your Stripe production secret key
+STRIPE_WEBHOOK_SECRET=whsec_...      # Set once you've registered the webhook endpoint in Step 4 below;
+                                      # for the very first deploy set a placeholder, then update it after
+                                      # Step 4 and redeploy/restart the stripe-webhook function.
 ```
+
+These secrets are consumed by the backend's seed scripts and by the `stripe-webhook`/`workspace-membership` Lambda functions — **not** by the SaaS app.
 
 #### Deploy Backend
 
@@ -378,10 +394,11 @@ Click **"Save and deploy"**. The backend will deploy automatically using the con
 **In App Settings → Secrets, add:**
 
 ```bash
-# Sensitive Stripe credentials
+# Sensitive Stripe credential the Nuxt app itself uses (checkout/portal/invoices Nitro routes)
 STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
 ```
+
+Note: `STRIPE_WEBHOOK_SECRET` is **not** set here — the webhook is verified entirely inside the `stripe-webhook` Lambda (backend app secret, see Step 1), not by the SaaS app.
 
 **In App Settings → Environment Variables, add:**
 
@@ -434,16 +451,19 @@ Click **"Save and deploy"**. The landing page will build and deploy as a static 
 
 #### Configure Stripe Webhooks
 
-1. Go to [Stripe Dashboard](https://dashboard.stripe.com/webhooks)
-2. Click **"Add endpoint"**
-3. **Endpoint URL**: `https://your-saas-domain.com/api/billing/webhook`
+The webhook endpoint is **not** a URL on the SaaS domain — it's the `stripe-webhook` Lambda's own public Function URL, generated by the backend deploy.
+
+1. Open the deployed `apps/backend/amplify_outputs.json` (or the equivalent branch output) and copy `custom.stripeWebhookUrl`.
+2. Go to [Stripe Dashboard](https://dashboard.stripe.com/webhooks) → **"Add endpoint"**
+3. **Endpoint URL**: paste the `custom.stripeWebhookUrl` value from step 1
 4. **Events to send**:
    - `customer.subscription.created`
    - `customer.subscription.updated`
    - `customer.subscription.deleted`
+   - `checkout.session.completed`
    - `invoice.payment_succeeded`
    - `invoice.payment_failed`
-5. **Copy webhook secret** and update `STRIPE_WEBHOOK_SECRET` environment variable
+5. **Copy the endpoint's signing secret** and set it as the **backend app's** `STRIPE_WEBHOOK_SECRET` secret (Step 1 above), then redeploy/restart the backend so the `stripe-webhook` function picks it up.
 
 #### Setup Custom Domains (Optional)
 
@@ -500,16 +520,17 @@ curl -X POST https://your-api-id.appsync-api.region.amazonaws.com/graphql \
 
 **Secrets:**
 ```bash
-STRIPE_SECRET_KEY=sk_live_...           # Required for billing
+STRIPE_SECRET_KEY=sk_live_...           # Required for billing (seed scripts, stripe-webhook, workspace-membership)
+STRIPE_WEBHOOK_SECRET=whsec_...         # Verifies signatures inside the stripe-webhook Lambda's Function URL
 ```
 
 #### SaaS App Configuration
 
 **Secrets:**
 ```bash
-STRIPE_SECRET_KEY=sk_live_...           # Server-side billing operations
-STRIPE_WEBHOOK_SECRET=whsec_...         # Webhook signature verification
+STRIPE_SECRET_KEY=sk_live_...           # Server-side billing operations (checkout, portal, invoices)
 ```
+Note: `STRIPE_WEBHOOK_SECRET` is a **backend** app secret only — the SaaS app never sees it or handles webhook delivery.
 
 **Environment Variables:**
 ```bash
@@ -697,7 +718,7 @@ Each layer includes detailed documentation with specific implementation details:
 |-------|--------------|---------|
 | **SaaS** | [layers/saas/README.md](layers/saas/README.md) | Meta-layer composing complete SaaS application shell |
 | **Amplify** | [layers/amplify/README.md](layers/amplify/README.md) | AWS integration, GraphQL client, storage utilities |
-| **UIX** | [layers/uix/README.md](layers/uix/README.md) | UI foundation, design system, Nuxt UI Pro integration |
+| **UIX** | [layers/uix/README.md](layers/uix/README.md) | UI foundation, design system, Nuxt UI (v4) integration |
 | **Auth** | [layers/auth/README.md](layers/auth/README.md) | Authentication system, AWS Cognito, middleware, session management |
 | **Billing** | [layers/billing/README.md](layers/billing/README.md) | Stripe integration, subscriptions, portal-first approach |
 | **Workspaces** | [layers/workspaces/README.md](layers/workspaces/README.md) | Multi-tenant workspace management, team collaboration |
@@ -720,44 +741,42 @@ Customize the navigation menu in `apps/saas/app/app.config.ts`:
 
 ```typescript
 export default defineAppConfig({
-  ui: {
-    sidebar: {
-      main: [
-        // Main navigation group
-        [{
-          label: 'Dashboard',
-          icon: 'i-lucide-home',
-          to: '/dashboard'
-        }, {
-          label: 'Analytics',
-          icon: 'i-lucide-bar-chart',
-          to: '/analytics',
-          badge: 'New'
-        }],
-        // Settings group with children
-        [{
-          label: 'Settings',
-          icon: 'i-lucide-settings',
-          children: [{
-            label: 'Profile',
-            to: '/settings/profile'
+  saas: {
+    navigation: {
+      sidebar: {
+        main: [
+          // Main navigation group
+          [{
+            label: 'Home',
+            icon: 'i-lucide-house',
+            to: '/'
           }, {
-            label: 'Billing',
-            to: '/settings/billing',
-            badge: 'Pro'
-          }, {
-            label: 'Team',
-            to: '/settings/team'
+            label: 'Analytics',
+            icon: 'i-lucide-bar-chart',
+            to: '/analytics',
+            badge: 'New'
+          }],
+          // Settings group with children
+          [{
+            label: 'Settings',
+            icon: 'i-lucide-settings',
+            children: [{
+              label: 'Profile',
+              to: '/settings/profile'
+            }, {
+              label: 'Billing',
+              to: '/settings/billing'
+            }, {
+              label: 'Team',
+              to: '/settings/team'
+            }]
           }]
-        }],
-        // External links
-        [{
-          label: 'Help & Support',
-          icon: 'i-lucide-help-circle',
-          to: 'https://your-support-url.com',
-          target: '_blank'
-        }]
-      ]
+        ],
+        // Footer sidebar navigation
+        footer: []
+      },
+      // User menu items
+      userMenu: []
     }
   }
 })
@@ -772,52 +791,31 @@ export default defineAppConfig({
 
 ### Theme Configuration
 
-Customize colors and themes in `layers/uix/app.config.ts`:
+Semantic color mappings (`primary`/`neutral`, Tailwind palette names understood by Nuxt UI v4) live in `layers/saas/app.config.ts` under `saas.theme.colors`, and can be overridden per-instance the same way as navigation (`apps/saas/app/app.config.ts`):
 
 ```typescript
 export default defineAppConfig({
-  ui: {
-    colors: {
-      primary: 'blue',
-      gray: 'slate'
+  saas: {
+    theme: {
+      colors: {
+        primary: 'blue',
+        neutral: 'slate'
+      }
     }
   }
 })
 ```
 
-### Billing Plans Configuration
+Underlying design tokens (spacing, radii, base CSS variables) live in `layers/uix/assets/css/main.css` — there is no `layers/uix/app.config.ts`.
 
-Billing plans are defined in `apps/saas/app/billing-plans.json`:
+### Billing Plans
 
-```json
-[
-  {
-    "id": "free",
-    "name": "Free",
-    "description": "Perfect for getting started",
-    "price": 0,
-    "interval": "month",
-    "stripePriceId": "",
-    "features": [
-      "1 project",
-      "1 team member",
-      "1GB storage",
-      "Basic support"
-    ],
-    "limits": {
-      "projects": 1,
-      "users": 1,
-      "storage": "1GB",
-      "apiRequests": 1000
-    }
-  }
-]
-```
+Billing plans are **not** configured in a local JSON file — Stripe is the source of truth. The backend syncs `SubscriptionPlan` rows FROM your Stripe account's Products/Prices (reading `app_plan_id`/`monthly_price`/`yearly_price`/`currency`/`features` metadata). To add or modify plans:
+1. Create/edit Products and Prices in Stripe (or adjust the `apps/backend/amplify/seed/data/stripe.json` fixture and re-run `pnpm billing:sandbox:stripe:seed`)
+2. Run `pnpm backend:sandbox:seed:plans` to sync `SubscriptionPlan` rows
+3. Restart your development server if the UI caches plan data
 
-To add or modify plans:
-1. Edit `apps/saas/app/billing-plans.json`
-2. Run `pnpm billing:stripe:sync` to update Stripe
-3. Restart your development server
+See the "Configure Stripe Integration" section above for the full sandbox flow.
 
 ### AWS Backend Configuration
 
@@ -834,6 +832,10 @@ From the project root:
 # Backend commands
 pnpm backend:sandbox:init        # Initialize development sandbox
 pnpm backend:sandbox:delete      # Delete development sandbox
+pnpm backend:sandbox:secrets     # Set STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET as sandbox secrets
+pnpm backend:sandbox:seed        # Seed both plans and users
+pnpm backend:sandbox:seed:plans  # Sync SubscriptionPlan rows FROM Stripe
+pnpm backend:sandbox:seed:users  # Seed sandbox test users
 
 # Generate Amplify configuration
 pnpm amplify:sandbox:generate-outputs           # Generate outputs for sandbox
@@ -844,13 +846,18 @@ pnpm amplify:generate-graphql-client-code       # Generate GraphQL types for pro
 # Frontend development
 pnpm saas:dev                    # Start SaaS app development
 pnpm saas:build                  # Build SaaS app for production
-pnpm saas:typecheck              # Run TypeScript type checking
 pnpm landing:dev                 # Start landing page development
+pnpm landing:build               # Build landing page for production
+pnpm landing:generate            # Static-generate the landing page
 
 # Billing & Stripe integration
-pnpm billing:stripe:sync         # Sync billing plans to Stripe
-pnpm billing:stripe:dry-run      # Preview what will be synced (no changes)
-pnpm billing:stripe:listen       # Listen for Stripe webhooks
+pnpm billing:stripe:login          # Authenticate the Stripe CLI
+pnpm billing:sandbox:stripe:seed   # Create Stripe fixture products/prices
+pnpm billing:stripe:listen         # Forward Stripe events to the stripe-webhook Function URL
+
+# Tooling
+pnpm lint                        # ESLint
+pnpm test                        # Vitest unit tests
 ```
 
 From individual apps:
@@ -860,10 +867,12 @@ From individual apps:
 pnpm dev                         # Development server
 pnpm build                       # Production build
 pnpm preview                     # Preview production build
+pnpm typecheck                   # Run TypeScript type checking (nuxt typecheck)
+pnpm test:e2e                    # Playwright e2e suite (needs a live sandbox)
 
 # In apps/backend/
 pnpm sandbox:init                # Initialize sandbox
-pnpm deploy                      # Deploy to production
+pnpm deploy                      # Deploy to production (pipeline-deploy)
 ```
 
 ## 🔧 Troubleshooting
@@ -885,7 +894,7 @@ pnpm deploy                      # Deploy to production
 - Clear node_modules: `rm -rf node_modules && pnpm install`
 - Clear Nuxt cache: `pnpm nuxt cleanup`
 - Regenerate Amplify files: `pnpm amplify:sandbox:generate-outputs`
-- Run type checking: `pnpm saas:typecheck`
+- Run type checking: `pnpm --filter @starter-nuxt-amplify-saas/saas typecheck` (or `pnpm typecheck` from inside `apps/saas/`)
 - For layer-specific build issues, check respective layer README
 
 **Deployment Issues**
@@ -895,15 +904,15 @@ pnpm deploy                      # Deploy to production
 - For AWS deployment specifics, see [layers/amplify/README.md](layers/amplify/README.md)
 
 **Stripe Integration Issues**
-- Verify Stripe API keys are correctly set in `.env`
+- Verify Stripe API keys are correctly set (`STRIPE_SECRET_KEY` in `apps/saas/.env` and as a backend sandbox secret)
 - Check that you're using test keys for development
-- Ensure products exist in Stripe: `pnpm billing:stripe:sync`
-- For webhooks: Check that webhook listener is running: `pnpm billing:stripe:listen`
-- Verify Stripe CLI is installed and logged in: `stripe login`
+- Ensure products exist in Stripe: `pnpm billing:sandbox:stripe:seed`, then sync them with `pnpm backend:sandbox:seed:plans`
+- For webhooks: confirm `custom.stripeWebhookUrl` (in `amplify_outputs.json`) is registered in Stripe, `STRIPE_WEBHOOK_SECRET` is set as a **backend** sandbox secret, and (for local testing) the listener is running: `pnpm billing:stripe:listen`
+- Verify Stripe CLI is installed and logged in: `pnpm billing:stripe:login`
 - For detailed billing troubleshooting, see [layers/billing/README.md](layers/billing/README.md)
 
 **UI/Component Issues**
-- Check Nuxt UI Pro documentation: https://ui.nuxt.com/pro
+- Check Nuxt UI documentation: https://ui.nuxt.com/components
 - For design system issues, see [layers/uix/README.md](layers/uix/README.md)
 - Use debug tools at `/debug` for component state inspection
 
@@ -924,15 +933,15 @@ pnpm deploy                      # Deploy to production
 - `NUXT_PUBLIC_SITE_URL` - Your site URL (optional)
 
 **Stripe Integration:**
-- `STRIPE_SECRET_KEY` - Stripe secret key (server-side)
-- `STRIPE_PUBLISHABLE_KEY` - Stripe publishable key (client-side)
-- `STRIPE_WEBHOOK_SECRET` - Webhook endpoint secret (optional)
+- `STRIPE_SECRET_KEY` - Stripe secret key (SaaS app `.env`/secret AND backend sandbox secret — server-side)
+- `STRIPE_PUBLISHABLE_KEY` - Stripe publishable key (SaaS app, client-side)
+- `STRIPE_WEBHOOK_SECRET` - **Backend-only** Amplify secret; verifies signatures inside the `stripe-webhook` Lambda. Not read by either Nuxt app.
 
 ## 📚 Learn More
 
 - [Nuxt 4 Documentation](https://nuxt.com/docs)
 - [AWS Amplify Gen2 Documentation](https://docs.amplify.aws/)
-- [Nuxt UI Pro Documentation](https://ui.nuxt.com/pro)
+- [Nuxt UI Documentation](https://ui.nuxt.com/)
 - [AWS Amplify Console](https://console.aws.amazon.com/amplify/)
 
 ## 🤝 Contributing
