@@ -46,15 +46,13 @@
 </template>
 
 <script setup lang="ts">
+// NOTE: `definePageMeta` is a no-op when called from a layout — Nuxt only
+// reads page meta declared on the page component itself. Any page using
+// this layout must declare `middleware: 'auth'` itself.
 const config = useSaasConfig()
 const route = useRoute()
 
 // Step tracking
 const currentStep = computed(() => Number(route.query.step) || 1)
 const totalSteps = computed(() => Number(route.query.total) || 3)
-
-// Ensure authenticated
-definePageMeta({
-  middleware: ['auth']
-})
 </script>

@@ -36,10 +36,9 @@
 </template>
 
 <script setup lang="ts">
+// NOTE: `definePageMeta` is a no-op when called from a layout — Nuxt only
+// reads page meta declared on the page component itself. Pages using this
+// layout must declare `middleware: 'guest'` themselves (see
+// pages/auth/login.vue, pages/auth/signup.vue, pages/auth/forgot-password.vue).
 const config = useSaasConfig()
-
-// Redirect if already authenticated
-definePageMeta({
-  middleware: ['guest']
-})
 </script>

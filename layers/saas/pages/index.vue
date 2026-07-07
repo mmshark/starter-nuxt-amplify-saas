@@ -6,7 +6,7 @@
         Welcome, {{ userName }}
       </h1>
       <p class="text-gray-600 dark:text-gray-400 mt-2">
-        {{ currentWorkspace?.name }} workspace
+        {{ workspace?.name }} workspace
       </p>
     </div>
 
@@ -23,7 +23,7 @@
         <p class="text-2xl font-bold">{{ subscriptionPlanName }}</p>
         <p class="text-sm text-gray-600 dark:text-gray-400">Current plan</p>
         <template #footer>
-          <UButton to="/billing/plans" variant="ghost" size="sm">
+          <UButton to="/settings/billing" variant="ghost" size="sm">
             Upgrade
           </UButton>
         </template>
@@ -40,7 +40,7 @@
         <p class="text-2xl font-bold">{{ memberCount }}</p>
         <p class="text-sm text-gray-600 dark:text-gray-400">Active members</p>
         <template #footer>
-          <UButton to="/workspace/members" variant="ghost" size="sm">
+          <UButton to="/settings/members" variant="ghost" size="sm">
             Manage
           </UButton>
         </template>
@@ -54,10 +54,10 @@
             <h3 class="font-semibold">Workspace</h3>
           </div>
         </template>
-        <p class="text-2xl font-bold">{{ currentWorkspace?.name || 'N/A' }}</p>
+        <p class="text-2xl font-bold">{{ workspace?.name || 'N/A' }}</p>
         <p class="text-sm text-gray-600 dark:text-gray-400">Current workspace</p>
         <template #footer>
-          <UButton to="/workspace" variant="ghost" size="sm">
+          <UButton to="/settings/workspaces" variant="ghost" size="sm">
             Settings
           </UButton>
         </template>
@@ -68,11 +68,11 @@
     <div class="mt-8">
       <h2 class="text-xl font-semibold mb-4">Quick Actions</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UButton to="/workspace/members" size="lg" block>
+        <UButton to="/settings/members" size="lg" block>
           <UIcon name="i-lucide-user-plus" class="mr-2" />
           Invite Team Members
         </UButton>
-        <UButton to="/billing/plans" variant="outline" size="lg" block>
+        <UButton to="/settings/billing" variant="outline" size="lg" block>
           <UIcon name="i-lucide-zap" class="mr-2" />
           Upgrade Plan
         </UButton>
@@ -87,14 +87,19 @@ definePageMeta({
   middleware: ['auth']
 })
 
-const { user } = useUser()
-const { currentWorkspace } = useWorkspace()
-const { workspaceMembers } = useWorkspaceMembers()
-const { subscription } = useBilling()
+const { userAttributes, currentUser } = useUser()
+const { workspace, workspaceId } = useWorkspace()
+const { members } = useWorkspaceMembers(workspaceId)
+const billing = useBilling()
+const { subscription } = billing
+
+onMounted(async () => {
+  await billing.ensureInitialized()
+})
 
 const userName = computed(() =>
-  user.value?.attributes?.name ||
-  user.value?.username ||
+  userAttributes.value?.name ||
+  currentUser.value?.username ||
   'there'
 )
 
@@ -103,6 +108,6 @@ const subscriptionPlanName = computed(() =>
 )
 
 const memberCount = computed(() =>
-  workspaceMembers.value?.length || 0
+  members.value?.length || 0
 )
 </script>

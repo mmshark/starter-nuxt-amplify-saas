@@ -23,17 +23,13 @@
 import type { NavigationMenuItem } from '@nuxt/ui'
 import { settingsSidebar } from '../config/navigation'
 
-// Enforce authentication
-definePageMeta({
-  middleware: ['auth']
-})
+// NOTE: `definePageMeta` is a no-op when called from a layout — Nuxt only
+// reads page meta declared on the page component itself. Auth protection
+// for pages using this layout is enforced by `middleware: 'auth'` on each
+// page (see pages/index.vue, pages/settings.vue, pages/profile.vue).
 
 // Sidebar state
 const isSidebarOpen = ref(false)
-
-// Load workspace context
-const { currentWorkspace } = useWorkspace()
-const { user } = useUser()
 
 // Get app config
 const appConfig = useAppConfig()
