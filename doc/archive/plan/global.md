@@ -1,5 +1,8 @@
 # Plan Global de Implementación - Starter Nuxt Amplify SaaS
 
+> [!NOTE]
+> **ARCHIVED — 2024 snapshot, superseded.** This is a point-in-time implementation plan from 2024-11-24; the codebase has since moved substantially past it (see `doc/plan/2026-07-07-remediation.md` for the most recent remediation plan and the various layer `README.md`/`doc/adr/` files for current architecture). Kept for historical reference only.
+
 **Fecha Creación**: 2024-11-24
 **Versión**: 1.0
 **Estado Proyecto**: 55-60% completado

@@ -1,5 +1,8 @@
 # Implementation Plan: tRPC Layer
 
+> [!CAUTION]
+> **DEPRECATED / ARCHIVED**: tRPC was removed from this codebase and replaced with classic Nuxt `server/api` REST endpoints — see [api-server.pattern.md](../adr/patterns/api-server.pattern.md). This plan is kept for historical reference only and does not describe current or planned behavior.
+
 ## Phases
 
 ### Phase 1: Core Setup (Week 1)

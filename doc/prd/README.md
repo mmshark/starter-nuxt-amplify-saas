@@ -9,17 +9,19 @@ This directory contains detailed Product Requirements Documents for the Nuxt Amp
 
 ### Enabling Layer PRDs
 - [**amplify.md**](amplify.md) - AWS Amplify Gen2 integration and backend infrastructure
-- [**trpc.md**](trpc.md) - ~~Type-safe API layer~~ **DEPRECATED** (historical reference)
 - [**i18n.md**](i18n.md) - Internationalization and multi-language support
-- [**uix.md**](uix.md) - UI/UX design system with Nuxt UI Pro and Tailwind CSS
+- [**uix.md**](uix.md) - UI/UX design system with Nuxt UI (v4) and Tailwind CSS
 
 ### Feature Layer PRDs
 - [**auth.md**](auth.md) - Authentication system with AWS Cognito integration
 - [**billing.md**](billing.md) - Stripe subscription and billing management
 - [**entitlements.md**](entitlements.md) - Authorization, RBAC, and feature entitlements
 - [**workspaces.md**](workspaces.md) - Multi-tenant workspace and team management
-- [**onboarding.md**](onboarding.md) - Multi-step user onboarding wizard
-- [**notifications.md**](notifications.md) - Unified in-app and email notification system
+
+### Archived (see `doc/archive/prd/`)
+- [**trpc.md**](../archive/prd/trpc.md) - ~~Type-safe API layer~~ **DEPRECATED**: tRPC was removed from the codebase; replaced by Nuxt `server/api` REST endpoints
+- [**onboarding.md**](../archive/prd/onboarding.md) - Multi-step user onboarding wizard — **future feature, not yet implemented**
+- [**notifications.md**](../archive/prd/notifications.md) - Unified in-app and email notification system — **future feature, not yet implemented**
 
 ## PRD Structure Pattern
 

@@ -1,5 +1,8 @@
 # PRD: Onboarding Layer
 
+> [!NOTE]
+> **ARCHIVED — future feature, not yet implemented.** There is no `layers/onboarding/` in this codebase today. This document describes a planned feature and is kept for future reference; it does not describe current behavior.
+
 ## Table of Contents
 
 - [1. Overview](#1-overview)

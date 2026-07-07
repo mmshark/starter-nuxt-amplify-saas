@@ -1,5 +1,8 @@
 # Implementation Plan: Onboarding Layer
 
+> [!NOTE]
+> **ARCHIVED — future feature, not yet implemented.** This is an implementation plan for a layer that does not exist in the codebase today. Kept for future reference only.
+
 ## Phases
 
 ### Phase 1: Engine & Config (Week 1)
