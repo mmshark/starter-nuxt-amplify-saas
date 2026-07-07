@@ -5,6 +5,7 @@ import { generateClient } from "aws-amplify/data";
 import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtime';
 import { env } from "$amplify/env/post-confirmation";
 import Stripe from 'stripe';
+import { ensureWorkspaceBilling } from '@mmshark/billing-layer/server/utils/ensureWorkspaceBilling';
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env);
 
@@ -25,21 +26,9 @@ export const handler: PostConfirmationTriggerHandler = async (event) => {
   const name = firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || '';
 
   try {
-    console.log(`Creating Stripe customer for user: ${email}`);
-    const stripeCustomer = await stripe.customers.create({
-      email: email,
-      name: name,
-      metadata: {
-        userId: userId
-      }
-    });
-    console.log(`Stripe customer created: ${stripeCustomer.id}`);
-
-
-    // Create UserProfile with Stripe customer ID
+    // Create UserProfile (user-level attributes; billing is workspace-scoped, see below)
     await client.models.UserProfile.create({
       userId: userId,
-      stripeCustomerId: stripeCustomer.id,
     });
     console.log(`UserProfile created for user: ${userId}`);
 
@@ -65,32 +54,21 @@ export const handler: PostConfirmationTriggerHandler = async (event) => {
     });
     console.log(`User added as OWNER to personal workspace`);
 
-    // Get "free" plan
-    const { data: plans } = await client.models.SubscriptionPlan.list({
-      filter: { planId: { eq: 'free' } }
+    // One Stripe customer PER WORKSPACE (not per user). Idempotent on workspaceId,
+    // so a retried trigger invocation can never create a duplicate Stripe customer
+    // or a duplicate WorkspaceSubscription row.
+    const { stripeCustomerId, created } = await ensureWorkspaceBilling({
+      workspaceId: workspace.data!.id,
+      stripe,
+      client,
+      customerEmail: email,
+      customerName: name,
     });
-
-    if (plans && plans.length > 0) {
-      const freePlan = plans[0];
-      // Create WorkspaceSubscription with free plan
-      await client.models.WorkspaceSubscription.create({
-        workspaceId: workspace.data!.id,
-        planId: freePlan.planId,
-        stripeSubscriptionId: null, // No actual Stripe subscription for free plan
-        stripeCustomerId: stripeCustomer.id,
-        status: 'active',
-        currentPeriodStart: new Date().toISOString(),
-        currentPeriodEnd: null, // Free plan never expires
-        cancelAtPeriodEnd: false,
-        billingInterval: 'month',
-        trialStart: null,
-        trialEnd: null,
-      });
-      console.log(`WorkspaceSubscription created for personal workspace`);
-    } else {
-      console.warn(`Free plan not found, skipping subscription creation`);
-    }
-
+    console.log(
+      created
+        ? `Stripe customer ${stripeCustomerId} + free WorkspaceSubscription created for workspace ${workspace.data!.id}`
+        : `Workspace ${workspace.data!.id} already had Stripe customer ${stripeCustomerId}`
+    );
   } catch (error) {
     console.error('Error in post-confirmation handler:', error);
     // Don't throw error to prevent user registration from failing

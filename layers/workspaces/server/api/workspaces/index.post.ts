@@ -1,4 +1,6 @@
 import { getServerIamDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { ensureWorkspaceBilling } from '@mmshark/billing-layer/server/utils/ensureWorkspaceBilling'
+import Stripe from 'stripe'
 import { z } from 'zod'
 import type { Workspace } from '../../../types/workspaces'
 
@@ -19,6 +21,17 @@ export default defineEventHandler(async (event): Promise<Workspace> => {
 
   // Validate input
   const input = createWorkspaceSchema.parse(body)
+
+  const config = useRuntimeConfig()
+  if (!config.stripe?.secretKey) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Stripe configuration missing'
+    })
+  }
+  const stripe = new Stripe(config.stripe.secretKey, {
+    apiVersion: '2025-02-24.acacia'
+  })
 
   return await withAmplifyAuth(event, async (contextSpec) => {
     const client = getServerIamDataClient()
@@ -71,6 +84,36 @@ export default defineEventHandler(async (event): Promise<Workspace> => {
         data: {
           code: 'INTERNAL_ERROR',
           details: memberErrors
+        }
+      })
+    }
+
+    // One Stripe customer PER WORKSPACE. Idempotent on workspaceId (see
+    // ensureWorkspaceBilling): safe to retry, never creates a duplicate customer.
+    try {
+      await ensureWorkspaceBilling({
+        workspaceId: workspace.id,
+        stripe,
+        client,
+        contextSpec,
+        customerEmail: memberData.email,
+        customerName: memberData.name
+      })
+    } catch (billingError) {
+      console.error('Failed to provision workspace billing:', billingError)
+
+      // Rollback: remove the member and the orphaned workspace
+      if (member?.id) {
+        await client.models.WorkspaceMember.delete(contextSpec, { id: member.id })
+      }
+      await client.models.Workspace.delete(contextSpec, { id: workspace.id })
+
+      throw createError({
+        statusCode: 500,
+        statusMessage: 'Internal Server Error',
+        message: 'Failed to provision workspace billing',
+        data: {
+          code: 'INTERNAL_ERROR'
         }
       })
     }

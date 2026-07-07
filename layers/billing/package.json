@@ -7,7 +7,8 @@
   "exports": {
     ".": "./nuxt.config.ts",
     "./composables/*": "./composables/*",
-    "./components/*": "./components/*"
+    "./components/*": "./components/*",
+    "./server/*": "./server/*"
   },
   "files": [
     "nuxt.config.ts",
@@ -44,14 +45,19 @@
     "registry": "https://npm.pkg.github.com",
     "access": "restricted"
   },
+  "dependencies": {
+    "@aws-sdk/client-lambda": "^3.700.0"
+  },
   "peerDependencies": {
     "nuxt": "^4.0.0",
     "@mmshark/amplify-layer": "workspace:*",
     "@mmshark/auth-layer": "workspace:*",
+    "@mmshark/entitlements-layer": "workspace:*",
     "stripe": "^14.0.0"
   },
   "devDependencies": {
     "@mmshark/uix-layer": "workspace:*",
-    "@mmshark/i18n-layer": "workspace:*"
+    "@mmshark/i18n-layer": "workspace:*",
+    "@mmshark/entitlements-layer": "workspace:*"
   }
 }

@@ -41,6 +41,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@mmshark/billing-layer": "workspace:*",
     "aws-amplify": "^6.15.8",
     "zod": "3.25.17"
   }
