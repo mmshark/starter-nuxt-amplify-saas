@@ -11,7 +11,7 @@
     "deploy": "pnpm exec ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID",
     "sandbox:init": "pnpm exec ampx sandbox",
     "sandbox:delete": "pnpm exec ampx sandbox delete",
-    "sandbox:secrets": "printf %s \"$STRIPE_SECRET_KEY\" | pnpm exec ampx sandbox secret set STRIPE_SECRET_KEY",
+    "sandbox:secrets": "printf %s \"$STRIPE_SECRET_KEY\" | pnpm exec ampx sandbox secret set STRIPE_SECRET_KEY && printf %s \"$STRIPE_WEBHOOK_SECRET\" | pnpm exec ampx sandbox secret set STRIPE_WEBHOOK_SECRET",
     "seed": "pnpm exec ampx sandbox seed",
     "seed:plans": "SEED_TASK=plans pnpm exec ampx sandbox seed",
     "seed:users": "SEED_TASK=users pnpm exec ampx sandbox seed",
@@ -21,7 +21,7 @@
     "sandbox:generate-graphql-client-code": "pnpm exec ampx generate graphql-client-code",
     "generate-outputs": "pnpm exec ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID",
     "generate-graphql-client-code": "pnpm exec ampx generate graphql-client-code --branch $AWS_BRANCH --app-id $AWS_APP_ID",
-    "stripe:listen": "stripe listen --forward-to localhost:3000/api/billing/webhook",
+    "stripe:listen": "stripe listen --forward-to \"${STRIPE_WEBHOOK_URL:?Set STRIPE_WEBHOOK_URL to the stripe-webhook Function URL (custom.stripeWebhookUrl in amplify_outputs.json)}\"",
     "sandbox:stripe:seed": "stripe fixtures --api-key $STRIPE_SECRET_KEY"
   },
   "keywords": [],

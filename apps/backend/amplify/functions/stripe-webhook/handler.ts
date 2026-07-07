@@ -1,15 +1,36 @@
-import type { Handler } from 'aws-lambda'
+import type { LambdaFunctionURLEvent, LambdaFunctionURLResult } from 'aws-lambda'
 import { type Schema } from '../../data/resource'
 import { Amplify } from 'aws-amplify'
 import { generateClient } from 'aws-amplify/data'
 import { getAmplifyDataClientConfig } from '@aws-amplify/backend/function/runtime'
 import { env } from '$amplify/env/stripe-webhook'
+import Stripe from 'stripe'
+import { workspaceGroupFields } from '@mmshark/amplify-layer/server/utils/workspaceGroups'
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env)
 
 Amplify.configure(resourceConfig, libraryOptions)
 
 const client = generateClient<Schema>()
+
+// The Stripe SDK instance is only used for `webhooks.constructEvent`
+// (signature verification); no Stripe API calls are made from here.
+const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
+  apiVersion: '2025-02-24.acacia',
+})
+
+/**
+ * Event types this endpoint actually understands. Everything else is
+ * acknowledged (200) without processing.
+ */
+const RELEVANT_EVENT_TYPES = new Set([
+  'customer.subscription.created',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+  'checkout.session.completed',
+  'invoice.payment_succeeded',
+  'invoice.payment_failed',
+])
 
 /**
  * Whitelist mapping Stripe subscription statuses onto the schema's
@@ -34,67 +55,96 @@ function mapSubscriptionStatus(status: string): SubscriptionStatus | null {
     : null
 }
 
-function getCustomerId(customer: unknown): string | null {
+function getCustomerId(customer: string | Stripe.Customer | Stripe.DeletedCustomer | null): string | null {
   if (!customer) return null
-  if (typeof customer === 'string') return customer
-  if (typeof customer === 'object' && customer !== null && 'id' in customer) {
-    return (customer as { id: string }).id
+  return typeof customer === 'string' ? customer : customer.id
+}
+
+function respond(statusCode: number, body: Record<string, unknown>): LambdaFunctionURLResult {
+  return {
+    statusCode,
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
   }
-  return null
 }
 
 /**
- * Payload shape sent by Nitro's `webhook.post.ts` after it has already
- * verified the Stripe signature. This function trusts its invoker (the
- * unauthenticated Identity Pool role, scoped to `lambda:InvokeFunction` on
- * this function only — see `backend.ts`) rather than re-verifying Stripe
- * signatures itself.
+ * Direct Stripe webhook endpoint (Lambda Function URL — see `resource.ts`
+ * and `backend.ts`). The STRIPE SIGNATURE is the authorization: the raw body
+ * is verified against the `stripe-signature` header with the endpoint's
+ * signing secret BEFORE anything is parsed or persisted. 5xx responses make
+ * Stripe retry delivery.
  */
-interface StripeWebhookInvokeEvent {
-  id: string
-  type: string
-  created: number
-  data: { object: Record<string, any> }
-}
+export const handler = async (event: LambdaFunctionURLEvent): Promise<LambdaFunctionURLResult> => {
+  // Function URL headers are lower-cased.
+  const signature = event.headers?.['stripe-signature']
+  const rawBody =
+    event.body && event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString('utf8') : event.body
 
-type InvokeResult = { ok: true; skipped?: 'duplicate' | 'stale' | 'unmapped-status' }
-
-export const handler: Handler<StripeWebhookInvokeEvent, InvokeResult> = async (event) => {
-  const { id: eventId, type, created, data } = event
-
-  if (!eventId || !type || !data?.object) {
-    throw new Error('Invalid stripe-webhook invocation payload')
+  if (!signature || !rawBody) {
+    return respond(400, { error: 'Missing Stripe signature or body' })
   }
 
-  // Idempotency: a redelivered/retried Stripe event (or a retried invoke) must
-  // not be reprocessed (Task 3.3 step 3).
+  let stripeEvent: Stripe.Event
+  try {
+    stripeEvent = stripe.webhooks.constructEvent(rawBody, signature, env.STRIPE_WEBHOOK_SECRET)
+  } catch (error) {
+    console.error('Stripe webhook signature verification failed:', error)
+    return respond(400, { error: 'Webhook signature verification failed' })
+  }
+
+  if (!RELEVANT_EVENT_TYPES.has(stripeEvent.type)) {
+    return respond(200, { received: true })
+  }
+
+  try {
+    const skipped = await processStripeEvent(stripeEvent)
+    return respond(200, skipped ? { received: true, skipped } : { received: true })
+  } catch (error) {
+    console.error(`Failed to sync Stripe event ${stripeEvent.id} (${stripeEvent.type}):`, error)
+    // Fail loudly (5xx) so Stripe retries delivery instead of a failed DB
+    // write being silently swallowed.
+    return respond(500, { error: 'Failed to sync subscription data' })
+  }
+}
+
+type SkipReason = 'duplicate' | 'stale' | 'unmapped-status' | null
+
+async function processStripeEvent(stripeEvent: Stripe.Event): Promise<SkipReason> {
+  const { id: eventId, type, created } = stripeEvent
+
+  // Idempotency: a redelivered/retried Stripe event must not be reprocessed.
   const { data: existingEvent } = await client.models.ProcessedStripeEvent.get({ eventId })
   if (existingEvent) {
     console.log(`Stripe event ${eventId} (${type}) already processed, skipping`)
-    return { ok: true, skipped: 'duplicate' }
+    return 'duplicate'
   }
 
   switch (type) {
     case 'customer.subscription.created':
     case 'customer.subscription.updated':
-      await upsertWorkspaceSubscription(data.object, created)
+      await upsertWorkspaceSubscription(stripeEvent.data.object as Stripe.Subscription, created)
       break
 
     case 'customer.subscription.deleted':
-      await handleSubscriptionDeleted(data.object, created)
+      await handleSubscriptionDeleted(stripeEvent.data.object as Stripe.Subscription, created)
       break
 
-    case 'checkout.session.completed':
+    case 'checkout.session.completed': {
       // The subscription is created/updated by the paired
       // customer.subscription.* event; nothing to persist here.
-      console.log(`Checkout completed for workspace ${data.object?.metadata?.workspaceId}`)
+      const session = stripeEvent.data.object as Stripe.Checkout.Session
+      console.log(`Checkout completed for workspace ${session.metadata?.workspaceId}`)
       break
+    }
 
     case 'invoice.payment_succeeded':
-    case 'invoice.payment_failed':
+    case 'invoice.payment_failed': {
       // No WorkspaceSubscription fields depend on invoice events today.
-      console.log(`Received ${type} for customer ${getCustomerId(data.object?.customer)}`)
+      const invoice = stripeEvent.data.object as Stripe.Invoice
+      console.log(`Received ${type} for customer ${getCustomerId(invoice.customer)}`)
       break
+    }
 
     default:
       console.log(`Unhandled Stripe event type: ${type}`)
@@ -113,15 +163,15 @@ export const handler: Handler<StripeWebhookInvokeEvent, InvokeResult> = async (e
     console.error(`Failed to record processed Stripe event ${eventId}:`, markErrors)
   }
 
-  return { ok: true }
+  return null
 }
 
-async function upsertWorkspaceSubscription(subscription: Record<string, any>, eventCreated: number): Promise<void> {
-  const workspaceId = subscription?.metadata?.workspaceId
+async function upsertWorkspaceSubscription(subscription: Stripe.Subscription, eventCreated: number): Promise<void> {
+  const workspaceId = subscription.metadata?.workspaceId
   if (!workspaceId) {
     // Fail loudly: Stripe will retry, and this is not recoverable without a
-    // workspaceId to write to (Task 3.3 step 1/2).
-    throw new Error(`Missing metadata.workspaceId on subscription ${subscription?.id}`)
+    // workspaceId to write to.
+    throw new Error(`Missing metadata.workspaceId on subscription ${subscription.id}`)
   }
 
   const priceId = subscription.items?.data?.[0]?.price?.id
@@ -152,8 +202,7 @@ async function upsertWorkspaceSubscription(subscription: Record<string, any>, ev
   const { data: existing } = await client.models.WorkspaceSubscription.get({ workspaceId })
 
   // Ordering guard: ignore an event older than the last write we made for
-  // this workspace (Task 3.3 step 3) — Stripe does not guarantee delivery
-  // order.
+  // this workspace — Stripe does not guarantee delivery order.
   if (existing?.updatedAt) {
     const existingUpdatedAtMs = new Date(existing.updatedAt).getTime()
     if (eventCreated * 1000 < existingUpdatedAtMs) {
@@ -169,7 +218,7 @@ async function upsertWorkspaceSubscription(subscription: Record<string, any>, ev
 
   const subscriptionData = {
     planId,
-    stripeSubscriptionId: subscription.id as string,
+    stripeSubscriptionId: subscription.id,
     stripeCustomerId: getCustomerId(subscription.customer) || '',
     status,
     currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
@@ -182,19 +231,24 @@ async function upsertWorkspaceSubscription(subscription: Record<string, any>, ev
 
   const { errors } = existing
     ? await client.models.WorkspaceSubscription.update({ workspaceId, ...subscriptionData })
-    : await client.models.WorkspaceSubscription.create({ workspaceId, ...subscriptionData })
+    : await client.models.WorkspaceSubscription.create({
+        workspaceId,
+        ...subscriptionData,
+        // Group-per-workspace authorization fields (create path only — see
+        // apps/backend/amplify/data/resource.ts).
+        ...workspaceGroupFields(workspaceId),
+      })
 
   if (errors) {
-    // Fail loudly so Nitro's invoke sees a FunctionError and returns 500,
-    // which makes Stripe retry the webhook delivery (Task 3.3 step 2).
+    // Fail loudly so the handler returns 500 and Stripe retries delivery.
     throw new Error(`Failed to upsert WorkspaceSubscription for workspace ${workspaceId}: ${JSON.stringify(errors)}`)
   }
 }
 
-async function handleSubscriptionDeleted(subscription: Record<string, any>, eventCreated: number): Promise<void> {
-  const workspaceId = subscription?.metadata?.workspaceId
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription, eventCreated: number): Promise<void> {
+  const workspaceId = subscription.metadata?.workspaceId
   if (!workspaceId) {
-    throw new Error(`Missing metadata.workspaceId on subscription ${subscription?.id}`)
+    throw new Error(`Missing metadata.workspaceId on subscription ${subscription.id}`)
   }
 
   const { data: existing } = await client.models.WorkspaceSubscription.get({ workspaceId })

@@ -156,53 +156,20 @@ export const withAmplifyAuth = async <T>(
  * ```
  */
 /**
- * Empty key-value storage: no cookies, no signed-in user. Used to derive
- * Cognito Identity Pool UNAUTHENTICATED ("guest") credentials for server
- * contexts that have no Cognito session (e.g. the Stripe webhook route).
+ * Sessionless server context for PUBLIC (apiKey) reads only. It deliberately
+ * carries NO credentials provider: there is no guest/IAM identity to
+ * authenticate as, so it cannot reach any tenant data. (The previous
+ * guest-credentials wiring existed solely so the old Nitro webhook proxy
+ * could invoke the stripe-webhook Lambda; the webhook is now a direct,
+ * signature-verified Lambda Function URL — see
+ * `apps/backend/amplify/functions/stripe-webhook/`.)
  */
-const emptyKeyValueStorage = createKeyValueStorageFromCookieStorageAdapter({
-  get() {
-    return undefined
-  },
-  getAll() {
-    return []
-  },
-  set() {
-    // no-op: nothing to persist for a sessionless (guest) context
-  },
-  delete() {
-    // no-op
-  }
-})
-
-/**
- * Guest (unauthenticated Identity Pool) credentials provider. With no token
- * provider configured, `createAWSCredentialsAndIdentityIdProvider` resolves
- * the Cognito Identity Pool's UNAUTHENTICATED role credentials instead of an
- * authenticated user's — this is what lets `withAmplifyPublic` obtain real
- * IAM credentials for sessionless requests (see Phase 2/3 notes below).
- */
-const guestCredentialsProvider = createAWSCredentialsAndIdentityIdProvider(
-  amplifyConfig.Auth!,
-  emptyKeyValueStorage
-)
-
 export const withAmplifyPublic = async <T>(
   callback: (contextSpec: any) => T | Promise<T>
 ): Promise<T> => {
   return runWithAmplifyServerContext<T>(
     amplifyConfig,
-    {
-      Auth: {
-        // Grants the Cognito Identity Pool "unauthenticated" role credentials,
-        // so `getServerIamDataClient()` and other AWS SDK calls made from
-        // `withAmplifyPublic` (e.g. the Stripe webhook) have a real IAM
-        // principal to authenticate as. Requires the unauthenticated role to
-        // be explicitly granted access (see `backend.ts`:
-        // `stripeWebhook.resources.lambda.grantInvoke(auth.resources.unauthenticatedUserIamRole)`).
-        credentialsProvider: guestCredentialsProvider
-      }
-    },
+    {},
     callback
   )
 }

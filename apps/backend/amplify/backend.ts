@@ -1,4 +1,5 @@
 import { defineBackend } from '@aws-amplify/backend';
+import { FunctionUrlAuthType } from 'aws-cdk-lib/aws-lambda';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
 import { postConfirmation } from './auth/post-confirmation/resource';
@@ -17,22 +18,24 @@ const backend = defineBackend({
 });
 
 /**
- * Stripe webhook auth wiring (Phase 2/3 fix — the Stripe webhook has no
- * Cognito session, so it cannot get IAM creds for `WorkspaceSubscription`
- * writes any other way):
+ * Stripe webhook endpoint (Critical 2 fix):
  *
- * Nitro's `layers/billing/server/api/billing/webhook.post.ts` verifies the
- * Stripe signature, then invokes this function using the Cognito Identity
- * Pool UNAUTHENTICATED ("guest") role's credentials (see `withAmplifyPublic`
- * in `layers/amplify/server/utils/amplify.ts`). Grant that role
- * `lambda:InvokeFunction` on this function ONLY — it gets no other
- * permissions, and `stripeWebhook` itself writes `WorkspaceSubscription` /
- * `ProcessedStripeEvent` under its own `allow.resource(stripeWebhook)` grant,
- * not through this IAM role.
+ * `stripe-webhook` is the DIRECT Stripe webhook endpoint. It gets a public
+ * Lambda Function URL — the HTTPS URL to register in the Stripe dashboard
+ * (exported below as `custom.stripeWebhookUrl`). Authorization is the STRIPE
+ * SIGNATURE, verified inside the handler against the raw body with
+ * `STRIPE_WEBHOOK_SECRET`; unsigned requests are rejected before anything is
+ * parsed or written.
+ *
+ * Deliberately NO `grantInvoke` to any Cognito identity-pool role: the
+ * previous design let the UNAUTHENTICATED (guest) role invoke this function
+ * with a forged, unverified payload — anyone with the public
+ * amplify_outputs.json could mint guest credentials and rewrite any
+ * workspace's subscription.
  */
-backend.stripeWebhook.resources.lambda.grantInvoke(
-  backend.auth.resources.unauthenticatedUserIamRole
-);
+const stripeWebhookUrl = backend.stripeWebhook.resources.lambda.addFunctionUrl({
+  authType: FunctionUrlAuthType.NONE,
+});
 
 /**
  * workspace-membership invocation wiring (Critical 1 — group-per-workspace
@@ -59,11 +62,13 @@ backend.workspaceMembership.addEnvironment(
   backend.auth.resources.userPool.userPoolId
 );
 
-// Expose the deployed function names so Nitro can target them without the
-// operator having to hand-copy them out of the CDK/CloudFormation output.
+// Expose deploy-time values Nitro/the operator needs:
+//  - stripeWebhookUrl: the public Function URL to register as the webhook
+//    endpoint in the Stripe dashboard.
+//  - workspaceMembershipFunctionName: the function the workspace routes invoke.
 backend.addOutput({
   custom: {
-    stripeWebhookFunctionName: backend.stripeWebhook.resources.lambda.functionName,
+    stripeWebhookUrl: stripeWebhookUrl.url,
     workspaceMembershipFunctionName: backend.workspaceMembership.resources.lambda.functionName,
   },
 });

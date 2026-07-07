@@ -2,7 +2,10 @@ export default defineNuxtConfig({
   runtimeConfig: {
     stripe: {
       secretKey: process.env.STRIPE_SECRET_KEY,
-      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+      // NOTE: the Stripe webhook is NOT handled by Nitro anymore — it is the
+      // stripe-webhook Lambda's public Function URL, which verifies the
+      // Stripe signature itself with the STRIPE_WEBHOOK_SECRET Amplify
+      // secret (see apps/backend/amplify/functions/stripe-webhook/).
     },
     public: {
       // Base URL used to build Stripe checkout/portal redirect URLs.
