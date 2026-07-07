@@ -6,5 +6,6 @@
  */
 export {
   getSessionAccessToken,
-  invokeWorkspaceMembership
+  invokeWorkspaceMembership,
+  readInvitationToken
 } from '@mmshark/amplify-layer/server/utils/workspaceMembership'

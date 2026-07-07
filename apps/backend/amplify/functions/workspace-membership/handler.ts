@@ -1,5 +1,5 @@
 import type { Handler } from 'aws-lambda'
-import { randomUUID } from 'node:crypto'
+import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { type Schema } from '../../data/resource'
 import { Amplify } from 'aws-amplify'
 import { generateClient } from 'aws-amplify/data'
@@ -78,6 +78,8 @@ interface MembershipEvent {
   role?: string
   email?: string
   message?: string
+  /** Invitation token the caller must present to accept/decline as the invitee. */
+  token?: string
 }
 
 type MembershipResult =
@@ -280,6 +282,27 @@ function requireParam(value: string | undefined, name: string): string {
 }
 
 /**
+ * Constant-time invitation-token check. The stored token is the only proof
+ * that the caller actually holds the emailed invitation link (as opposed to
+ * merely knowing the invitation's UUID and their own email address, which is
+ * often guessable/enumerable). Buffer length is compared first — this leaks
+ * only the token length, never its content or a timing side-channel on the
+ * comparison itself.
+ */
+function requireTokenMatch(provided: string | undefined, expected: string | null | undefined): void {
+  if (!expected || typeof provided !== 'string' || !provided) {
+    throw new MembershipError(403, 'A valid invitation token is required')
+  }
+  const providedBuffer = Buffer.from(provided)
+  const expectedBuffer = Buffer.from(expected)
+  const matches =
+    providedBuffer.length === expectedBuffer.length && timingSafeEqual(providedBuffer, expectedBuffer)
+  if (!matches) {
+    throw new MembershipError(403, 'Invalid invitation token')
+  }
+}
+
+/**
  * Strict set-equality between a stored group-field value (nullable array of
  * nullable strings, as Amplify types it) and the expected canonical groups.
  * Fail-closed: null/undefined/partial values never match.
@@ -294,14 +317,27 @@ function sameGroupSet(
   return expectedSorted.every((value, index) => value === actualSorted[index])
 }
 
-async function adjustMemberCount(workspaceId: string, delta: number): Promise<void> {
-  const { data: workspace } = await client.models.Workspace.get({ id: workspaceId })
-  if (workspace) {
-    await client.models.Workspace.update({
-      id: workspaceId,
-      memberCount: Math.max(0, (workspace.memberCount || 0) + delta),
+/**
+ * Recompute `memberCount` from the actual `WorkspaceMember` rows rather than
+ * a read-modify-write `+1`/`-1` on the cached counter. A blind increment can
+ * drift permanently under a retried Lambda invocation or concurrent
+ * add/remove (double-count or under-count with no self-correction);
+ * recomputing from source truth after every membership change is
+ * self-healing even if a previous update raced or was retried.
+ */
+async function recomputeMemberCount(workspaceId: string): Promise<void> {
+  let count = 0
+  let nextToken: string | null | undefined
+  do {
+    const { data: members, nextToken: next } = await client.models.WorkspaceMember.list({
+      filter: { workspaceId: { eq: workspaceId } },
+      nextToken: nextToken ?? undefined,
     })
-  }
+    count += members?.length ?? 0
+    nextToken = next
+  } while (nextToken)
+
+  await client.models.Workspace.update({ id: workspaceId, memberCount: count })
 }
 
 // ---------------------------------------------------------------------------
@@ -470,6 +506,28 @@ async function createInvitation(caller: Caller, event: MembershipEvent) {
     'Only workspace owners and admins can invite members'
   )
 
+  // Reject a redundant invite: someone with this email is already a member,
+  // or already has a live PENDING invitation to this workspace.
+  const { data: existingMembers } = await client.models.WorkspaceMember.list({
+    filter: { and: [{ workspaceId: { eq: workspaceId } }, { email: { eq: email } }] },
+  })
+  if (existingMembers && existingMembers.length > 0) {
+    throw new MembershipError(409, 'This user is already a member of the workspace')
+  }
+
+  const { data: existingInvitations } = await client.models.WorkspaceInvitation.list({
+    filter: {
+      and: [
+        { workspaceId: { eq: workspaceId } },
+        { email: { eq: email } },
+        { status: { eq: 'PENDING' } },
+      ],
+    },
+  })
+  if (existingInvitations && existingInvitations.length > 0) {
+    throw new MembershipError(409, 'An invitation is already pending for this email')
+  }
+
   const expiresAt = new Date()
   expiresAt.setDate(expiresAt.getDate() + 7) // 7 days
 
@@ -518,6 +576,12 @@ async function acceptInvitation(caller: Caller, event: MembershipEvent) {
   if (!invitation.email || invitation.email.toLowerCase() !== caller.email.toLowerCase()) {
     throw new MembershipError(403, 'This invitation was sent to a different email address')
   }
+
+  // The caller must also present the token from the emailed invitation link.
+  // Email match alone is not proof of possession: workspace member emails are
+  // visible to other members/admins, so without the token any of them could
+  // "accept" on behalf of an invitee whose email they can see.
+  requireTokenMatch(event.token, invitation.token)
 
   // PROVENANCE (defense-in-depth, fail-closed). Invitations are only ever
   // created by this function's `createInvitation`, but re-verify anyway so a
@@ -591,11 +655,18 @@ async function acceptInvitation(caller: Caller, event: MembershipEvent) {
 
   await client.models.WorkspaceInvitation.update({ id: invitationId, status: 'ACCEPTED' })
 
-  await adjustMemberCount(workspaceId, 1)
+  await recomputeMemberCount(workspaceId)
 
   return { success: true }
 }
 
+/**
+ * Declining is allowed for two distinct callers:
+ *  - the invitee themselves, in which case they must prove possession of the
+ *    emailed token (same rationale as `acceptInvitation`);
+ *  - a current workspace OWNER/ADMIN revoking a pending invite on someone
+ *    else's behalf (no token available to them, so it's not required).
+ */
 async function declineInvitation(caller: Caller, event: MembershipEvent) {
   const workspaceId = requireParam(event.workspaceId, 'workspaceId')
   const invitationId = requireParam(event.invitationId, 'invitationId')
@@ -609,8 +680,17 @@ async function declineInvitation(caller: Caller, event: MembershipEvent) {
     throw new MembershipError(400, `Invitation is already ${invitation.status.toLowerCase()}`)
   }
 
-  if (!invitation.email || invitation.email.toLowerCase() !== caller.email.toLowerCase()) {
-    throw new MembershipError(403, 'This invitation was sent to a different email address')
+  const isInvitee = !!invitation.email && invitation.email.toLowerCase() === caller.email.toLowerCase()
+
+  if (isInvitee) {
+    requireTokenMatch(event.token, invitation.token)
+  } else {
+    await requireRole(
+      workspaceId,
+      caller.userId,
+      ['OWNER', 'ADMIN'],
+      'Only the invitee or a workspace owner/admin can decline this invitation'
+    )
   }
 
   await client.models.WorkspaceInvitation.update({ id: invitationId, status: 'DECLINED' })
@@ -681,7 +761,7 @@ async function removeMember(caller: Caller, event: MembershipEvent) {
     workspaceWriterGroup(workspaceId),
   ])
 
-  await adjustMemberCount(workspaceId, -1)
+  await recomputeMemberCount(workspaceId)
 
   return { success: true }
 }

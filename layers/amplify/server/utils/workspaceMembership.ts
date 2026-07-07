@@ -1,5 +1,5 @@
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda'
-import { createError } from 'h3'
+import { createError, getQuery, readBody } from 'h3'
 import type { H3Event, EventHandlerRequest } from 'h3'
 import { getAwsCredentials, amplifyRegion, amplifyOutputs } from './amplify'
 
@@ -53,6 +53,29 @@ export function getSessionAccessToken(event: H3Event<EventHandlerRequest>): stri
     })
   }
   return accessToken
+}
+
+/**
+ * Read an invitation `token` from either the query string (an emailed
+ * `?token=...` link) or a JSON body (`{ token }`), whichever the caller
+ * used. Returns `undefined` if neither supplies one — callers decide
+ * whether that's fatal (accept always requires it; decline only requires it
+ * for the invitee, not for an OWNER/ADMIN revoking on someone else's behalf).
+ */
+export async function readInvitationToken(event: H3Event<EventHandlerRequest>): Promise<string | undefined> {
+  const query = getQuery(event)
+  if (typeof query.token === 'string' && query.token.length > 0) {
+    return query.token
+  }
+  try {
+    const body = await readBody<Record<string, unknown> | undefined>(event)
+    if (body && typeof body.token === 'string' && body.token.length > 0) {
+      return body.token
+    }
+  } catch {
+    // No body, or not JSON — fine, there's simply no body-supplied token.
+  }
+  return undefined
 }
 
 /**
