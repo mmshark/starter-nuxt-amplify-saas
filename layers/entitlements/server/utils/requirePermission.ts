@@ -15,11 +15,17 @@ import { getWorkspaceRole } from './getWorkspaceContext'
  *
  * @param event - H3 event from API route
  * @param permission - Required permission identifier
+ * @param workspaceId - explicit workspace id to check the role against,
+ *   instead of the `currentWorkspaceId` cookie. Pass this whenever the
+ *   route operates on a caller-supplied `workspaceId` (e.g. billing
+ *   checkout/portal) — otherwise the permission check would be evaluated
+ *   against whatever workspace the UI happens to have "selected" in a
+ *   cookie, not the workspace actually being acted on.
  * @throws 403 Forbidden if user lacks permission
  */
-export async function requirePermission(event: H3Event, permission: Permission): Promise<void> {
+export async function requirePermission(event: H3Event, permission: Permission, workspaceId?: string): Promise<void> {
   // Get user role from workspace context
-  const userRole = await getWorkspaceRole(event)
+  const userRole = await getWorkspaceRole(event, workspaceId)
 
   // Check if user's role grants the required permission
   const hasPermission = ROLE_PERMISSIONS[userRole]?.includes(permission) || false

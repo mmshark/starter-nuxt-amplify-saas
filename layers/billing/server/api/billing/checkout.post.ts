@@ -1,6 +1,7 @@
 import Stripe from 'stripe'
 import { withAmplifyAuth, getServerUserPoolDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
 import { invokeWorkspaceMembership } from '@mmshark/amplify-layer/server/utils/workspaceMembership'
+import { requirePermission } from '@mmshark/entitlements-layer/server/utils/requirePermission'
 import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth/server'
 
 const BILLING_INTERVALS = ['monthly', 'yearly'] as const
@@ -41,6 +42,13 @@ export default defineEventHandler(async (event) => {
   }
   const interval = billingInterval as BillingInterval
 
+  // Authorize: only a caller whose role grants `manage-billing` (OWNER only,
+  // see layers/entitlements/config/permissions.ts) may start a checkout for
+  // this workspace. `workspaceId` comes from the request body, not the
+  // `currentWorkspaceId` cookie, so it's passed explicitly — the permission
+  // check must target the workspace actually being billed.
+  await requirePermission(event, 'manage-billing', workspaceId)
+
   const stripe = new Stripe(config.stripe.secretKey, {
     apiVersion: '2025-02-24.acacia'
   })
@@ -60,22 +68,10 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // userPool client: tenant reads/writes are authorized by the caller's
-    // workspace group claims (group-per-workspace model) — defense-in-depth
-    // on top of the explicit OWNER check below.
+    // userPool client: tenant reads are authorized by the caller's workspace
+    // group claims (group-per-workspace model) — defense-in-depth on top of
+    // the explicit requirePermission() check above.
     const client = getServerUserPoolDataClient()
-
-    // Authorize: only the workspace OWNER may start a checkout (manage-billing).
-    const { data: members } = await client.models.WorkspaceMember.list(contextSpec, {
-      filter: { workspaceId: { eq: workspaceId }, userId: { eq: userId } }
-    })
-    const membership = members?.[0]
-    if (!membership || membership.role !== 'OWNER') {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'Only the workspace owner can manage billing'
-      })
-    }
 
     // Look up the Stripe price server-side. SubscriptionPlan is readable by
     // any authenticated user, so the caller's userPool client covers it.

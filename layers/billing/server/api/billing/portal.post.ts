@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 import { withAmplifyAuth, getServerUserPoolDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
+import { requirePermission } from '@mmshark/entitlements-layer/server/utils/requirePermission'
 import { fetchAuthSession } from 'aws-amplify/auth/server'
 
 const ALLOWED_FLOW_TYPES = [
@@ -42,6 +43,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Missing required parameter: workspaceId' })
   }
 
+  // Authorize: only a caller whose role grants `manage-billing` (OWNER only,
+  // see layers/entitlements/config/permissions.ts) may manage billing for
+  // this workspace. `workspaceId` comes from the request body, not the
+  // `currentWorkspaceId` cookie, so it's passed explicitly.
+  await requirePermission(event, 'manage-billing', workspaceId)
+
   return await withAmplifyAuth(event, async (contextSpec) => {
     // Get user ID from auth session
     const session = await fetchAuthSession(contextSpec)
@@ -55,20 +62,9 @@ export default defineEventHandler(async (event) => {
     }
 
     // userPool client: reads are authorized by the caller's workspace group
-    // claims — defense-in-depth on top of the explicit role check below.
+    // claims — defense-in-depth on top of the explicit requirePermission()
+    // check above.
     const client = getServerUserPoolDataClient()
-
-    // Authorize: only workspace OWNER/ADMIN may manage billing for the workspace.
-    const { data: members } = await client.models.WorkspaceMember.list(contextSpec, {
-      filter: { workspaceId: { eq: workspaceId }, userId: { eq: userId } }
-    })
-    const membership = members?.[0]
-    if (!membership || (membership.role !== 'OWNER' && membership.role !== 'ADMIN')) {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'Only workspace owners/admins can manage billing'
-      })
-    }
 
     // Resolve the customer from the WORKSPACE's subscription, never from UserProfile.
     const { data: workspaceSubscription } = await client.models.WorkspaceSubscription.get(contextSpec, {

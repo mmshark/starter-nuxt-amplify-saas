@@ -10,7 +10,8 @@
     "./components/*": "./components/*",
     "./utils/*": "./utils/*",
     "./config/*": "./config/*",
-    "./types/*": "./types/*"
+    "./types/*": "./types/*",
+    "./server/*": "./server/*"
   },
   "files": [
     "nuxt.config.ts",
@@ -53,6 +54,7 @@
     "nuxt": "^4.0.0",
     "@mmshark/amplify-layer": "workspace:*",
     "@mmshark/auth-layer": "workspace:*",
+    "@mmshark/workspaces-layer": "workspace:*",
     "zod": "^3.0.0"
   }
 }
