@@ -23,8 +23,56 @@ export type SeedUser = {
 
 export type SeedUsersFile = { users: SeedUser[] }
 
+const PROFILE_POLL_ATTEMPTS = 10
+const PROFILE_POLL_DELAY_MS = 500
+
+/**
+ * The post-confirmation trigger creates the UserProfile (with its Stripe
+ * customer id) asynchronously relative to sign-up completing. Poll for it
+ * instead of guessing a fixed delay so the seeder works whether the trigger
+ * finishes in 50ms or 4s, and returns null (rather than hanging) if the
+ * trigger never runs (e.g. it's disabled/broken in this sandbox).
+ */
+async function pollForUserProfile(client: any, userId: string): Promise<any | null> {
+  for (let attempt = 1; attempt <= PROFILE_POLL_ATTEMPTS; attempt++) {
+    const { data: profile } = await client.models.UserProfile.get({ userId });
+    if (profile?.stripeCustomerId) {
+      return profile;
+    }
+    if (attempt < PROFILE_POLL_ATTEMPTS) {
+      await new Promise(resolve => setTimeout(resolve, PROFILE_POLL_DELAY_MS));
+    }
+  }
+  return null;
+}
+
+/** Look up a workspace by slug so re-running the seeder doesn't create duplicates. */
+async function findWorkspaceBySlug(client: any, slug: string): Promise<any | null> {
+  const { data: workspaces } = await client.models.Workspace.list({
+    filter: { slug: { eq: slug } }
+  });
+  return workspaces?.[0] ?? null;
+}
+
+/** Look up an existing membership so re-running the seeder doesn't create duplicates. */
+async function findWorkspaceMember(client: any, workspaceId: string, userId: string): Promise<any | null> {
+  const { data: members } = await client.models.WorkspaceMember.list({
+    filter: { workspaceId: { eq: workspaceId }, userId: { eq: userId } }
+  });
+  return members?.[0] ?? null;
+}
+
 async function createWorkspaceSubscription(client: any, workspaceId: string, userId: string, planId: string, billingInterval: 'month' | 'year', paymentMethod?: SeedUser['paymentMethod']): Promise<void> {
   try {
+    // Idempotent: skip if this workspace already has a subscription row.
+    const { data: existingSubscriptions } = await client.models.WorkspaceSubscription.list({
+      filter: { workspaceId: { eq: workspaceId } }
+    });
+    if (existingSubscriptions && existingSubscriptions.length > 0) {
+      console.log(`ℹ️  WorkspaceSubscription already exists for workspace ${workspaceId}, skipping`);
+      return;
+    }
+
     // Verify the plan exists
     const { data: plans } = await client.models.SubscriptionPlan.list({
       filter: { planId: { eq: planId } }
@@ -130,6 +178,12 @@ async function createWorkspaceSubscription(client: any, workspaceId: string, use
 
     console.log(`✅ Created Stripe subscription ${stripeSubscription.id} for user ${userId}`);
 
+    // Stripe API 2025-08-27.basil (stripe-node v18) moved current_period_start/end
+    // from the Subscription object down to each SubscriptionItem.
+    const firstItem = stripeSubscription.items?.data?.[0];
+    const currentPeriodStart = firstItem?.current_period_start ?? Math.floor(Date.now() / 1000);
+    const currentPeriodEnd = firstItem?.current_period_end ?? currentPeriodStart;
+
     // Create subscription record in DynamoDB
     const subscription = {
       workspaceId,
@@ -137,8 +191,8 @@ async function createWorkspaceSubscription(client: any, workspaceId: string, use
       stripeCustomerId: userProfile.stripeCustomerId,
       stripeSubscriptionId: stripeSubscription.id,
       status: stripeSubscription.status as 'active' | 'incomplete' | 'incomplete_expired' | 'trialing' | 'past_due' | 'canceled' | 'unpaid',
-      currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000).toISOString(),
-      currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
+      currentPeriodStart: new Date(currentPeriodStart * 1000).toISOString(),
+      currentPeriodEnd: new Date(currentPeriodEnd * 1000).toISOString(),
       cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
       billingInterval,
       trialStart: stripeSubscription.trial_start ? new Date(stripeSubscription.trial_start * 1000).toISOString() : null,
@@ -196,19 +250,23 @@ async function seedUser(client: any, user: SeedUser): Promise<void> {
     }
   }
 
-  // Now process the user (either new or existing, both are signed in at this point)
+  // Now process the user (either new or existing, both are signed in at this point).
+  // The post-confirmation trigger already creates the UserProfile, the personal
+  // Workspace/WorkspaceMember and the Stripe customer (via ensureWorkspaceBilling)
+  // synchronously on sign-up. Poll/look those up instead of re-creating them, so
+  // running this seeder repeatedly against the same sandbox stays idempotent.
   try {
     // Get current user info
     const currentUser = await auth.getCurrentUser();
     const userId = currentUser.userId;
+    const slug = `${userId}-personal`;
 
-    // Check if UserProfile exists
-    const { data: existingProfile } = await client.models.UserProfile.get({ userId });
+    let userProfile = await pollForUserProfile(client, userId);
 
-    let stripeCustomerId: string;
-
-    if (!existingProfile || !existingProfile.stripeCustomerId || existingProfile.stripeCustomerId.startsWith('cus_seed_')) {
-      // Create or update Stripe customer
+    if (!userProfile) {
+      // Fallback: the trigger didn't create a profile in time (or failed).
+      // Create the Stripe customer + UserProfile manually so seeding can continue.
+      console.warn(`⚠️  UserProfile not created by post-confirmation trigger in time for ${user.username}, creating manually as a fallback`);
       const stripeSecretKey = await ensureStripeSecret();
       const stripe = createStripeClient(stripeSecretKey);
 
@@ -225,63 +283,66 @@ async function seedUser(client: any, user: SeedUser): Promise<void> {
         }
       });
 
-      console.log(`✅ Created Stripe customer ${stripeCustomer.id} for user: ${user.username}`);
-      stripeCustomerId = stripeCustomer.id;
-
-      if (!existingProfile) {
-        // Create new profile
-        await client.models.UserProfile.create({
+      const { data: existingProfile } = await client.models.UserProfile.get({ userId });
+      if (existingProfile) {
+        const { data } = await client.models.UserProfile.update({
           userId: userId,
-          stripeCustomerId: stripeCustomerId,
+          stripeCustomerId: stripeCustomer.id,
         });
-        console.log(`✅ Created UserProfile for user: ${user.username}`);
+        userProfile = data;
       } else {
-        // Update existing profile
-        await client.models.UserProfile.update({
+        const { data } = await client.models.UserProfile.create({
           userId: userId,
-          stripeCustomerId: stripeCustomerId,
+          stripeCustomerId: stripeCustomer.id,
         });
-        console.log(`✅ Updated UserProfile with real Stripe customer for user: ${user.username}`);
+        userProfile = data;
       }
+      console.log(`✅ Created Stripe customer ${stripeCustomer.id} for user: ${user.username} (fallback)`);
     } else {
-      // Use existing Stripe customer
-      stripeCustomerId = existingProfile.stripeCustomerId;
-      console.log(`ℹ️  Using existing Stripe customer ${stripeCustomerId} for user: ${user.username}`);
+      console.log(`ℹ️  Using trigger-created Stripe customer ${userProfile.stripeCustomerId} for user: ${user.username}`);
     }
 
-    // Create personal workspace for user
-    const workspace = await client.models.Workspace.create({
-      name: `${user.username}'s Workspace`,
-      slug: `${userId}-personal`,
-      description: 'Personal workspace',
-      ownerId: userId,
-      isPersonal: true,
-      memberCount: 1,
-    });
-    console.log(`✅ Created personal workspace for user: ${user.username}`);
+    // Reuse the personal workspace created by the trigger; only create one if
+    // it's genuinely missing (idempotent across repeated seed runs).
+    let workspace = await findWorkspaceBySlug(client, slug);
+    if (!workspace) {
+      console.warn(`⚠️  Personal workspace not found for ${user.username} (slug ${slug}), creating manually as a fallback`);
+      const { data } = await client.models.Workspace.create({
+        name: `${user.username}'s Workspace`,
+        slug,
+        description: 'Personal workspace',
+        ownerId: userId,
+        isPersonal: true,
+        memberCount: 1,
+      });
+      workspace = data;
+      console.log(`✅ Created personal workspace for user: ${user.username}`);
+    } else {
+      console.log(`ℹ️  Using existing personal workspace ${workspace.id} for user: ${user.username}`);
+    }
 
-    // Create WorkspaceMember
-    await client.models.WorkspaceMember.create({
-      workspaceId: workspace.data!.id,
-      userId: userId,
-      email: user.username,
-      name: user.attributes?.name || user.username,
-      role: 'OWNER',
-      joinedAt: new Date().toISOString(),
-    });
-    console.log(`✅ Added user as OWNER to personal workspace`);
+    // Ensure the OWNER membership exists without creating a duplicate.
+    const existingMember = await findWorkspaceMember(client, workspace!.id, userId);
+    if (!existingMember) {
+      await client.models.WorkspaceMember.create({
+        workspaceId: workspace!.id,
+        userId: userId,
+        email: user.username,
+        name: user.attributes?.name || user.username,
+        role: 'OWNER',
+        joinedAt: new Date().toISOString(),
+      });
+      console.log(`✅ Added user as OWNER to personal workspace`);
+    } else {
+      console.log(`ℹ️  User ${user.username} is already a member of the personal workspace`);
+    }
 
     // Create subscription if planId is specified
     if (user.planId && user.billingInterval) {
-      // Wait a bit for UserProfile to be created by post-confirmation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Get current user info for subscription creation
-      const currentUser = await auth.getCurrentUser();
-      await createWorkspaceSubscription(client, workspace.data!.id, currentUser.userId, user.planId, user.billingInterval, user.paymentMethod);
+      await createWorkspaceSubscription(client, workspace!.id, userId, user.planId, user.billingInterval, user.paymentMethod);
     }
   } catch (error) {
-    console.warn(`⚠️  Could not create UserProfile for ${user.username}:`, error);
+    console.warn(`⚠️  Could not provision workspace/profile for ${user.username}:`, error);
   }
 
   try {
