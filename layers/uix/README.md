@@ -153,7 +153,7 @@ export default defineAppConfig({
 ```typescript
 export default defineNuxtConfig({
   modules: ["@nuxt/ui-pro"],           // Nuxt UI Pro components
-  css: ["@starter-nuxt-amplify-saas/uix/assets/css/main.css"]  // Core styles
+  css: ["@mmshark/uix-layer/assets/css/main.css"]  // Core styles
 })
 ```
 

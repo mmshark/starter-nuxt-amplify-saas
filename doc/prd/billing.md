@@ -529,7 +529,7 @@ Display billing history and invoices with download links.
 **Implementation Pattern**:
 ```typescript
 // All endpoints use withAmplifyPublic for Amplify Data context
-import { getServerPublicDataClient, withAmplifyPublic } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { getServerPublicDataClient, withAmplifyPublic } from '@mmshark/amplify-layer/server/utils/amplify'
 
 export default defineEventHandler(async (event) => {
   return await withAmplifyPublic(async (contextSpec) => {

@@ -179,15 +179,15 @@ The SaaS meta-layer extends all necessary feature layers to provide complete Saa
 export default defineNuxtConfig({
   extends: [
     // Foundation layers
-    '@starter-nuxt-amplify-saas/amplify',
-    '@starter-nuxt-amplify-saas/uix',
-    '@starter-nuxt-amplify-saas/i18n',
+    '@mmshark/amplify-layer',
+    '@mmshark/uix-layer',
+    '@mmshark/i18n-layer',
 
     // Feature layers
-    '@starter-nuxt-amplify-saas/auth',
-    '@starter-nuxt-amplify-saas/billing',
-    '@starter-nuxt-amplify-saas/workspaces',
-    '@starter-nuxt-amplify-saas/entitlements',
+    '@mmshark/auth-layer',
+    '@mmshark/billing-layer',
+    '@mmshark/workspaces-layer',
+    '@mmshark/entitlements-layer',
   ],
 
   // Saas-specific configuration
@@ -219,9 +219,9 @@ export default defineNuxtConfig({
 export default defineNuxtConfig({
   extends: [
     // Compose only needed layers
-    '@starter-nuxt-amplify-saas/amplify',
-    '@starter-nuxt-amplify-saas/auth',
-    '@starter-nuxt-amplify-saas/billing',
+    '@mmshark/amplify-layer',
+    '@mmshark/auth-layer',
+    '@mmshark/billing-layer',
     // Skip workspaces, entitlements, saas shell
   ],
 

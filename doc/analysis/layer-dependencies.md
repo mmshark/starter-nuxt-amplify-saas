@@ -376,7 +376,7 @@ ROLE_PERMISSIONS = {
 **Usage in ALL Server Endpoints**:
 
 ```typescript
-import { withAmplifyPublic, getServerPublicDataClient } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { withAmplifyPublic, getServerPublicDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
 
 // WHY: Need authenticated context for GraphQL operations
 return await withAmplifyPublic(async (contextSpec) => {

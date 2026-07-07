@@ -50,13 +50,13 @@ This plan details the implementation of the SaaS meta-layer (`@starter-nuxt-ampl
     ".": "./nuxt.config.ts"
   },
   "dependencies": {
-    "@starter-nuxt-amplify-saas/amplify": "workspace:*",
-    "@starter-nuxt-amplify-saas/auth": "workspace:*",
-    "@starter-nuxt-amplify-saas/billing": "workspace:*",
-    "@starter-nuxt-amplify-saas/workspaces": "workspace:*",
-    "@starter-nuxt-amplify-saas/entitlements": "workspace:*",
-    "@starter-nuxt-amplify-saas/uix": "workspace:*",
-    "@starter-nuxt-amplify-saas/i18n": "workspace:*"
+    "@mmshark/amplify-layer": "workspace:*",
+    "@mmshark/auth-layer": "workspace:*",
+    "@mmshark/billing-layer": "workspace:*",
+    "@mmshark/workspaces-layer": "workspace:*",
+    "@mmshark/entitlements-layer": "workspace:*",
+    "@mmshark/uix-layer": "workspace:*",
+    "@mmshark/i18n-layer": "workspace:*"
   }
 }
 ```
@@ -66,15 +66,15 @@ This plan details the implementation of the SaaS meta-layer (`@starter-nuxt-ampl
 export default defineNuxtConfig({
   extends: [
     // Foundation layers
-    '@starter-nuxt-amplify-saas/amplify',
-    '@starter-nuxt-amplify-saas/uix',
-    '@starter-nuxt-amplify-saas/i18n',
+    '@mmshark/amplify-layer',
+    '@mmshark/uix-layer',
+    '@mmshark/i18n-layer',
 
     // Feature layers
-    '@starter-nuxt-amplify-saas/auth',
-    '@starter-nuxt-amplify-saas/billing',
-    '@starter-nuxt-amplify-saas/workspaces',
-    '@starter-nuxt-amplify-saas/entitlements',
+    '@mmshark/auth-layer',
+    '@mmshark/billing-layer',
+    '@mmshark/workspaces-layer',
+    '@mmshark/entitlements-layer',
   ],
 })
 ```
