@@ -45,12 +45,19 @@ const formFields = [
   }
 ]
 
-// Form state - reactive to current user attributes
-const profileForm = computed(() => ({
+// Form state - a reactive copy synced from userAttributes via watch (a
+// computed()-backed v-model is read-only and can't accept input events).
+const profileForm = reactive({
   firstName: userAttributes.value?.given_name || '',
   lastName: userAttributes.value?.family_name || '',
   email: userAttributes.value?.email || ''
-}))
+})
+
+watch(userAttributes, (attrs) => {
+  profileForm.firstName = attrs?.given_name || ''
+  profileForm.lastName = attrs?.family_name || ''
+  profileForm.email = attrs?.email || ''
+}, { immediate: true })
 
 // Handle form submission
 async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
@@ -75,7 +82,7 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
       return
     }
 
-    await updateAttributes(attributes)
+    await updateAttributes({ userAttributes: attributes })
 
     toast.add({
       title: 'Success',
