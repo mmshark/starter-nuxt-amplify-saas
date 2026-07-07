@@ -8,10 +8,12 @@
  *    this group name in their `readerGroups` field are readable by the
  *    group's members via `allow.groupsDefinedIn('readerGroups').to(['read'])`.
  *
- *  - `ws:<workspaceId>:admins` — the WRITER group. Only OWNER and ADMIN
- *    members belong to it. Records that carry this group name in their
- *    `writerGroups` field grant full CRUD via
- *    `allow.groupsDefinedIn('writerGroups')`.
+ *  - `ws:<workspaceId>:admins` — the ADMIN group. Only OWNER and ADMIN
+ *    members belong to it. It grants NO direct AppSync access: tenant tables
+ *    are READ-ONLY for client principals, and every write goes through the
+ *    privileged Lambdas (`workspace-membership`, `stripe-webhook`,
+ *    `post-confirmation`). The group (and the records' `writerGroups`
+ *    metadata field) is kept as the role marker the Lambdas manage.
  *
  * See `apps/backend/amplify/data/resource.ts` for the authorization rules and
  * `apps/backend/amplify/functions/workspace-membership/` for the Lambda that

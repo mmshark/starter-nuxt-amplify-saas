@@ -13,17 +13,25 @@ import { workspaceMembership } from "../functions/workspace-membership/resource"
  *   ws:<workspaceId>:admins   → writers  (OWNER + ADMIN)
  *
  * Each tenant record carries the authorizing group names in its
- * `readerGroups`/`writerGroups` fields (set at creation time) and is
- * authorized with dynamic group rules:
+ * `readerGroups` field (set at creation time by Lambda code only) and is
+ * authorized with a dynamic group rule:
  *
- *   allow.groupsDefinedIn('readerGroups').to(['read'])
- *   allow.groupsDefinedIn('writerGroups')            // full CRUD
+ *   allow.groupsDefinedIn('readerGroups').to(['read'])   // READ-ONLY
  *
- * This makes AppSync itself enforce tenant isolation AND role: a signed-in
- * user can only touch rows of workspaces whose Cognito group appears in
- * their token (`cognito:groups` claim), even if they call AppSync directly
- * and bypass the Nitro routes. NO tenant model grants access to
- * `allow.authenticated(...)` in any form.
+ * CLIENTS ARE READ-ONLY. No tenant model grants create/update/delete to any
+ * client principal — not via `groupsDefinedIn`, not via `authenticated(...)`,
+ * not via owner rules. EVERY write to a tenant table goes through the
+ * privileged functions holding `allow.resource(...)` grants below
+ * (`workspace-membership`, `stripe-webhook`, `post-confirmation`), which
+ * re-verify the caller's identity and OWNER/ADMIN role themselves. This is
+ * what prevents cross-tenant takeover: a signed-in user calling AppSync
+ * directly can only READ rows of workspaces whose Cognito group appears in
+ * their token (`cognito:groups` claim) and can never set `readerGroups`/
+ * `writerGroups`, `role` or `planId`.
+ *
+ * The `writerGroups` field is retained on the records as metadata (the
+ * `ws:<id>:admins` group still drives role semantics inside the Lambdas)
+ * but it grants NO AppSync access.
  *
  * Group lifecycle (create/delete groups, add/remove users) is owned by the
  * `workspace-membership` function (`amplify/functions/workspace-membership/`)
@@ -89,9 +97,9 @@ const schema = a
       subscription: a.hasOne('WorkspaceSubscription', 'workspaceId'),
     })
       .authorization((allow) => [
+        // Clients: READ-ONLY. All writes go through workspace-membership.
         allow.ownerDefinedIn('ownerId').to(['read']),
         allow.groupsDefinedIn('readerGroups').to(['read']),
-        allow.groupsDefinedIn('writerGroups').to(['create', 'update', 'delete', 'read']),
         allow.resource(workspaceMembership), // group + record lifecycle (see function docs)
       ])
       .secondaryIndexes((index) => [
@@ -119,8 +127,9 @@ const schema = a
       writerGroups: a.string().array(),
     })
       .authorization((allow) => [
+        // Clients: READ-ONLY. Only stripe-webhook / workspace-membership /
+        // post-confirmation may write subscription rows (incl. planId).
         allow.groupsDefinedIn('readerGroups').to(['read']),
-        allow.groupsDefinedIn('writerGroups').to(['create', 'update', 'delete', 'read']),
         allow.resource(stripeWebhook), // Stripe webhook sync (sessionless Lambda, signature-authorized)
         allow.resource(workspaceMembership), // billing bootstrap on workspace create
       ])
@@ -153,9 +162,10 @@ const schema = a
       writerGroups: a.string().array(),
     })
       .authorization((allow) => [
+        // Clients: READ-ONLY. Membership rows (incl. `role`) are written only
+        // by workspace-membership / post-confirmation.
         allow.ownerDefinedIn('userId').to(['read']),
         allow.groupsDefinedIn('readerGroups').to(['read']),
-        allow.groupsDefinedIn('writerGroups').to(['create', 'update', 'delete', 'read']),
         allow.resource(workspaceMembership), // membership lifecycle (invite accept, role, remove)
       ])
       .secondaryIndexes((index) => [
@@ -179,9 +189,12 @@ const schema = a
       writerGroups: a.string().array(),
     })
       .authorization((allow) => [
+        // Clients: READ-ONLY (workspace members can list invitations).
+        // Invitations are CREATED only by workspace-membership, which derives
+        // readerGroups/writerGroups from the workspace id — never from client
+        // input — and re-verifies the inviter's OWNER/ADMIN role.
         allow.groupsDefinedIn('readerGroups').to(['read']),
-        allow.groupsDefinedIn('writerGroups').to(['create', 'update', 'delete', 'read']),
-        allow.resource(workspaceMembership), // accept/decline runs before the invitee has any group
+        allow.resource(workspaceMembership), // create + accept/decline (invitee has no group yet)
       ])
       .secondaryIndexes((index) => [
         index('workspaceId'),
