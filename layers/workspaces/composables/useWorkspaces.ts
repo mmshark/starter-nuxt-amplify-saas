@@ -13,7 +13,7 @@ export const useWorkspaces = () => {
   )
 
   const personalWorkspace = computed(() =>
-    workspaces.value.find(w => w.isPersonal && w.ownerId === user.value?.id) || null
+    workspaces.value.find(w => w.isPersonal && w.ownerId === user.value?.userId) || null
   )
 
   const loadWorkspaces = async () => {
@@ -21,8 +21,8 @@ export const useWorkspaces = () => {
 
     loading.value = true
     try {
-      const result = await $fetch<Workspace[]>('/api/workspaces')
-      workspaces.value = result
+      const result = await $fetch<{ workspaces: Workspace[]; nextToken: string | null }>('/api/workspaces')
+      workspaces.value = result.workspaces
 
       // Auto-select workspace if none selected
       if (!currentWorkspaceId.value && workspaces.value.length > 0) {
