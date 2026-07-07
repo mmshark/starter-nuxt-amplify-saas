@@ -23,6 +23,15 @@ importers:
 
   apps/backend:
     dependencies:
+      '@aws-sdk/client-cognito-identity-provider':
+        specifier: ^3.700.0
+        version: 3.1080.0
+      '@mmshark/amplify-layer':
+        specifier: workspace:*
+        version: link:../../layers/amplify
+      '@mmshark/billing-layer':
+        specifier: workspace:*
+        version: link:../../layers/billing
       aws-amplify:
         specifier: ^6.15.8
         version: 6.18.0
@@ -188,6 +197,9 @@ importers:
 
   layers/billing:
     dependencies:
+      '@aws-sdk/client-lambda':
+        specifier: ^3.700.0
+        version: 3.1080.0
       '@mmshark/amplify-layer':
         specifier: workspace:*
         version: link:../amplify
@@ -201,6 +213,9 @@ importers:
         specifier: ^14.0.0
         version: 14.25.0
     devDependencies:
+      '@mmshark/entitlements-layer':
+        specifier: workspace:*
+        version: link:../entitlements
       '@mmshark/i18n-layer':
         specifier: workspace:*
         version: link:../i18n
@@ -280,6 +295,9 @@ importers:
 
   layers/workspaces:
     dependencies:
+      '@aws-sdk/client-lambda':
+        specifier: ^3.700.0
+        version: 3.1080.0
       '@mmshark/amplify-layer':
         specifier: workspace:*
         version: link:../amplify
@@ -293,6 +311,9 @@ importers:
       '@mmshark/auth-layer':
         specifier: workspace:*
         version: link:../auth
+      '@mmshark/billing-layer':
+        specifier: workspace:*
+        version: link:../billing
       '@mmshark/entitlements-layer':
         specifier: workspace:*
         version: link:../entitlements
@@ -10408,7 +10429,7 @@ snapshots:
   '@aws-crypto/crc32@5.2.0':
     dependencies:
       '@aws-crypto/util': 5.2.0
-      '@aws-sdk/types': 3.609.0
+      '@aws-sdk/types': 3.973.15
       tslib: 2.8.1
 
   '@aws-crypto/sha256-browser@5.2.0':
@@ -10416,7 +10437,7 @@ snapshots:
       '@aws-crypto/sha256-js': 5.2.0
       '@aws-crypto/supports-web-crypto': 5.2.0
       '@aws-crypto/util': 5.2.0
-      '@aws-sdk/types': 3.609.0
+      '@aws-sdk/types': 3.973.15
       '@aws-sdk/util-locate-window': 3.965.8
       '@smithy/util-utf8': 2.0.0
       tslib: 2.8.1
@@ -17447,7 +17468,7 @@ snapshots:
   graphql-tag@2.12.7(graphql@15.10.2):
     dependencies:
       graphql: 15.10.2
-      tslib: 2.3.1
+      tslib: 2.8.1
 
   graphql-transformer-common@4.34.0:
     dependencies:
@@ -17809,7 +17830,7 @@ snapshots:
 
   is-lower-case@2.0.2:
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.8.1
 
   is-map@2.0.3: {}
 
@@ -17888,7 +17909,7 @@ snapshots:
 
   is-upper-case@2.0.2:
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.8.1
 
   is-weakmap@2.0.2: {}
 
@@ -20469,7 +20490,7 @@ snapshots:
 
   sponge-case@1.0.1:
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.8.1
 
   sponge-case@2.0.3: {}
 
@@ -20644,7 +20665,7 @@ snapshots:
 
   swap-case@2.0.2:
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.8.1
 
   swap-case@3.0.3: {}
 
@@ -20794,7 +20815,7 @@ snapshots:
 
   title-case@3.0.3:
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.8.1
 
   tlds@1.261.0: {}
 
