@@ -6,7 +6,7 @@
         v-if="canInvite"
         icon="i-heroicons-user-plus"
         @click="showInviteModal = true"
-        color="black"
+        color="primary"
       >
         Invite Member
       </UButton>
@@ -51,17 +51,19 @@ onMounted(() => {
   loadMembers()
 })
 
+// No ownership-transfer feature: the role-change endpoint only accepts
+// ADMIN|MEMBER (and a member row already showing OWNER is never editable,
+// see canManageRole below), so "Owner" is intentionally not an option here.
 const roleOptions = [
   { value: 'MEMBER', label: 'Member' },
-  { value: 'ADMIN', label: 'Admin' },
-  { value: 'OWNER', label: 'Owner' }
+  { value: 'ADMIN', label: 'Admin' }
 ]
 
 const getRoleColor = (role: WorkspaceRole) => {
   switch (role) {
     case 'OWNER': return 'primary'
-    case 'ADMIN': return 'orange'
-    default: return 'gray'
+    case 'ADMIN': return 'warning'
+    default: return 'neutral'
   }
 }
 
@@ -115,7 +117,7 @@ const columns: TableColumn<WorkspaceMember>[] = [
       return h('div', { class: 'text-right' },
         h(UButton, {
           icon: 'i-heroicons-trash',
-          color: 'red',
+          color: 'error',
           variant: 'ghost',
           size: 'xs',
           onClick: () => handleRemove(row.original)
@@ -148,7 +150,7 @@ const updateRole = async (member: WorkspaceMember) => {
     toast.add({ title: 'Role updated successfully' })
   } catch (error) {
     console.error('Failed to update role:', error)
-    toast.add({ title: 'Failed to update role', color: 'red' })
+    toast.add({ title: 'Failed to update role', color: 'error' })
     loadMembers() // Revert on error
   }
 }
@@ -161,7 +163,7 @@ const handleRemove = async (member: WorkspaceMember) => {
     toast.add({ title: 'Member removed successfully' })
   } catch (error) {
     console.error('Failed to remove member:', error)
-    toast.add({ title: 'Failed to remove member', color: 'red' })
+    toast.add({ title: 'Failed to remove member', color: 'error' })
   }
 }
 </script>
