@@ -11,7 +11,14 @@ import type { Feature, Permission, Plan, Role } from '../types/entitlements'
 import { PLAN_FEATURES, planIncludesFeature } from '../config/features'
 import { ROLE_PERMISSIONS, roleHasPermission } from '../config/permissions'
 
-export const useEntitlements = createSharedComposable(() => {
+// NOTE: intentionally NOT wrapped in `createSharedComposable` — it memoizes
+// a single instance for the app's lifetime, which on the server (where one
+// Nuxt app instance can be reused/pooled across concurrent requests) leaks
+// one request's entitlements into another's. The composables this builds on
+// (useUser, useWorkspaces, useWorkspaceMembership) are all useState-backed,
+// so every call to useEntitlements() still reads the same per-request
+// reactive state without needing a shared instance.
+export const useEntitlements = () => {
   const { user, isAuthenticated } = useUser()
   const { currentWorkspace } = useWorkspaces()
   const { currentRole } = useWorkspaceMembership()
@@ -155,4 +162,4 @@ export const useEntitlements = createSharedComposable(() => {
     hasPlan,
     getRequiredPlanForFeature,
   }
-})
+}
