@@ -27,9 +27,6 @@ export default defineNuxtConfig({
     ]
   },
   nitro: {
-    externals: {
-      inline: ['vue', 'vue/server-renderer', '@vue/runtime-dom', '@vue/shared']
-    },
     bundledStorage: ['@iconify-json/lucide']
   }
 })

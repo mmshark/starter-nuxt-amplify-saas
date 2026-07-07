@@ -37,7 +37,7 @@
     "saas:test:e2e:setup": "pnpm --filter @starter-nuxt-amplify-saas/saas run test:e2e:setup"
   },
   "devDependencies": {
-    "@aws-amplify/backend-cli": "^1.8.0",
+    "@aws-amplify/backend-cli": "^1.8.3",
     "dotenv": "^17.2.3",
     "stripe": "^18.5.0",
     "tsx": "^4.21.0"
