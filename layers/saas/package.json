@@ -57,5 +57,14 @@
     "@mmshark/billing-layer": "workspace:*",
     "@mmshark/workspaces-layer": "workspace:*",
     "@mmshark/entitlements-layer": "workspace:*"
+  },
+  "devDependencies": {
+    "@mmshark/amplify-layer": "workspace:*",
+    "@mmshark/uix-layer": "workspace:*",
+    "@mmshark/i18n-layer": "workspace:*",
+    "@mmshark/auth-layer": "workspace:*",
+    "@mmshark/billing-layer": "workspace:*",
+    "@mmshark/workspaces-layer": "workspace:*",
+    "@mmshark/entitlements-layer": "workspace:*"
   }
 }

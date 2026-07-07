@@ -49,5 +49,8 @@
   "peerDependencies": {
     "nuxt": "^4.0.0",
     "@mmshark/amplify-layer": "workspace:*"
+  },
+  "devDependencies": {
+    "@mmshark/uix-layer": "workspace:*"
   }
 }

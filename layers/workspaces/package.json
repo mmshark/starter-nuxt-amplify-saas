@@ -49,5 +49,10 @@
     "@mmshark/amplify-layer": "workspace:*",
     "@mmshark/auth-layer": "workspace:*",
     "zod": "^3.0.0"
+  },
+  "devDependencies": {
+    "@mmshark/auth-layer": "workspace:*",
+    "@mmshark/entitlements-layer": "workspace:*",
+    "@mmshark/uix-layer": "workspace:*"
   }
 }

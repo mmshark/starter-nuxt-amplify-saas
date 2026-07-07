@@ -49,5 +49,9 @@
     "@mmshark/amplify-layer": "workspace:*",
     "@mmshark/auth-layer": "workspace:*",
     "stripe": "^14.0.0"
+  },
+  "devDependencies": {
+    "@mmshark/uix-layer": "workspace:*",
+    "@mmshark/i18n-layer": "workspace:*"
   }
 }
