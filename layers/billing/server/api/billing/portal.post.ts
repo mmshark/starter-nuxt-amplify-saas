@@ -117,11 +117,20 @@ export default defineEventHandler(async (event) => {
       case 'subscription_update_confirm': {
         const subscriptionId = await getSubscriptionId(stripe, stripeCustomerId)
         if (subscriptionId && typeof discount_id === 'string') {
-          sessionOptions.flow_data = {
-            type: 'subscription_update_confirm',
-            subscription_update_confirm: {
-              subscription: subscriptionId,
-              discount_id
+          // Stripe API 2025-08-27.basil (stripe-node v18) requires `items`
+          // (the subscription item being kept/updated) and `discounts` as an
+          // array instead of the old singular `discount_id`. Keep the current
+          // price unchanged and only apply the discount.
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+          const item = subscription.items.data[0]
+          if (item?.id && item.price?.id) {
+            sessionOptions.flow_data = {
+              type: 'subscription_update_confirm',
+              subscription_update_confirm: {
+                subscription: subscriptionId,
+                discounts: [{ coupon: discount_id, promotion_code: null }],
+                items: [{ id: item.id, price: item.price.id }]
+              }
             }
           }
         }

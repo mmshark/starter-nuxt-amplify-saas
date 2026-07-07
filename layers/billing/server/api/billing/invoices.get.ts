@@ -111,7 +111,9 @@ export default defineEventHandler(async (event) => {
         } : null
       })),
       subtotal: invoice.subtotal / 100,
-      tax: invoice.tax ? invoice.tax / 100 : 0,
+      // Stripe API 2025-08-27.basil (stripe-node v18) replaced the scalar
+      // `Invoice.tax` field with a `total_taxes` breakdown array.
+      tax: (invoice.total_taxes || []).reduce((sum, t) => sum + t.amount, 0) / 100,
       total: invoice.total / 100,
       paymentMethod: getPaymentMethodInfo(invoice)
     }))
@@ -129,19 +131,14 @@ export default defineEventHandler(async (event) => {
 
 // Helper function to generate invoice description
 function getInvoiceDescription(invoice: Stripe.Invoice): string {
+  // Stripe API 2025-08-27.basil (stripe-node v18) replaced the expandable
+  // `InvoiceLineItem.price` object with `pricing.price_details`, which only
+  // exposes price/product IDs (not an expanded nickname/name) — fall back to
+  // the line description, or a generic label if none is set.
   if (invoice.lines.data.length > 0) {
     const line = invoice.lines.data[0]
     if (line.description) {
       return line.description
-    }
-
-    // Generate description from subscription
-    if (line.price?.nickname) {
-      return line.price.nickname
-    }
-
-    if (line.price?.product && typeof line.price.product === 'object') {
-      return line.price.product.name || 'Subscription'
     }
   }
 

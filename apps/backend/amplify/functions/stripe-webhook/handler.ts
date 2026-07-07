@@ -216,13 +216,19 @@ async function upsertWorkspaceSubscription(subscription: Stripe.Subscription, ev
 
   const interval = subscription.items?.data?.[0]?.price?.recurring?.interval === 'year' ? 'year' : 'month'
 
+  // Stripe API 2025-08-27.basil (stripe-node v18) moved current_period_start/end
+  // from the Subscription object down to each SubscriptionItem.
+  const firstItem = subscription.items?.data?.[0]
+  const currentPeriodStart = firstItem?.current_period_start ?? Math.floor(Date.now() / 1000)
+  const currentPeriodEnd = firstItem?.current_period_end ?? currentPeriodStart
+
   const subscriptionData = {
     planId,
     stripeSubscriptionId: subscription.id,
     stripeCustomerId: getCustomerId(subscription.customer) || '',
     status,
-    currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-    currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+    currentPeriodStart: new Date(currentPeriodStart * 1000).toISOString(),
+    currentPeriodEnd: new Date(currentPeriodEnd * 1000).toISOString(),
     cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
     billingInterval: interval as 'month' | 'year',
     trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000).toISOString() : null,
