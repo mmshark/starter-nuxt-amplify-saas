@@ -1,4 +1,4 @@
-import { getServerIamDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { getServerUserPoolDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import { z } from 'zod'
 import type { Workspace } from '../../../../types/workspaces'
 
@@ -26,7 +26,10 @@ export default defineEventHandler(async (event): Promise<Workspace> => {
   const input = updateWorkspaceSchema.parse(body)
 
   return await withAmplifyAuth(event, async (contextSpec) => {
-    const client = getServerIamDataClient()
+    // userPool client: the update is authorized by the caller's
+    // `ws:<id>:admins` group claim (writerGroups rule) — defense-in-depth on
+    // top of the explicit role check below.
+    const client = getServerUserPoolDataClient()
 
     // Verify workspace exists
     const { data: workspace } = await client.models.Workspace.get(contextSpec, { id: workspaceId })

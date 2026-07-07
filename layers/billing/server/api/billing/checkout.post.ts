@@ -1,5 +1,5 @@
 import Stripe from 'stripe'
-import { withAmplifyAuth, getServerIamDataClient, getServerPublicDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
+import { withAmplifyAuth, getServerUserPoolDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
 import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth/server'
 import { ensureWorkspaceBilling } from '../../utils/ensureWorkspaceBilling'
 
@@ -60,7 +60,10 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    const client = getServerIamDataClient()
+    // userPool client: tenant reads/writes are authorized by the caller's
+    // workspace group claims (group-per-workspace model) — defense-in-depth
+    // on top of the explicit OWNER check below.
+    const client = getServerUserPoolDataClient()
 
     // Authorize: only the workspace OWNER may start a checkout (manage-billing).
     const { data: members } = await client.models.WorkspaceMember.list(contextSpec, {
@@ -74,10 +77,9 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Look up the Stripe price server-side. SubscriptionPlan is publicly readable
-    // (apiKey), so use the public client rather than the IAM one.
-    const publicClient = getServerPublicDataClient()
-    const { data: plan } = await publicClient.models.SubscriptionPlan.get(contextSpec, { planId })
+    // Look up the Stripe price server-side. SubscriptionPlan is readable by
+    // any authenticated user, so the caller's userPool client covers it.
+    const { data: plan } = await client.models.SubscriptionPlan.get(contextSpec, { planId })
 
     if (!plan || plan.isActive === false) {
       throw createError({ statusCode: 400, statusMessage: `Unknown or inactive plan: ${planId}` })

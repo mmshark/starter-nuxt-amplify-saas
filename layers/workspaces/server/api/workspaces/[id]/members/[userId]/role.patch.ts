@@ -1,5 +1,6 @@
-import { getServerIamDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import { z } from 'zod'
+import { getSessionAccessToken, invokeWorkspaceMembership } from '../../../../../utils/workspaceMembership'
 
 const updateRoleSchema = z.object({
   role: z.enum(['ADMIN', 'MEMBER'])
@@ -7,12 +8,19 @@ const updateRoleSchema = z.object({
 
 /**
  * PATCH /api/workspaces/[id]/members/[userId]/role
- * Update a member's role
+ * Update a member's role (OWNER only)
+ *
+ * Delegates to the `workspace-membership` function, because a role change
+ * must also add/remove the target user in the workspace's `ws:<id>:admins`
+ * Cognito group (admin permissions the server does not hold). The Lambda
+ * re-verifies that the caller is the workspace OWNER.
+ *
+ * NOTE: the target user's tokens only reflect the change after their next
+ * token refresh.
  */
 export default defineEventHandler(async (event) => {
   const workspaceId = getRouterParam(event, 'id')
   const targetUserId = getRouterParam(event, 'userId')
-  const user = event.context.user
   const body = await readBody(event)
 
   if (!workspaceId || !targetUserId) {
@@ -27,65 +35,14 @@ export default defineEventHandler(async (event) => {
   // Validate input
   const input = updateRoleSchema.parse(body)
 
-  return await withAmplifyAuth(event, async (contextSpec) => {
-    const client = getServerIamDataClient()
+  const accessToken = getSessionAccessToken(event)
 
-    // Verify requesting user is owner
-    const { data: membership } = await client.models.WorkspaceMember.list(contextSpec, {
-      filter: {
-        and: [
-          { workspaceId: { eq: workspaceId } },
-          { userId: { eq: user.userId } }
-        ]
-      }
-    })
-
-    if (!membership || membership.length === 0 || membership[0].role !== 'OWNER') {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'Forbidden',
-        message: 'Only workspace owner can change member roles',
-        data: {
-          code: 'FORBIDDEN',
-          details: { requiredRole: 'OWNER' }
-        }
-      })
-    }
-
-    // Get target member
-    const { data: targetMember } = await client.models.WorkspaceMember.list(contextSpec, {
-      filter: {
-        and: [
-          { workspaceId: { eq: workspaceId } },
-          { userId: { eq: targetUserId } }
-        ]
-      }
-    })
-
-    if (!targetMember || targetMember.length === 0) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Not Found',
-        message: 'Member not found',
-        data: { code: 'NOT_FOUND' }
-      })
-    }
-
-    if (targetMember[0].role === 'OWNER') {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'Forbidden',
-        message: 'Cannot change owner role',
-        data: { code: 'FORBIDDEN', details: { reason: 'CANNOT_CHANGE_OWNER_ROLE' } }
-      })
-    }
-
-    // Update role
-    await client.models.WorkspaceMember.update(contextSpec, {
-      id: targetMember[0].id,
+  return await withAmplifyAuth(event, (contextSpec) =>
+    invokeWorkspaceMembership<{ success: boolean }>(contextSpec, accessToken, {
+      action: 'updateMemberRole',
+      workspaceId,
+      targetUserId,
       role: input.role
     })
-
-    return { success: true }
-  })
+  )
 })

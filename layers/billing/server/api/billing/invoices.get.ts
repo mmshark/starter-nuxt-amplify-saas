@@ -1,5 +1,5 @@
 import Stripe from 'stripe'
-import { withAmplifyAuth, getServerIamDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
+import { withAmplifyAuth, getServerUserPoolDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
 import { fetchAuthSession } from 'aws-amplify/auth/server'
 
 export default defineEventHandler(async (event) => {
@@ -41,7 +41,9 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    const client = getServerIamDataClient()
+    // userPool client: reads are authorized by the caller's workspace group
+    // claims — defense-in-depth on top of the explicit role check below.
+    const client = getServerUserPoolDataClient()
 
     // Authorize: only workspace OWNER/ADMIN may view invoices.
     const { data: members } = await client.models.WorkspaceMember.list(contextSpec, {

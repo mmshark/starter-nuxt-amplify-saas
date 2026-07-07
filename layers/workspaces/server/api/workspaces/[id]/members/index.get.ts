@@ -1,4 +1,4 @@
-import { getServerIamDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { getServerUserPoolDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import type { WorkspaceMember } from '../../../../types/workspaces'
 
 /**
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event): Promise<WorkspaceMember[]> => {
   }
 
   return await withAmplifyAuth(event, async (contextSpec) => {
-    const client = getServerIamDataClient()
+    const client = getServerUserPoolDataClient()
 
     // Verify user is a member of this workspace
     const { data: membership } = await client.models.WorkspaceMember.list(contextSpec, {

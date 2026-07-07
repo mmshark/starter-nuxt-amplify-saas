@@ -29,6 +29,8 @@ export interface WorkspaceMember {
   joinedAt: string
 }
 
+export type WorkspaceInvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED'
+
 export interface WorkspaceInvitation {
   id: string
   workspaceId: string
@@ -36,9 +38,12 @@ export interface WorkspaceInvitation {
   role: WorkspaceRole
   invitedBy: string
   inviterName?: string | null
+  inviterEmail?: string | null
   token: string
   expiresAt: string
   message?: string | null
+  status?: WorkspaceInvitationStatus
+  createdAt?: string
 }
 
 export interface CreateWorkspaceInput {

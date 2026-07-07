@@ -1,8 +1,14 @@
-import { getServerIamDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { getSessionAccessToken, invokeWorkspaceMembership } from '../../../../../utils/workspaceMembership'
 
 /**
  * POST /api/workspaces/[id]/invitations/[invitationId]/decline
  * Decline a workspace invitation
+ *
+ * Delegates to the `workspace-membership` function: the declining user is
+ * not a member of the workspace, so their token cannot read or update the
+ * invitation row. The Lambda checks the invitation email against the
+ * VERIFIED caller email before marking it DECLINED.
  */
 export default defineEventHandler(async (event) => {
   const workspaceId = getRouterParam(event, 'id')
@@ -15,39 +21,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return await withAmplifyAuth(event, async (contextSpec) => {
-    const client = getServerIamDataClient()
+  const accessToken = getSessionAccessToken(event)
 
-    // Fetch invitation
-    const { data: invitations } = await client.models.WorkspaceInvitation.list(contextSpec, {
-      filter: {
-        id: { eq: invitationId },
-        workspaceId: { eq: workspaceId }
-      }
+  return await withAmplifyAuth(event, (contextSpec) =>
+    invokeWorkspaceMembership<{ success: boolean }>(contextSpec, accessToken, {
+      action: 'declineInvitation',
+      workspaceId,
+      invitationId
     })
-
-    const invitation = invitations?.[0]
-
-    if (!invitation) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Invitation not found'
-      })
-    }
-
-    if (invitation.status !== 'PENDING') {
-      throw createError({
-        statusCode: 400,
-        statusMessage: `Invitation is already ${invitation.status.toLowerCase()}`
-      })
-    }
-
-    // Update invitation status to declined
-    await client.models.WorkspaceInvitation.update(contextSpec, {
-      id: invitationId,
-      status: 'DECLINED'
-    })
-
-    return { success: true }
-  })
+  )
 })

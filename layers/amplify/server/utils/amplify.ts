@@ -211,7 +211,7 @@ export const withAmplifyPublic = async <T>(
  * Custom Amplify outputs (the `custom` block written via `backend.addOutput()`
  * in `apps/backend/amplify/backend.ts`). Used to look up deploy-time values
  * that aren't part of the standard Amplify outputs shape, e.g. the name of
- * the `stripe-webhook` function that the Nitro webhook route invokes.
+ * the `workspace-membership` function that the workspace routes invoke.
  */
 export const amplifyOutputs = outputs as unknown as {
   custom?: Record<string, string>
@@ -385,55 +385,35 @@ export const getServerUserPoolDataClient = () => {
   return generateClient<Schema>({ config: amplifyConfig, authMode: 'userPool' })
 }
 
-/**
- * Create a preconfigured Data client for server-side IAM (identity pool) operations.
- * Use together with withAmplifyAuth to provide contextSpec for calls.
+/*
+ * NOTE — there is deliberately NO IAM ('iam' authMode) data client here.
  *
- * USE CASES:
- * ==========
- * - Privileged workspace/member/invitation/subscription mutations that are no longer
- *   reachable via the public API key (see apps/backend/amplify/data/resource.ts)
- * - Any operation authorized via `allow.authenticated('identityPool')`
+ * The previous `getServerIamDataClient` existed to satisfy
+ * `allow.authenticated('identityPool')` rules on the tenant models. That rule
+ * authorized EVERY authenticated Cognito principal (any signed-in user's
+ * browser could call AppSync directly with their identity-pool credentials
+ * and bypass the routes' OWNER/ADMIN checks), so it was removed.
  *
- * IMPORTANT:
- * ==========
- * This uses authMode: 'iam' and relies on the AWS credentials supplied by the Amplify
- * SSR adapter's identity-pool credentials provider. When called inside `withAmplifyAuth`,
- * the signed-in user's Cognito Identity Pool "authenticated" role credentials are used
- * (wired via `createAWSCredentialsAndIdentityIdProvider` above), which satisfies
- * `allow.authenticated('identityPool')`. When called inside `withAmplifyPublic` (no
- * cookies/session, e.g. the Stripe webhook), the guest (unauthenticated Identity Pool)
- * credentials provider configured above is used instead, satisfying the same
- * `allow.authenticated('identityPool')` rule as an unauthenticated-but-IAM-credentialed
- * caller (Phase 2/3 fix — see doc/plan/2026-07-07-remediation.md). NOTE: the Stripe
- * webhook's actual `WorkspaceSubscription` writes happen inside the dedicated
- * `stripe-webhook` Lambda function (granted access via `allow.resource(stripeWebhook)`),
- * not via this client — see `apps/backend/amplify/functions/stripe-webhook/`.
- *
- * @example
- * ```typescript
- * export default defineEventHandler(async (event) => {
- *   return await withAmplifyAuth(event, async (contextSpec) => {
- *     const client = getServerIamDataClient()
- *     const { data } = await client.models.Workspace.list(contextSpec, { ... })
- *     return { success: true, data }
- *   })
- * })
- * ```
+ * Tenant models are now protected by the group-per-workspace model
+ * (`readerGroups`/`writerGroups` dynamic Cognito group rules — see
+ * `apps/backend/amplify/data/resource.ts` and
+ * `layers/amplify/server/utils/workspaceGroups.ts`). Server routes acting on
+ * behalf of a signed-in user must use `getServerUserPoolDataClient()` inside
+ * `withAmplifyAuth` so the caller's `cognito:groups` claim governs AppSync
+ * access. Privileged sessionless writes happen only inside dedicated Lambda
+ * functions with `allow.resource(...)` grants (`stripe-webhook`,
+ * `workspace-membership`, `post-confirmation`).
  */
-export const getServerIamDataClient = () => {
-  return generateClient<Schema>({ config: amplifyConfig, authMode: 'iam' })
-}
 
 /**
  * Resolve real AWS credentials for the current Amplify SSR context — the
- * signed-in user's Cognito Identity Pool "authenticated" role when called
- * inside `withAmplifyAuth`, or the "unauthenticated" (guest) role's
- * credentials when called inside `withAmplifyPublic`.
+ * SIGNED-IN user's Cognito Identity Pool "authenticated" role. Only valid
+ * inside `withAmplifyAuth` (a user session is required; `withAmplifyPublic`
+ * carries no credentials provider).
  *
  * Use this to construct plain AWS SDK v3 clients (e.g. `@aws-sdk/client-lambda`)
- * for operations that Amplify Data doesn't cover — such as the Stripe webhook
- * invoking the dedicated `stripe-webhook` Lambda function.
+ * for operations that Amplify Data doesn't cover — such as the workspace
+ * routes invoking the dedicated `workspace-membership` Lambda function.
  *
  * @throws if no credentials are available for the current context
  */

@@ -1,4 +1,5 @@
-import { getServerIamDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { getServerUserPoolDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { workspaceGroupFields } from '@mmshark/amplify-layer/server/utils/workspaceGroups'
 import { z } from 'zod'
 
 const inviteMemberSchema = z.object({
@@ -29,7 +30,10 @@ export default defineEventHandler(async (event) => {
   const input = inviteMemberSchema.parse(body)
 
   return await withAmplifyAuth(event, async (contextSpec) => {
-    const client = getServerIamDataClient()
+    // userPool client: creating the invitation is authorized by the caller's
+    // `ws:<id>:admins` group claim (writerGroups rule) — defense-in-depth on
+    // top of the explicit role check below.
+    const client = getServerUserPoolDataClient()
 
     // Verify user is admin/owner
     const { data: membership } = await client.models.WorkspaceMember.list(contextSpec, {
@@ -78,7 +82,8 @@ export default defineEventHandler(async (event) => {
       message: input.message,
       token,
       expiresAt: expiresAt.toISOString(),
-      status: 'PENDING'
+      status: 'PENDING',
+      ...workspaceGroupFields(workspaceId)
     })
 
     if (errors || !invitation) {

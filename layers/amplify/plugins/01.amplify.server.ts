@@ -50,10 +50,16 @@ import outputs from '../amplify_outputs.json'
  *
  * For truly public reads (e.g. SubscriptionPlan on the landing page):
  * → Use server/utils/amplify.ts helpers: withAmplifyPublic() + getServerPublicDataClient()
- * For privileged webhook/tenant-data writes (Workspace, WorkspaceMember,
- * WorkspaceInvitation, WorkspaceSubscription, UserProfile create/update):
- * → Use getServerIamDataClient() (authMode: 'iam'). The public API key is
- *   read-only on SubscriptionPlan only — see apps/backend/amplify/data/resource.ts.
+ * For tenant data (Workspace, WorkspaceMember, WorkspaceInvitation,
+ * WorkspaceSubscription): protected by the group-per-workspace model
+ * (readerGroups/writerGroups dynamic Cognito group rules — see
+ * apps/backend/amplify/data/resource.ts). Server routes acting for a
+ * signed-in user use getServerUserPoolDataClient() inside withAmplifyAuth so
+ * the caller's `cognito:groups` claim governs access. Privileged sessionless
+ * writes happen ONLY inside dedicated Lambda functions with
+ * allow.resource(...) grants (stripe-webhook receives Stripe events directly
+ * on a Function URL; workspace-membership manages groups + membership). The
+ * public API key is read-only on SubscriptionPlan only.
  *
  * USAGE EXAMPLES:
  * ===============
@@ -70,29 +76,6 @@ import outputs from '../amplify_outputs.json'
  *   return { profile: userProfile.data }
  * })
  * ```
- *
- * Privileged webhook operation (tenant data is IAM-only, never apiKey):
- * ```typescript
- * // In a webhook: server/api/billing/webhook.post.ts
- * import { withAmplifyPublic, getServerIamDataClient } from '#amplify/server/utils/amplify'
- *
- * export default defineEventHandler(async (event) => {
- *   const stripeEvent = await readBody(event)
- *
- *   return await withAmplifyPublic(async (contextSpec) => {
- *     const client = getServerIamDataClient()
- *     await client.models.WorkspaceSubscription.update(contextSpec, {
- *       workspaceId: stripeEvent.workspaceId,
- *       status: stripeEvent.status
- *     })
- *     return { success: true }
- *   })
- * })
- * ```
- * NOTE: withAmplifyPublic() supplies no credentials provider, so it has no IAM
- * identity to authenticate an 'iam' call with when there is no signed-in user
- * (e.g. this webhook). This gap is a known open item — see
- * doc/plan/2026-07-07-remediation.md Phase 2 for the tracked follow-up.
  *
  * WHY THIS DIFFERS FROM OFFICIAL DOCS:
  * =====================================
@@ -133,8 +116,9 @@ const getAmplifyAuthKeys = (lastAuthUser: string) =>
  * - Private data access (@auth private) is enabled
  *
  * For truly public reads (SubscriptionPlan only), use getServerPublicDataClient()
- * from server/utils/amplify.ts (authMode: 'apiKey'). For privileged webhook/tenant
- * writes, use getServerIamDataClient() (authMode: 'iam') instead.
+ * from server/utils/amplify.ts (authMode: 'apiKey'). Tenant data is authorized
+ * per-caller via workspace Cognito groups (userPool authMode); there is no
+ * server-side IAM data client.
  */
 const gqlServerClient = generateClient<Schema>({
   config: amplifyConfig,

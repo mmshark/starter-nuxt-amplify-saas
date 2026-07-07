@@ -44,6 +44,20 @@ export const useWorkspaces = () => {
         method: 'POST',
         body: input
       })
+
+      // Workspace access is enforced through Cognito groups
+      // (ws:<id>:members / ws:<id>:admins) that only appear in the user's
+      // tokens after a refresh — force one so the new workspace is
+      // immediately readable/writable.
+      if (import.meta.client) {
+        try {
+          const { fetchAuthSession } = await import('aws-amplify/auth')
+          await fetchAuthSession({ forceRefresh: true })
+        } catch (refreshError) {
+          console.warn('Could not refresh session after workspace creation:', refreshError)
+        }
+      }
+
       workspaces.value.push(newWorkspace)
       currentWorkspaceId.value = newWorkspace.id
       return newWorkspace

@@ -1,4 +1,4 @@
-import { getServerIamDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { getServerUserPoolDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import { fetchAuthSession } from 'aws-amplify/auth/server'
 import Stripe from 'stripe'
 import { getFeaturesForPlan } from '@mmshark/entitlements-layer/config/features'
@@ -42,7 +42,9 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    const client = getServerIamDataClient()
+    // userPool client: reads are authorized by the caller's workspace group
+    // claims — defense-in-depth on top of the membership check below.
+    const client = getServerUserPoolDataClient()
 
     // Validate access: Check if user is a member of the workspace
     const { data: members } = await client.models.WorkspaceMember.list(contextSpec, {

@@ -1,9 +1,14 @@
-import { getServerIamDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { getServerUserPoolDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import type { Workspace } from '../../../types/workspaces'
 
 /**
  * GET /api/workspaces
  * List all workspaces for the authenticated user
+ *
+ * Uses the CALLER's userPool session: own memberships are readable via the
+ * `ownerDefinedIn('userId')` rule, and each workspace via its
+ * `ws:<id>:members` group claim. A workspace joined/created since the last
+ * token refresh appears after the session refreshes.
  *
  * Query params:
  * - limit: number (default 20, max 100)
@@ -16,7 +21,7 @@ export default defineEventHandler(async (event) => {
   const nextToken = query.nextToken as string | undefined
 
   return await withAmplifyAuth(event, async (contextSpec) => {
-    const client = getServerIamDataClient()
+    const client = getServerUserPoolDataClient()
 
     // Get all workspace memberships for this user
     const membershipOptions: any = {
