@@ -1,5 +1,32 @@
-import { withAmplifyPublic, getServerPublicDataClient, getServerIamDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
 import Stripe from 'stripe'
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda'
+import { withAmplifyPublic, getAwsCredentials, amplifyRegion, amplifyOutputs } from '@mmshark/amplify-layer/server/utils/amplify'
+
+/**
+ * Stripe webhook entry point.
+ *
+ * This route ONLY verifies the Stripe signature and parses the event — it
+ * never writes `WorkspaceSubscription` itself. The actual DB sync happens in
+ * the dedicated `stripe-webhook` Amplify function
+ * (`apps/backend/amplify/functions/stripe-webhook/`), which holds its own
+ * `allow.resource(stripeWebhook)` grant on the model. This route has no
+ * Cognito session to draw IAM credentials strong enough for that write from
+ * (Phase 2 gap) — see `layers/amplify/server/utils/amplify.ts` for how the
+ * guest (unauthenticated Identity Pool) credentials used to invoke the
+ * function are obtained, and `apps/backend/amplify/backend.ts` for the
+ * `grantInvoke` that authorizes exactly that invocation.
+ */
+
+// Event types the stripe-webhook function actually understands. Everything
+// else is acknowledged without invoking the function.
+const RELEVANT_EVENT_TYPES = new Set([
+  'customer.subscription.created',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+  'checkout.session.completed',
+  'invoice.payment_succeeded',
+  'invoice.payment_failed',
+])
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -15,287 +42,75 @@ export default defineEventHandler(async (event) => {
     apiVersion: '2025-02-24.acacia'
   })
 
-  try {
-    const body = await readRawBody(event)
-    const signature = getHeader(event, 'stripe-signature')
+  const body = await readRawBody(event)
+  const signature = getHeader(event, 'stripe-signature')
 
-    if (!signature) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Missing Stripe signature'
-      })
-    }
-
-    // Verify webhook signature
-    const webhookEvent = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      config.stripe.webhookSecret
-    )
-
-
-    // Handle different webhook events
-    switch (webhookEvent.type) {
-      case 'checkout.session.completed':
-        await handleCheckoutCompleted(webhookEvent.data.object as Stripe.Checkout.Session)
-        break
-
-      case 'customer.subscription.created':
-        await handleSubscriptionCreated(webhookEvent.data.object as Stripe.Subscription)
-        break
-
-      case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(webhookEvent.data.object as Stripe.Subscription)
-        break
-
-      case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(webhookEvent.data.object as Stripe.Subscription)
-        break
-
-      case 'invoice.payment_succeeded':
-        await handlePaymentSucceeded(webhookEvent.data.object as Stripe.Invoice)
-        break
-
-      case 'invoice.payment_failed':
-        await handlePaymentFailed(webhookEvent.data.object as Stripe.Invoice)
-        break
-
-      default:
-    }
-
-    return { received: true }
-
-  } catch (error: any) {
-    console.error('Webhook error:', error)
-
+  if (!signature || !body) {
     throw createError({
       statusCode: 400,
-      statusMessage: error.message || 'Webhook handling failed'
+      statusMessage: 'Missing Stripe signature or body'
     })
   }
-})
 
-// Helper functions for database operations
-async function getWorkspaceIdFromStripeCustomer(stripeCustomerId: string): Promise<string | null> {
+  let stripeEvent: Stripe.Event
   try {
-    // Note: webhooks have no Cognito session; this uses IAM (identity pool) auth.
-    // See doc/plan/2026-07-07-remediation.md Phase 2 — the webhook has no signed-in
-    // user, so it cannot obtain "authenticated identity pool" IAM credentials via
-    // withAmplifyPublic today. This call site is switched to getServerIamDataClient()
-    // to match the new WorkspaceSubscription authorization rule, but it will only
-    // succeed once the server's credential path for unauthenticated contexts is wired
-    // (flagged as a blocking concern for Task 2.4 deploy verification).
-    return await withAmplifyPublic(async (contextSpec) => {
-      const client = getServerIamDataClient()
-      const { data, errors } = await client.models.WorkspaceSubscription.list(contextSpec, {
-        filter: { stripeCustomerId: { eq: stripeCustomerId } }
-      })
-
-      if (errors) {
-        console.error('Error finding workspace from Stripe customer:', errors)
-        return null
-      }
-
-      const subscription = data[0]
-      return subscription?.workspaceId || null
+    stripeEvent = stripe.webhooks.constructEvent(body, signature, config.stripe.webhookSecret)
+  } catch (err: any) {
+    console.error('Stripe webhook signature verification failed:', err)
+    throw createError({
+      statusCode: 400,
+      statusMessage: `Webhook signature verification failed: ${err.message}`
     })
-  } catch (error) {
-    console.error('Error in getWorkspaceIdFromStripeCustomer:', error)
-    return null
-  }
-}
-
-// Helper function to find plan ID by Stripe Price ID
-async function getPlanIdByStripePriceId(stripePriceId: string): Promise<string | null> {
-  try {
-    return await withAmplifyPublic(async (contextSpec) => {
-      const client = getServerPublicDataClient() // SubscriptionPlan is still publicly readable
-      const { data, errors } = await client.models.SubscriptionPlan.list(contextSpec, {
-        filter: {
-          or: [
-            { stripeMonthlyPriceId: { eq: stripePriceId } },
-            { stripeYearlyPriceId: { eq: stripePriceId } }
-          ]
-        }
-      })
-
-      if (errors || !data || data.length === 0) {
-        console.error('Plan not found for Stripe price ID:', stripePriceId, errors)
-        return null
-      }
-
-      return data[0].planId
-    })
-  } catch (error) {
-    console.error('Error finding plan by Stripe price ID:', error)
-    return null
-  }
-}
-
-// Helper function to create or update workspace subscription
-async function upsertWorkspaceSubscription(subscription: Stripe.Subscription): Promise<boolean> {
-  try {
-    const workspaceId = await resolveCustomerToWorkspace(subscription.customer, `subscription ${subscription.id}`)
-    if (!workspaceId) return false
-
-    const priceId = subscription.items.data[0]?.price?.id
-    if (!priceId) {
-      console.error('No price ID in subscription:', subscription.id)
-      return false
-    }
-
-    const planId = await getPlanIdByStripePriceId(priceId)
-    if (!planId) {
-      console.error('Plan not found for price ID:', priceId)
-      return false
-    }
-
-    return await withAmplifyPublic(async (contextSpec) => {
-      const client = getServerIamDataClient()
-
-      // Determine billing interval
-      const interval = subscription.items.data[0]?.price?.recurring?.interval === 'year' ? 'year' : 'month'
-
-      const subscriptionData = {
-        planId,
-        stripeSubscriptionId: subscription.id,
-        stripeCustomerId: getCustomerId(subscription.customer) || '',
-        status: subscription.status as any,
-        currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
-        cancelAtPeriodEnd: subscription.cancel_at_period_end,
-        billingInterval: interval as 'month' | 'year',
-        trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000).toISOString() : null,
-        trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
-      }
-
-      // Try to update existing subscription first (identified by workspaceId)
-      const { data: existing } = await client.models.WorkspaceSubscription.get(contextSpec, {
-        workspaceId
-      })
-
-      if (existing) {
-        // Update existing subscription
-        const { errors } = await client.models.WorkspaceSubscription.update(contextSpec, {
-          workspaceId,
-          ...subscriptionData
-        })
-
-        if (errors) {
-          console.error('Error updating workspace subscription:', errors)
-          return false
-        }
-      } else {
-        // Create new subscription
-        const { errors } = await client.models.WorkspaceSubscription.create(contextSpec, {
-          workspaceId,
-          ...subscriptionData
-        })
-
-        if (errors) {
-          console.error('Error creating workspace subscription:', errors)
-          return false
-        }
-      }
-
-      return true
-    })
-  } catch (error) {
-    console.error('Error in upsertWorkspaceSubscription:', error)
-    return false
-  }
-}
-
-// Webhook handlers
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  const workspaceId = session.metadata?.workspaceId
-  if (!workspaceId) {
-    console.error('No workspaceId in checkout session metadata')
-    return
   }
 
-  // Workspace subscription will be created/updated by subscription.created event
-  console.log(`Checkout completed for workspace: ${workspaceId}`)
-}
-
-async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
-  await upsertWorkspaceSubscription(subscription)
-}
-
-async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  await upsertWorkspaceSubscription(subscription)
-}
-
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  const workspaceId = await resolveCustomerToWorkspace(subscription.customer, `subscription ${subscription.id}`)
-  if (!workspaceId) return
+  if (!RELEVANT_EVENT_TYPES.has(stripeEvent.type)) {
+    return { received: true }
+  }
 
   try {
     await withAmplifyPublic(async (contextSpec) => {
-      const client = getServerIamDataClient()
-
-      // Revert to free plan when subscription is canceled
-      const { errors } = await client.models.WorkspaceSubscription.update(contextSpec, {
-        workspaceId,
-        planId: 'free',
-        stripeSubscriptionId: null, // No Stripe subscription for free plan
-        status: 'active', // Free plan is active
-        currentPeriodStart: new Date().toISOString(), // When they reverted to free
-        currentPeriodEnd: null, // Free plan never expires
-        cancelAtPeriodEnd: false,
-        billingInterval: null, // No billing for free plan
-        trialStart: null, // No trial for free plan
-        trialEnd: null, // No trial for free plan
+      await invokeStripeWebhookFunction(contextSpec, {
+        id: stripeEvent.id,
+        type: stripeEvent.type,
+        created: stripeEvent.created,
+        data: stripeEvent.data
       })
-
-      if (errors) {
-        console.error('Error reverting to free plan:', errors)
-      } else {
-        console.log(`Workspace ${workspaceId} reverted to free plan`)
-      }
     })
-  } catch (error) {
-    console.error('Error handling subscription deletion:', error)
-  }
-}
-
-// Common helper for resolving customer to workspace
-async function resolveCustomerToWorkspace(customer: string | Stripe.Customer | Stripe.DeletedCustomer | null, context: string): Promise<string | null> {
-  const customerId = getCustomerId(customer)
-
-  if (!customerId) {
-    console.error(`Invalid customer data in ${context}`)
-    return null
+  } catch (error: any) {
+    console.error(`Failed to sync Stripe event ${stripeEvent.id} (${stripeEvent.type}):`, error)
+    // Fail loudly so Stripe retries delivery (Task 3.3 step 2) instead of
+    // silently swallowing a failed DB write.
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Failed to sync subscription data'
+    })
   }
 
-  const workspaceId = await getWorkspaceIdFromStripeCustomer(customerId)
-  if (!workspaceId) {
-    console.error(`No workspace found for Stripe customer: ${customerId} in ${context}`)
-    return null
+  return { received: true }
+})
+
+async function invokeStripeWebhookFunction(contextSpec: any, payload: Record<string, unknown>): Promise<void> {
+  const functionName = amplifyOutputs.custom?.stripeWebhookFunctionName
+  if (!functionName) {
+    throw new Error(
+      'amplify_outputs.json has no custom.stripeWebhookFunctionName. Redeploy the backend ' +
+        '(the stripe-webhook function output is added in apps/backend/amplify/backend.ts).'
+    )
   }
 
-  return workspaceId
-}
+  const credentials = await getAwsCredentials(contextSpec)
+  const lambda = new LambdaClient({ region: amplifyRegion, credentials })
 
-async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
-  const workspaceId = await resolveCustomerToWorkspace(invoice.customer, `invoice ${invoice.id}`)
-  if (workspaceId) {
-    // TODO: Send confirmation email to workspace owner, update payment status
-    console.log(`Payment succeeded for workspace: ${workspaceId}`)
+  const response = await lambda.send(
+    new InvokeCommand({
+      FunctionName: functionName,
+      InvocationType: 'RequestResponse',
+      Payload: Buffer.from(JSON.stringify(payload))
+    })
+  )
+
+  if (response.FunctionError) {
+    const errorPayload = response.Payload ? Buffer.from(response.Payload).toString('utf-8') : ''
+    throw new Error(`stripe-webhook function returned ${response.FunctionError}: ${errorPayload}`)
   }
-}
-
-async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  const workspaceId = await resolveCustomerToWorkspace(invoice.customer, `invoice ${invoice.id}`)
-  if (workspaceId) {
-    // TODO: Send notification to workspace owner, handle failed payment
-    console.log(`Payment failed for workspace: ${workspaceId}`)
-  }
-}
-
-
-// Helper function to safely extract customer ID from Stripe objects
-function getCustomerId(customer: string | Stripe.Customer | Stripe.DeletedCustomer | null): string | null {
-  if (!customer) return null
-  return typeof customer === 'string' ? customer : customer.id
 }

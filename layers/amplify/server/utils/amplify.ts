@@ -155,14 +155,66 @@ export const withAmplifyAuth = async <T>(
  * })
  * ```
  */
+/**
+ * Empty key-value storage: no cookies, no signed-in user. Used to derive
+ * Cognito Identity Pool UNAUTHENTICATED ("guest") credentials for server
+ * contexts that have no Cognito session (e.g. the Stripe webhook route).
+ */
+const emptyKeyValueStorage = createKeyValueStorageFromCookieStorageAdapter({
+  get() {
+    return undefined
+  },
+  getAll() {
+    return []
+  },
+  set() {
+    // no-op: nothing to persist for a sessionless (guest) context
+  },
+  delete() {
+    // no-op
+  }
+})
+
+/**
+ * Guest (unauthenticated Identity Pool) credentials provider. With no token
+ * provider configured, `createAWSCredentialsAndIdentityIdProvider` resolves
+ * the Cognito Identity Pool's UNAUTHENTICATED role credentials instead of an
+ * authenticated user's — this is what lets `withAmplifyPublic` obtain real
+ * IAM credentials for sessionless requests (see Phase 2/3 notes below).
+ */
+const guestCredentialsProvider = createAWSCredentialsAndIdentityIdProvider(
+  amplifyConfig.Auth!,
+  emptyKeyValueStorage
+)
+
 export const withAmplifyPublic = async <T>(
   callback: (contextSpec: any) => T | Promise<T>
 ): Promise<T> => {
   return runWithAmplifyServerContext<T>(
     amplifyConfig,
-    {}, // No auth options for public access
+    {
+      Auth: {
+        // Grants the Cognito Identity Pool "unauthenticated" role credentials,
+        // so `getServerIamDataClient()` and other AWS SDK calls made from
+        // `withAmplifyPublic` (e.g. the Stripe webhook) have a real IAM
+        // principal to authenticate as. Requires the unauthenticated role to
+        // be explicitly granted access (see `backend.ts`:
+        // `stripeWebhook.resources.lambda.grantInvoke(auth.resources.unauthenticatedUserIamRole)`).
+        credentialsProvider: guestCredentialsProvider
+      }
+    },
     callback
   )
+}
+
+/**
+ * Custom Amplify outputs (the `custom` block written via `backend.addOutput()`
+ * in `apps/backend/amplify/backend.ts`). Used to look up deploy-time values
+ * that aren't part of the standard Amplify outputs shape, e.g. the name of
+ * the `stripe-webhook` function that the Nitro webhook route invokes.
+ */
+export const amplifyOutputs = outputs as unknown as {
+  custom?: Record<string, string>
 }
 
 /**
@@ -350,10 +402,13 @@ export const getServerUserPoolDataClient = () => {
  * the signed-in user's Cognito Identity Pool "authenticated" role credentials are used
  * (wired via `createAWSCredentialsAndIdentityIdProvider` above), which satisfies
  * `allow.authenticated('identityPool')`. When called inside `withAmplifyPublic` (no
- * cookies/session, e.g. the Stripe webhook), no credentials provider is configured, so
- * there is no IAM identity to authenticate the request — that gap must be closed
- * separately (see doc/plan/2026-07-07-remediation.md Phase 2 notes) before relying on
- * this client from unauthenticated server contexts.
+ * cookies/session, e.g. the Stripe webhook), the guest (unauthenticated Identity Pool)
+ * credentials provider configured above is used instead, satisfying the same
+ * `allow.authenticated('identityPool')` rule as an unauthenticated-but-IAM-credentialed
+ * caller (Phase 2/3 fix — see doc/plan/2026-07-07-remediation.md). NOTE: the Stripe
+ * webhook's actual `WorkspaceSubscription` writes happen inside the dedicated
+ * `stripe-webhook` Lambda function (granted access via `allow.resource(stripeWebhook)`),
+ * not via this client — see `apps/backend/amplify/functions/stripe-webhook/`.
  *
  * @example
  * ```typescript
@@ -369,3 +424,34 @@ export const getServerUserPoolDataClient = () => {
 export const getServerIamDataClient = () => {
   return generateClient<Schema>({ config: amplifyConfig, authMode: 'iam' })
 }
+
+/**
+ * Resolve real AWS credentials for the current Amplify SSR context — the
+ * signed-in user's Cognito Identity Pool "authenticated" role when called
+ * inside `withAmplifyAuth`, or the "unauthenticated" (guest) role's
+ * credentials when called inside `withAmplifyPublic`.
+ *
+ * Use this to construct plain AWS SDK v3 clients (e.g. `@aws-sdk/client-lambda`)
+ * for operations that Amplify Data doesn't cover — such as the Stripe webhook
+ * invoking the dedicated `stripe-webhook` Lambda function.
+ *
+ * @throws if no credentials are available for the current context
+ */
+export const getAwsCredentials = async (contextSpec: any) => {
+  const { fetchAuthSession } = await import('aws-amplify/auth/server')
+  const session = await fetchAuthSession(contextSpec)
+
+  if (!session.credentials) {
+    throw new Error('No AWS credentials available for the current Amplify server context')
+  }
+
+  return session.credentials
+}
+
+/**
+ * AWS region backing this Amplify project's Cognito Identity Pool, derived
+ * from the identity pool id (`<region>:<uuid>`). Useful when constructing
+ * plain AWS SDK v3 clients from Nitro server code.
+ */
+export const amplifyRegion =
+  amplifyConfig.Auth?.Cognito?.identityPoolId?.split(':')[0] || process.env.AWS_REGION

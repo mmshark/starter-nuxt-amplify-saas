@@ -1,5 +1,6 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { postConfirmation } from "../auth/post-confirmation/resource";
+import { stripeWebhook } from "../functions/stripe-webhook/resource";
 
 /**
  * UserProfile - User-level attributes and preferences
@@ -78,11 +79,24 @@ const schema = a
       trialEnd: a.datetime(),
     })
       .authorization((allow) => [
-        allow.authenticated('identityPool'), // webhook + server writes via IAM
+        allow.authenticated('identityPool'), // server writes via IAM (checkout, portal, etc.)
+        allow.resource(stripeWebhook), // Stripe webhook sync (sessionless Lambda, no user auth)
       ])
       .identifier(['workspaceId'])
       .secondaryIndexes((index) => [
         index('stripeCustomerId'),
+      ]),
+
+    // Dedupe table for Stripe webhook delivery: guards against reprocessing a
+    // redelivered/retried event (Task 3.3 step 3).
+    ProcessedStripeEvent: a.model({
+      eventId: a.string().required(),
+      type: a.string(),
+      processedAt: a.datetime().required(),
+    })
+      .identifier(['eventId'])
+      .authorization((allow) => [
+        allow.resource(stripeWebhook),
       ]),
 
     WorkspaceMember: a.model({
