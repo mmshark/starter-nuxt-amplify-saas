@@ -5,6 +5,10 @@ export default defineNuxtConfig({
       webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
     },
     public: {
+      // Base URL used to build Stripe checkout/portal redirect URLs.
+      // Deliberately NOT derived from request Host/X-Forwarded-* headers
+      // (those are attacker-controlled) — see Phase 3 Task 3.2.
+      appBaseUrl: process.env.APP_BASE_URL || 'http://localhost:3000',
       stripe: {
         publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
       }

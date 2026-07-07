@@ -1,6 +1,10 @@
 import Stripe from 'stripe'
-import { withAmplifyAuth, getServerIamDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
+import { withAmplifyAuth, getServerIamDataClient, getServerPublicDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
 import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth/server'
+import { ensureWorkspaceBilling } from '../../utils/ensureWorkspaceBilling'
+
+const BILLING_INTERVALS = ['monthly', 'yearly'] as const
+type BillingInterval = (typeof BILLING_INTERVALS)[number]
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -12,23 +16,30 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Parse request body
+  const baseUrl = config.public?.appBaseUrl
+  if (!baseUrl) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'appBaseUrl is not configured'
+    })
+  }
+
+  // Parse request body. `priceId` is intentionally NOT accepted from the client
+  // (review M3 / Phase 3 Task 3.2) — it is looked up server-side from planId +
+  // billingInterval so a caller can never redirect a checkout to an arbitrary price.
   const body = await readBody(event)
-  const { priceId, planId, billingInterval, workspaceId } = body
+  const { workspaceId, planId, billingInterval } = body || {}
 
-  if (!priceId || !planId || !billingInterval) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Missing required parameters: priceId, planId, billingInterval'
-    })
+  if (!workspaceId || typeof workspaceId !== 'string') {
+    throw createError({ statusCode: 400, statusMessage: 'Missing required parameter: workspaceId' })
   }
-
-  if (!workspaceId) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Missing required parameter: workspaceId'
-    })
+  if (!planId || typeof planId !== 'string') {
+    throw createError({ statusCode: 400, statusMessage: 'Missing required parameter: planId' })
   }
+  if (!BILLING_INTERVALS.includes(billingInterval)) {
+    throw createError({ statusCode: 400, statusMessage: 'billingInterval must be "monthly" or "yearly"' })
+  }
+  const interval = billingInterval as BillingInterval
 
   const stripe = new Stripe(config.stripe.secretKey, {
     apiVersion: '2025-02-24.acacia'
@@ -48,82 +59,86 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'User authentication data incomplete'
       })
     }
+
     const client = getServerIamDataClient()
-    const { data: profiles } = await client.models.UserProfile.list(contextSpec, {
-      filter: { userId: { eq: userId } }
+
+    // Authorize: only the workspace OWNER may start a checkout (manage-billing).
+    const { data: members } = await client.models.WorkspaceMember.list(contextSpec, {
+      filter: { workspaceId: { eq: workspaceId }, userId: { eq: userId } }
+    })
+    const membership = members?.[0]
+    if (!membership || membership.role !== 'OWNER') {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Only the workspace owner can manage billing'
       })
+    }
 
-      let customerId: string
-      const existingProfile = profiles?.[0]
+    // Look up the Stripe price server-side. SubscriptionPlan is publicly readable
+    // (apiKey), so use the public client rather than the IAM one.
+    const publicClient = getServerPublicDataClient()
+    const { data: plan } = await publicClient.models.SubscriptionPlan.get(contextSpec, { planId })
 
-      if (existingProfile?.stripeCustomerId) {
-        customerId = existingProfile.stripeCustomerId
-      } else {
-        // Create new Stripe customer
-        const customer = await stripe.customers.create({
-          email,
-          metadata: {
-            userId
-          }
-        })
+    if (!plan || plan.isActive === false) {
+      throw createError({ statusCode: 400, statusMessage: `Unknown or inactive plan: ${planId}` })
+    }
 
-        customerId = customer.id
-
-        // Update user profile with customer ID
-        if (existingProfile) {
-          await client.models.UserProfile.update(contextSpec, {
-            userId,
-            stripeCustomerId: customerId
-          })
-        } else {
-          await client.models.UserProfile.create(contextSpec, {
-            userId,
-            stripeCustomerId: customerId
-          })
-        }
-      }
-
-      // Create Stripe checkout session
-      const checkoutSession = await stripe.checkout.sessions.create({
-        customer: customerId,
-        mode: 'subscription',
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price: priceId,
-            quantity: 1
-          }
-        ],
-        metadata: {
-          userId,
-          planId,
-          billingInterval,
-          workspaceId
-        },
-        success_url: `${getBaseUrl(event)}/settings/billing?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${getBaseUrl(event)}/pricing`,
-        allow_promotion_codes: true,
-        billing_address_collection: 'required',
-        customer_update: {
-          address: 'auto',
-          name: 'auto'
-        }
+    const priceId = interval === 'yearly' ? plan.stripeYearlyPriceId : plan.stripeMonthlyPriceId
+    if (!priceId) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: `Plan "${planId}" has no configured ${interval} price`
       })
+    }
 
-      return {
-        success: true,
-        data: {
-          url: checkoutSession.url,
-          sessionId: checkoutSession.id
+    // Resolve (or create) the WORKSPACE's Stripe customer — never per-user.
+    const { stripeCustomerId } = await ensureWorkspaceBilling({
+      workspaceId,
+      stripe,
+      client,
+      contextSpec,
+      customerEmail: email,
+      customerName: userAttributes?.name
+    })
+
+    // Create Stripe checkout session
+    const checkoutSession = await stripe.checkout.sessions.create({
+      customer: stripeCustomerId,
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1
         }
+      ],
+      subscription_data: {
+        // The webhook resolves the workspace from this metadata (Task 3.3) —
+        // it never has a Cognito session to look the workspace up any other way.
+        metadata: { workspaceId }
+      },
+      metadata: {
+        userId,
+        planId,
+        billingInterval: interval,
+        workspaceId
+      },
+      success_url: `${baseUrl}/settings/billing?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/pricing`,
+      allow_promotion_codes: true,
+      billing_address_collection: 'required',
+      customer_update: {
+        address: 'auto',
+        name: 'auto'
       }
+    })
+
+    return {
+      success: true,
+      data: {
+        url: checkoutSession.url,
+        sessionId: checkoutSession.id
+      }
+    }
   })
 })
-
-// Helper function to get base URL
-function getBaseUrl(event: any): string {
-  const headers = getHeaders(event)
-  const host = headers.host || headers['x-forwarded-host'] || 'localhost:3000'
-  const protocol = headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https')
-  return `${protocol}://${host}`
-}
