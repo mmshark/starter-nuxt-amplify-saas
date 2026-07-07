@@ -279,6 +279,21 @@ function requireParam(value: string | undefined, name: string): string {
   return value
 }
 
+/**
+ * Strict set-equality between a stored group-field value (nullable array of
+ * nullable strings, as Amplify types it) and the expected canonical groups.
+ * Fail-closed: null/undefined/partial values never match.
+ */
+function sameGroupSet(
+  actual: ReadonlyArray<string | null> | null | undefined,
+  expected: ReadonlyArray<string>
+): boolean {
+  if (!actual || actual.length !== expected.length) return false
+  const actualSorted = actual.map((value) => value ?? '').sort()
+  const expectedSorted = [...expected].sort()
+  return expectedSorted.every((value, index) => value === actualSorted[index])
+}
+
 async function adjustMemberCount(workspaceId: string, delta: number): Promise<void> {
   const { data: workspace } = await client.models.Workspace.get({ id: workspaceId })
   if (workspace) {
@@ -502,6 +517,47 @@ async function acceptInvitation(caller: Caller, event: MembershipEvent) {
   // The invitation email must match the VERIFIED caller email.
   if (!invitation.email || invitation.email.toLowerCase() !== caller.email.toLowerCase()) {
     throw new MembershipError(403, 'This invitation was sent to a different email address')
+  }
+
+  // PROVENANCE (defense-in-depth, fail-closed). Invitations are only ever
+  // created by this function's `createInvitation`, but re-verify anyway so a
+  // row injected through any other path can never grant membership:
+  //
+  // (a) The stored group fields must be EXACTLY the canonical groups derived
+  //     from the workspace id. A mismatch means the row was not authored by
+  //     the trusted path.
+  const expectedGroups = workspaceGroupFields(workspaceId)
+  if (
+    !sameGroupSet(invitation.readerGroups, expectedGroups.readerGroups) ||
+    !sameGroupSet(invitation.writerGroups, expectedGroups.writerGroups)
+  ) {
+    console.error(
+      `acceptInvitation: invitation ${invitationId} group fields do not match workspace ${workspaceId}`
+    )
+    throw new MembershipError(403, 'Invitation is not valid for this workspace')
+  }
+
+  // (b) The inviter must hold an OWNER/ADMIN membership in the workspace.
+  //     (Fail-closed: if the inviter has since left or been demoted, the
+  //     invitation is no longer honored.)
+  if (!invitation.invitedBy) {
+    throw new MembershipError(403, 'Invitation has no valid inviter')
+  }
+  const inviterMembership = await getMembership(workspaceId, invitation.invitedBy)
+  if (
+    !inviterMembership ||
+    !inviterMembership.role ||
+    !['OWNER', 'ADMIN'].includes(inviterMembership.role)
+  ) {
+    console.error(
+      `acceptInvitation: inviter ${invitation.invitedBy} is not an OWNER/ADMIN of workspace ${workspaceId}`
+    )
+    throw new MembershipError(403, 'Invitation was not issued by a workspace owner or admin')
+  }
+
+  // (c) An invitation can never grant OWNER (ownership only via createWorkspace).
+  if (invitation.role === 'OWNER') {
+    throw new MembershipError(403, 'Invitations cannot grant the OWNER role')
   }
 
   if (await getMembership(workspaceId, caller.userId)) {
