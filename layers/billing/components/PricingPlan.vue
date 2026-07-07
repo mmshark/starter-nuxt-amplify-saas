@@ -101,19 +101,6 @@ const getPriceId = (plan: Plan): string | null => {
   return plan.stripeMonthlyPriceId || null
 }
 
-const formatPrice = (value: number, currency?: string): string => {
-  // Stripe prices are always in cents
-  const amount = value / 100
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: currency || 'USD'
-    }).format(amount)
-  } catch {
-    return `$${amount.toFixed(2)}`
-  }
-}
-
 const handleSelect = async () => {
   if (!autonomousPlan.value) return
 

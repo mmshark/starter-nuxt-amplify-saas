@@ -28,7 +28,7 @@ export const useEntitlements = createSharedComposable(() => {
     const planId = currentWorkspace.value?.subscription?.planId
 
     // Validate plan is one of our known plans
-    if (planId === 'free' || planId === 'pro' || planId === 'enterprise') {
+    if (planId === 'free' || planId === 'starter' || planId === 'pro' || planId === 'enterprise') {
       return planId as Plan
     }
 
@@ -115,8 +115,9 @@ export const useEntitlements = createSharedComposable(() => {
   const hasPlan = (minPlan: Plan): boolean => {
     const planHierarchy: Record<Plan, number> = {
       free: 1,
-      pro: 2,
-      enterprise: 3,
+      starter: 2,
+      pro: 3,
+      enterprise: 4,
     }
 
     return planHierarchy[subscriptionPlan.value] >= planHierarchy[minPlan]
@@ -130,7 +131,7 @@ export const useEntitlements = createSharedComposable(() => {
    */
   const getRequiredPlanForFeature = (feature: Feature): Plan => {
     // Find the lowest plan that includes this feature
-    const plans: Plan[] = ['free', 'pro', 'enterprise']
+    const plans: Plan[] = ['free', 'starter', 'pro', 'enterprise']
     for (const plan of plans) {
       if (planIncludesFeature(plan, feature)) {
         return plan

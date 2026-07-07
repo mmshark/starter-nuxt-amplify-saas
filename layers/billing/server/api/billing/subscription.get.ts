@@ -1,6 +1,10 @@
 import { getServerIamDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import { fetchAuthSession } from 'aws-amplify/auth/server'
 import Stripe from 'stripe'
+import { getFeaturesForPlan } from '@mmshark/entitlements-layer/config/features'
+import type { Plan } from '@mmshark/entitlements-layer/types/entitlements'
+
+const KNOWN_PLANS: readonly Plan[] = ['free', 'starter', 'pro', 'enterprise']
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -127,8 +131,10 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Get plan features
-    const planFeatures = []
+    // Get plan features for the workspace's current plan (default to 'free' if unknown)
+    const planId = workspaceSubscription.planId
+    const knownPlan = (KNOWN_PLANS as readonly string[]).includes(planId) ? (planId as Plan) : 'free'
+    const planFeatures = getFeaturesForPlan(knownPlan)
 
     return {
       success: true,

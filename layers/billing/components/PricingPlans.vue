@@ -171,17 +171,4 @@ const handleSelect = async (plan: InputPlan) => {
     inFlightPlanId.value = null
   }
 }
-
-function formatPrice(value: number, currency?: string): string {
-  // Stripe prices are always in cents
-  const amount = value / 100
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: currency || 'USD'
-    }).format(amount)
-  } catch {
-    return `$${amount.toFixed(2)}`
-  }
-}
 </script>

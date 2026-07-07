@@ -37,7 +37,7 @@
           {{ effectiveSubscription?.plan.name }}
         </h3>
         <p class="text-3xl font-bold text-primary-600 mt-2">
-          ${{ effectiveSubscription?.plan.price }}
+          {{ formatPrice(effectiveSubscription?.plan.price) }}
           <span class="text-lg font-normal text-gray-600 dark:text-gray-400">
             /{{ effectiveSubscription?.plan.interval }}
           </span>

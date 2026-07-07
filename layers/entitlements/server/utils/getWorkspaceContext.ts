@@ -66,7 +66,7 @@ export async function getWorkspaceContext(event: H3Event): Promise<WorkspaceCont
     let plan: Plan = 'free'
 
     // Validate plan is one of our known plans
-    if (planId === 'free' || planId === 'pro' || planId === 'enterprise') {
+    if (planId === 'free' || planId === 'starter' || planId === 'pro' || planId === 'enterprise') {
       plan = planId as Plan
     }
 
