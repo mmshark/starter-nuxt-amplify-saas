@@ -332,3 +332,40 @@ export const getServerPublicDataClient = () => {
 export const getServerUserPoolDataClient = () => {
   return generateClient<Schema>({ config: amplifyConfig, authMode: 'userPool' })
 }
+
+/**
+ * Create a preconfigured Data client for server-side IAM (identity pool) operations.
+ * Use together with withAmplifyAuth to provide contextSpec for calls.
+ *
+ * USE CASES:
+ * ==========
+ * - Privileged workspace/member/invitation/subscription mutations that are no longer
+ *   reachable via the public API key (see apps/backend/amplify/data/resource.ts)
+ * - Any operation authorized via `allow.authenticated('identityPool')`
+ *
+ * IMPORTANT:
+ * ==========
+ * This uses authMode: 'iam' and relies on the AWS credentials supplied by the Amplify
+ * SSR adapter's identity-pool credentials provider. When called inside `withAmplifyAuth`,
+ * the signed-in user's Cognito Identity Pool "authenticated" role credentials are used
+ * (wired via `createAWSCredentialsAndIdentityIdProvider` above), which satisfies
+ * `allow.authenticated('identityPool')`. When called inside `withAmplifyPublic` (no
+ * cookies/session, e.g. the Stripe webhook), no credentials provider is configured, so
+ * there is no IAM identity to authenticate the request — that gap must be closed
+ * separately (see doc/plan/2026-07-07-remediation.md Phase 2 notes) before relying on
+ * this client from unauthenticated server contexts.
+ *
+ * @example
+ * ```typescript
+ * export default defineEventHandler(async (event) => {
+ *   return await withAmplifyAuth(event, async (contextSpec) => {
+ *     const client = getServerIamDataClient()
+ *     const { data } = await client.models.Workspace.list(contextSpec, { ... })
+ *     return { success: true, data }
+ *   })
+ * })
+ * ```
+ */
+export const getServerIamDataClient = () => {
+  return generateClient<Schema>({ config: amplifyConfig, authMode: 'iam' })
+}

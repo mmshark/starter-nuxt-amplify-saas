@@ -1,4 +1,4 @@
-import { getServerPublicDataClient, withAmplifyPublic } from '@mmshark/amplify-layer/server/utils/amplify'
+import { getServerIamDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import { z } from 'zod'
 import type { Workspace } from '../../../../types/workspaces'
 
@@ -25,8 +25,8 @@ export default defineEventHandler(async (event): Promise<Workspace> => {
   const body = await readBody(event)
   const input = updateWorkspaceSchema.parse(body)
 
-  return await withAmplifyPublic(async (contextSpec) => {
-    const client = getServerPublicDataClient()
+  return await withAmplifyAuth(event, async (contextSpec) => {
+    const client = getServerIamDataClient()
 
     // Verify workspace exists
     const { data: workspace } = await client.models.Workspace.get(contextSpec, { id: workspaceId })

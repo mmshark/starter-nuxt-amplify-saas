@@ -1,4 +1,4 @@
-import { getServerPublicDataClient, withAmplifyPublic } from '@mmshark/amplify-layer/server/utils/amplify'
+import { getServerIamDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 
 /**
  * POST /api/workspaces/[id]/invitations/[invitationId]/decline
@@ -15,8 +15,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return await withAmplifyPublic(async (contextSpec) => {
-    const client = getServerPublicDataClient()
+  return await withAmplifyAuth(event, async (contextSpec) => {
+    const client = getServerIamDataClient()
 
     // Fetch invitation
     const { data: invitations } = await client.models.WorkspaceInvitation.list(contextSpec, {

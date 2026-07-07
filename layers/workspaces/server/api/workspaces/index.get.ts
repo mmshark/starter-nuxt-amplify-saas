@@ -1,4 +1,4 @@
-import { getServerPublicDataClient, withAmplifyPublic } from '@mmshark/amplify-layer/server/utils/amplify'
+import { getServerIamDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import type { Workspace } from '../../../types/workspaces'
 
 /**
@@ -15,8 +15,8 @@ export default defineEventHandler(async (event) => {
   const limit = Math.min(Number(query.limit) || 20, 100)
   const nextToken = query.nextToken as string | undefined
 
-  return await withAmplifyPublic(async (contextSpec) => {
-    const client = getServerPublicDataClient()
+  return await withAmplifyAuth(event, async (contextSpec) => {
+    const client = getServerIamDataClient()
 
     // Get all workspace memberships for this user
     const membershipOptions: any = {

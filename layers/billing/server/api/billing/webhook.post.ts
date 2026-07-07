@@ -1,6 +1,4 @@
-import { withAmplifyPublic } from '@mmshark/amplify-layer/server/utils/amplify'
-import type { Schema } from '@starter-nuxt-amplify-saas/backend/schema'
-import { generateClient } from 'aws-amplify/data/server'
+import { withAmplifyPublic, getServerPublicDataClient, getServerIamDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
 import Stripe from 'stripe'
 
 export default defineEventHandler(async (event) => {
@@ -80,9 +78,15 @@ export default defineEventHandler(async (event) => {
 // Helper functions for database operations
 async function getWorkspaceIdFromStripeCustomer(stripeCustomerId: string): Promise<string | null> {
   try {
-    // Note: This uses public access since webhooks don't have user context
+    // Note: webhooks have no Cognito session; this uses IAM (identity pool) auth.
+    // See doc/plan/2026-07-07-remediation.md Phase 2 — the webhook has no signed-in
+    // user, so it cannot obtain "authenticated identity pool" IAM credentials via
+    // withAmplifyPublic today. This call site is switched to getServerIamDataClient()
+    // to match the new WorkspaceSubscription authorization rule, but it will only
+    // succeed once the server's credential path for unauthenticated contexts is wired
+    // (flagged as a blocking concern for Task 2.4 deploy verification).
     return await withAmplifyPublic(async (contextSpec) => {
-      const client = generateClient<Schema>({ authMode: 'apiKey' })
+      const client = getServerIamDataClient()
       const { data, errors } = await client.models.WorkspaceSubscription.list(contextSpec, {
         filter: { stripeCustomerId: { eq: stripeCustomerId } }
       })
@@ -105,7 +109,7 @@ async function getWorkspaceIdFromStripeCustomer(stripeCustomerId: string): Promi
 async function getPlanIdByStripePriceId(stripePriceId: string): Promise<string | null> {
   try {
     return await withAmplifyPublic(async (contextSpec) => {
-      const client = generateClient<Schema>({ authMode: 'apiKey' })
+      const client = getServerPublicDataClient() // SubscriptionPlan is still publicly readable
       const { data, errors } = await client.models.SubscriptionPlan.list(contextSpec, {
         filter: {
           or: [
@@ -147,7 +151,7 @@ async function upsertWorkspaceSubscription(subscription: Stripe.Subscription): P
     }
 
     return await withAmplifyPublic(async (contextSpec) => {
-      const client = generateClient<Schema>({ authMode: 'apiKey' })
+      const client = getServerIamDataClient()
 
       // Determine billing interval
       const interval = subscription.items.data[0]?.price?.recurring?.interval === 'year' ? 'year' : 'month'
@@ -228,7 +232,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
   try {
     await withAmplifyPublic(async (contextSpec) => {
-      const client = generateClient<Schema>({ authMode: 'apiKey' })
+      const client = getServerIamDataClient()
 
       // Revert to free plan when subscription is canceled
       const { errors } = await client.models.WorkspaceSubscription.update(contextSpec, {

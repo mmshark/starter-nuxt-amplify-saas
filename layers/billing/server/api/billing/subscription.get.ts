@@ -1,4 +1,4 @@
-import { getServerUserPoolDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { getServerIamDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import { fetchAuthSession } from 'aws-amplify/auth/server'
 import Stripe from 'stripe'
 
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    const client = getServerUserPoolDataClient()
+    const client = getServerIamDataClient()
 
     // Validate access: Check if user is a member of the workspace
     const { data: members } = await client.models.WorkspaceMember.list(contextSpec, {

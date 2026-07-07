@@ -1,4 +1,4 @@
-import { getServerPublicDataClient, withAmplifyPublic } from '@mmshark/amplify-layer/server/utils/amplify'
+import { getServerIamDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import { z } from 'zod'
 
 const inviteMemberSchema = z.object({
@@ -28,8 +28,8 @@ export default defineEventHandler(async (event) => {
   // Validate input
   const input = inviteMemberSchema.parse(body)
 
-  return await withAmplifyPublic(async (contextSpec) => {
-    const client = getServerPublicDataClient()
+  return await withAmplifyAuth(event, async (contextSpec) => {
+    const client = getServerIamDataClient()
 
     // Verify user is admin/owner
     const { data: membership } = await client.models.WorkspaceMember.list(contextSpec, {

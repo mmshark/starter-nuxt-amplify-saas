@@ -29,12 +29,12 @@ const schema = a
   .schema({
     UserProfile: userProfileModel
       .authorization((allow) => [
-        allow.publicApiKey(),
         allow.ownerDefinedIn("userId").to(["read"]),
+        allow.authenticated('identityPool').to(["read", "create", "update"]), // server (IAM) privileged
       ]),
     SubscriptionPlan: subscriptionPlanModel
       .authorization((allow) => [
-        allow.publicApiKey(), // Para mostrar planes en landing page
+        allow.publicApiKey().to(["read"]), // landing page, read-only
         allow.authenticated().to(["read"]), // Usuarios autenticados leen
         allow.groups(["admin"]).to(["create", "update", "delete"]), // Solo admins modifican
       ]),
@@ -52,9 +52,8 @@ const schema = a
       subscription: a.hasOne('WorkspaceSubscription', 'workspaceId'),
     })
       .authorization((allow) => [
-        allow.ownerDefinedIn('ownerId').to(['read', 'update', 'delete']),
-        allow.authenticated().to(['create']),
-        allow.publicApiKey(), // For server-side privileged access
+        allow.ownerDefinedIn('ownerId').to(['read']),
+        allow.authenticated('identityPool'), // full CRUD for server (IAM) only
       ])
       .secondaryIndexes((index) => [
         index('slug'),
@@ -79,8 +78,7 @@ const schema = a
       trialEnd: a.datetime(),
     })
       .authorization((allow) => [
-        allow.publicApiKey(), // For Stripe webhooks
-        // allow.custom(), // TODO: Implement workspace-based authorization (requires Lambda function)
+        allow.authenticated('identityPool'), // webhook + server writes via IAM
       ])
       .identifier(['workspaceId'])
       .secondaryIndexes((index) => [
@@ -98,7 +96,7 @@ const schema = a
     })
       .authorization((allow) => [
         allow.ownerDefinedIn('userId').to(['read']),
-        allow.publicApiKey(), // For server-side privileged access
+        allow.authenticated('identityPool'), // server (IAM) privileged access
       ])
       .secondaryIndexes((index) => [
         index('workspaceId'),
@@ -117,8 +115,7 @@ const schema = a
       message: a.string(),
     })
       .authorization((allow) => [
-        allow.ownerDefinedIn('invitedBy').to(['read', 'delete']),
-        allow.publicApiKey(), // For server-side privileged access
+        allow.authenticated('identityPool'), // never client-readable; server routes only
       ])
       .secondaryIndexes((index) => [
         index('workspaceId'),
@@ -132,9 +129,9 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: "apiKey",
+    defaultAuthorizationMode: "userPool",
     apiKeyAuthorizationMode: {
-      expiresInDays: 30,
+      expiresInDays: 365, // read-only public plans only
     },
   },
 });

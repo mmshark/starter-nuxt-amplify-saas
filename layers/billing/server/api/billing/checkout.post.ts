@@ -1,7 +1,5 @@
 import Stripe from 'stripe'
-import { generateClient } from 'aws-amplify/data/server'
-import type { Schema } from '@starter-nuxt-amplify-saas/backend/schema'
-import { withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { withAmplifyAuth, getServerIamDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
 import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth/server'
 
 export default defineEventHandler(async (event) => {
@@ -50,7 +48,7 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'User authentication data incomplete'
       })
     }
-    const client = generateClient<Schema>({ authMode: 'userPool' })
+    const client = getServerIamDataClient()
     const { data: profiles } = await client.models.UserProfile.list(contextSpec, {
       filter: { userId: { eq: userId } }
       })

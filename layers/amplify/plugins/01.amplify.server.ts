@@ -48,8 +48,12 @@ import outputs from '../amplify_outputs.json'
  * WHY? The plugin-provided client is designed for authenticated user operations
  * where you need to know WHO the user is (e.g., fetching user profile, user-owned data).
  *
- * For public/webhook operations that don't need user context:
+ * For truly public reads (e.g. SubscriptionPlan on the landing page):
  * → Use server/utils/amplify.ts helpers: withAmplifyPublic() + getServerPublicDataClient()
+ * For privileged webhook/tenant-data writes (Workspace, WorkspaceMember,
+ * WorkspaceInvitation, WorkspaceSubscription, UserProfile create/update):
+ * → Use getServerIamDataClient() (authMode: 'iam'). The public API key is
+ *   read-only on SubscriptionPlan only — see apps/backend/amplify/data/resource.ts.
  *
  * USAGE EXAMPLES:
  * ===============
@@ -67,24 +71,28 @@ import outputs from '../amplify_outputs.json'
  * })
  * ```
  *
- * Public/webhook operation (use utils with apiKey auth):
+ * Privileged webhook operation (tenant data is IAM-only, never apiKey):
  * ```typescript
- * // In a webhook: server/api/webhooks/stripe.post.ts
- * import { withAmplifyPublic, getServerPublicDataClient } from '#amplify/server/utils/amplify'
+ * // In a webhook: server/api/billing/webhook.post.ts
+ * import { withAmplifyPublic, getServerIamDataClient } from '#amplify/server/utils/amplify'
  *
  * export default defineEventHandler(async (event) => {
  *   const stripeEvent = await readBody(event)
  *
  *   return await withAmplifyPublic(async (contextSpec) => {
- *     const client = getServerPublicDataClient()
- *     await client.models.UserSubscription.update(contextSpec, {
- *       userId: stripeEvent.customerId,
+ *     const client = getServerIamDataClient()
+ *     await client.models.WorkspaceSubscription.update(contextSpec, {
+ *       workspaceId: stripeEvent.workspaceId,
  *       status: stripeEvent.status
  *     })
  *     return { success: true }
  *   })
  * })
  * ```
+ * NOTE: withAmplifyPublic() supplies no credentials provider, so it has no IAM
+ * identity to authenticate an 'iam' call with when there is no signed-in user
+ * (e.g. this webhook). This gap is a known open item — see
+ * doc/plan/2026-07-07-remediation.md Phase 2 for the tracked follow-up.
  *
  * WHY THIS DIFFERS FROM OFFICIAL DOCS:
  * =====================================
@@ -124,8 +132,9 @@ const getAmplifyAuthKeys = (lastAuthUser: string) =>
  * - Owner-based @auth rules work correctly
  * - Private data access (@auth private) is enabled
  *
- * For public operations (webhooks, public data), use getServerPublicDataClient()
- * from server/utils/amplify.ts which uses authMode: 'apiKey'
+ * For truly public reads (SubscriptionPlan only), use getServerPublicDataClient()
+ * from server/utils/amplify.ts (authMode: 'apiKey'). For privileged webhook/tenant
+ * writes, use getServerIamDataClient() (authMode: 'iam') instead.
  */
 const gqlServerClient = generateClient<Schema>({
   config: amplifyConfig,
