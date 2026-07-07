@@ -8,16 +8,18 @@ if (!import.meta.dev) {
 }
 
 const {
-  user,
+  currentUser,
   userAttributes,
   isAuthenticated,
-  isLoading,
+  loading: isLoading,
   error,
-  displayName,
-  email,
-  updateUserAttributes,
-  fetchUserAttributes
+  updateAttributes
 } = useUser()
+
+const displayName = computed(() =>
+  userAttributes.value?.name || currentUser.value?.username || ''
+)
+const email = computed(() => userAttributes.value?.email || '')
 
 // Form state
 const saving = ref(false)
@@ -65,16 +67,12 @@ const handleSubmit = async () => {
       attributes['family_name'] = profileForm.lastName.trim()
     }
 
-    const result = await updateUserAttributes(attributes)
-    
-    if (result.success) {
-      success.value = true
-      setTimeout(() => {
-        success.value = false
-      }, 3000)
-    } else {
-      errorMessage.value = result.error || 'Failed to update profile'
-    }
+    await updateAttributes({ userAttributes: attributes })
+
+    success.value = true
+    setTimeout(() => {
+      success.value = false
+    }, 3000)
   } catch (err) {
     errorMessage.value = err.message || 'An error occurred while updating profile'
   } finally {

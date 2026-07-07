@@ -38,6 +38,12 @@
     "access": "restricted"
   },
   "peerDependencies": {
-    "nuxt": "^4.0.0"
+    "nuxt": "^4.0.0",
+    "@mmshark/auth-layer": "workspace:*",
+    "@mmshark/billing-layer": "workspace:*"
+  },
+  "devDependencies": {
+    "@mmshark/auth-layer": "workspace:*",
+    "@mmshark/billing-layer": "workspace:*"
   }
 }

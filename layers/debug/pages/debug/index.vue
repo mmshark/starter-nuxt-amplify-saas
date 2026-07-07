@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { BillingPlan } from '~/types'
-
 definePageMeta({
   layout: false
 })
@@ -11,22 +9,22 @@ if (!import.meta.dev) {
 
 // Composables
 const {
-  user,
+  currentUser,
   userAttributes,
   isAuthenticated,
   authStep,
-  isLoading,
+  loading: isLoading,
   error,
-  displayName,
-  email,
-  getSessionInfo
+  authSession
 } = useUser()
+
+const displayName = computed(() =>
+  userAttributes.value?.name || currentUser.value?.username || ''
+)
+const email = computed(() => userAttributes.value?.email || '')
 
 const {
   subscription,
-  currentPlan,
-  isActive,
-  status,
   isLoading: billingLoading,
   error: billingError,
   fetchSubscription,
@@ -36,11 +34,14 @@ const {
   clearError: clearBillingError
 } = useBilling()
 
+const currentPlan = computed(() => subscription.value?.plan)
+const status = computed(() => subscription.value?.subscription?.status)
+const isActive = computed(() => status.value === 'active')
+
 const appConfig = useAppConfig()
 const runtimeConfig = useRuntimeConfig()
 
 // Local state
-const sessionInfo = ref(null)
 const billingResponse = ref(null)
 const selectedPlan = ref('pro')
 const loadingStates = ref({
@@ -48,13 +49,6 @@ const loadingStates = ref({
   portal: false,
   subscription: false,
   cancel: false
-})
-
-// Load session info on mount
-onMounted(async () => {
-  if (isAuthenticated.value) {
-    sessionInfo.value = await getSessionInfo()
-  }
 })
 
 // Computed properties
@@ -272,14 +266,14 @@ function getComposablesStatus(): string[] {
             </div>
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium text-gray-600">User ID:</span>
-              <span class="text-sm font-medium">{{ user?.userId || 'N/A' }}</span>
+              <span class="text-sm font-medium">{{ currentUser?.userId || 'N/A' }}</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium text-gray-600">Username:</span>
-              <span class="text-sm font-medium">{{ user?.username || 'N/A' }}</span>
+              <span class="text-sm font-medium">{{ currentUser?.username || 'N/A' }}</span>
             </div>
           </div>
-          
+
           <!-- Profile JSON -->
           <UAccordion :items="[{
             label: 'View Profile Data (JSON)',
@@ -288,7 +282,7 @@ function getComposablesStatus(): string[] {
             <template #content>
               <div class="bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto">
                 <pre class="text-xs">{{ JSON.stringify({
-                  user,
+                  currentUser,
                   userAttributes,
                   displayName,
                   email
@@ -340,7 +334,7 @@ function getComposablesStatus(): string[] {
                   isLoading,
                   error,
                   environment: systemInfo.environment,
-                  sessionInfo,
+                  authSession,
                   lastFetched: new Date().toISOString()
                 }, null, 2) }}</pre>
               </div>
@@ -371,9 +365,17 @@ function getComposablesStatus(): string[] {
               <span class="text-sm font-medium text-gray-600">Stripe Public Key:</span>
               <span class="text-sm font-medium font-mono">{{ runtimeConfig.public?.stripe?.publishableKey?.substring(0, 20) || 'Not set' }}...</span>
             </div>
+            <!--
+              NOTE: the Stripe secret key must never be rendered, not even
+              truncated. `runtimeConfig.stripe` is a private (server-only)
+              key, but this page is rendered with SSR, so any expression
+              reading it here would leak the substring into the HTML
+              response sent to the browser. Only report whether it is
+              configured, never its value.
+            -->
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium text-gray-600">Stripe Secret Key:</span>
-              <span class="text-sm font-medium font-mono">{{ runtimeConfig.stripe?.secretKey?.substring(0, 12) || 'Not set' }}...</span>
+              <span class="text-sm font-medium font-mono">{{ runtimeConfig.stripe?.secretKey ? 'Configured' : 'Not set' }}</span>
             </div>
           </div>
 
