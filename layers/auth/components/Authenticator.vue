@@ -148,9 +148,10 @@ async function onSignInSubmit(event: FormSubmitEvent<z.infer<typeof signInSchema
       })
     }
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
     toast.add({
       title: 'Error',
-      description: error.message || 'Failed to sign in',
+      description: message || 'Failed to sign in',
       color: 'error'
     })
   } finally {
@@ -185,9 +186,10 @@ async function onSignUpSubmit(event: FormSubmitEvent<z.infer<typeof signUpSchema
       })
     }
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
     toast.add({
       title: 'Error',
-      description: error.message || 'Failed to create account',
+      description: message || 'Failed to create account',
       color: 'error'
     })
   } finally {
@@ -212,9 +214,10 @@ async function onVerifySubmit(event: FormSubmitEvent<z.infer<typeof verifySchema
     })
     currentStep.value = 'signin'
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
     toast.add({
       title: 'Error',
-      description: error.message || 'Failed to verify account',
+      description: message || 'Failed to verify account',
       color: 'error'
     })
   } finally {
@@ -235,9 +238,10 @@ async function resendCode() {
       color: 'success'
     })
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
     toast.add({
       title: 'Error',
-      description: error.message || 'Failed to resend code',
+      description: message || 'Failed to resend code',
       color: 'error'
     })
   } finally {

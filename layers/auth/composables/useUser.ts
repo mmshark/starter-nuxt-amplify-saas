@@ -1,3 +1,5 @@
+import type { H3Event, EventHandlerRequest } from 'h3'
+import type { SignInInput, SignUpInput, UpdateUserAttributesInput } from 'aws-amplify/auth'
 import { handleAuthError } from '../utils'
 
 // Base state: Use useState for SSR-safe, per-request state. Every ref here
@@ -112,7 +114,7 @@ const _useUser = () => {
   /**
    * Sign up a new user and handle multi-step flow
    */
-  const signUp = async (data) => {
+  const signUp = async (data: SignUpInput) => {
     if (import.meta.server) {
       throw new Error('signUp can only be called on the client side')
     }
@@ -149,7 +151,7 @@ const _useUser = () => {
    * `nextStep.signInStep` here, an OTP entry step in `Authenticator.vue`,
    * and calling `confirmSignIn({ challengeResponse: code })`.
    */
-  const signIn = async (credentials) => {
+  const signIn = async (credentials: SignInInput) => {
     if (import.meta.server) {
       throw new Error('signIn can only be called on the client side')
     }
@@ -286,7 +288,7 @@ const _useUser = () => {
   /**
    * Update Cognito user attributes
    */
-  const updateAttributes = async (attributes) => {
+  const updateAttributes = async (attributes: UpdateUserAttributesInput) => {
     // Capture useNuxtApp before async operations
     const nuxtApp = useNuxtApp()
 

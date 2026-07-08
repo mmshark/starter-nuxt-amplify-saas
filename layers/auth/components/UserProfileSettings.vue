@@ -90,9 +90,10 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
       color: 'success'
     })
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
     toast.add({
       title: 'Error',
-      description: error.message || 'Failed to update profile',
+      description: message || 'Failed to update profile',
       color: 'error'
     })
   }
