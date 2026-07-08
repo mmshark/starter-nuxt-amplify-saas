@@ -1,6 +1,6 @@
 # Epic E01 — Green CI
 
-> **Status**: Active · **Created**: 2026-07-08 · **Source**: new (roadmap E01; audit debt items BUG-09, BUG-10, BUG-14 in [../../architecture/tech-debt.md](../../architecture/tech-debt.md))
+> **Status**: Done (2026-07-08; local ACs verified — AC1/AC2 on merge) · **Created**: 2026-07-08 · **Source**: new (roadmap E01; audit debt items BUG-09, BUG-10, BUG-14 in [../../architecture/tech-debt.md](../../architecture/tech-debt.md))
 
 ## Goal
 

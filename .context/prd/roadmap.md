@@ -71,7 +71,7 @@ Every documented capability either works or is explicitly marked future.
 
 | Epic | Slug | Docs | Effort | Status |
 |---|---|---|---|---|
-| E01 | [20260708-green-ci](../epic/20260708-green-ci/) | spec, plan, tasks | M | specified |
+| E01 | [20260708-green-ci](../epic/20260708-green-ci/) | spec, plan, tasks | M | **done** (2026-07-08) |
 | E02 | [20260708-fix-broken-wiring](../epic/20260708-fix-broken-wiring/) | spec, plan, tasks | M | specified |
 | E03 | [20260708-template-cleanup](../epic/20260708-template-cleanup/) | spec, plan, tasks | M | specified |
 
