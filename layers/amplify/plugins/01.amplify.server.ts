@@ -122,6 +122,10 @@ const getAmplifyAuthKeys = (lastAuthUser: string) =>
  */
 const gqlServerClient = generateClient<Schema>({
   config: amplifyConfig,
+  // aws-amplify v6's server generateClient options type is { config } only and
+  // omits authMode; the runtime call is unchanged (authMode kept). Preserving
+  // exact behaviour per the E01 stabilization scope — revisit in E02/E10.
+  // @ts-expect-error authMode not in server generateClient options type
   authMode: 'userPool' // Override API_KEY default for authenticated operations
 })
 
@@ -134,7 +138,7 @@ export default defineNuxtPlugin({
     expires.setDate(expires.getDate() + 30)
 
     // TIP: set path:'/' so cookies are sent for all routes in your app
-    const cookieOpts = { sameSite: 'lax', expires, secure: true, path: '/' as const }
+    const cookieOpts = { sameSite: 'lax' as const, expires, secure: true, path: '/' as const }
 
     // This cookie stores the username of the last authenticated user
     const lastAuthUserCookie = useCookie<string | null>(lastAuthUserCookieName, cookieOpts)

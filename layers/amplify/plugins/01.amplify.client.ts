@@ -69,6 +69,9 @@ export default defineNuxtPlugin({
      * - User identity context in resolvers
      */
     const client = generateClient<Schema>({
+      // client-side generateClient uses the global Amplify.configure() config;
+      // `config` isn't in its options type. Kept to preserve exact runtime.
+      // @ts-expect-error config not in client generateClient options type
       config: outputs,
       authMode: 'userPool' // Override API_KEY default for authenticated operations
     })

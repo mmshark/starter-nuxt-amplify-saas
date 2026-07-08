@@ -257,6 +257,7 @@ export const amplifyOutputs = outputs as unknown as {
  * ```
  */
 export const getServerPublicDataClient = () => {
+  // @ts-expect-error aws-amplify v6 server generateClient options type omits authMode; runtime unchanged (revisit E02/E10)
   return generateClient<Schema>({ config: amplifyConfig, authMode: 'apiKey' })
 }
 
@@ -356,6 +357,7 @@ export const getServerPublicDataClient = () => {
  * ```
  */
 export const getServerUserPoolDataClient = () => {
+  // @ts-expect-error aws-amplify v6 server generateClient options type omits authMode; runtime unchanged (revisit E02/E10)
   return generateClient<Schema>({ config: amplifyConfig, authMode: 'userPool' })
 }
 
