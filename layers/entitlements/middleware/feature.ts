@@ -29,8 +29,10 @@ export default defineNuxtRouteMiddleware((to) => {
   // Check if user can access the required feature
   if (!canAccessFeature(requiredFeature)) {
     const requiredPlan = getRequiredPlanForFeature(requiredFeature)
+    // Phase 0: point at the page where plan management actually lives; E05/E06
+    // re-point this at a real /upgrade page (query params are kept for it).
     return navigateTo({
-      path: '/upgrade',
+      path: '/settings/billing',
       query: {
         feature: requiredFeature,
         plan: requiredPlan,

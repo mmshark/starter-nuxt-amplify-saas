@@ -28,8 +28,10 @@ export default defineNuxtRouteMiddleware((to) => {
 
   // Check if user has the required plan or higher
   if (!hasPlan(requiredPlan)) {
+    // Phase 0: /settings/billing is where plan management lives today; E05/E06
+    // re-point this at a real /upgrade page (plan query is kept for it).
     return navigateTo({
-      path: '/upgrade',
+      path: '/settings/billing',
       query: { plan: requiredPlan },
     })
   }
