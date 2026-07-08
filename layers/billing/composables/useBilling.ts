@@ -191,7 +191,7 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
       const response = await $fetch(`/api/billing/subscription?workspaceId=${id.value}`)
 
       if (response.success) {
-        subscription.value = response.data
+        subscription.value = response.data as SubscriptionData
       } else {
         throw new Error('Failed to fetch subscription data')
       }
@@ -202,7 +202,7 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
 
       useToast().add({
         title: 'Subscription Error',
-        description: subscriptionError.value,
+        description: subscriptionError.value ?? undefined,
         color: 'error'
       })
     } finally {
@@ -245,7 +245,7 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
 
       useToast().add({
         title: 'Invoices Error',
-        description: invoicesError.value,
+        description: invoicesError.value ?? undefined,
         color: 'error'
       })
     } finally {

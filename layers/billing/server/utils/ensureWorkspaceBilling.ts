@@ -52,7 +52,7 @@ export async function ensureWorkspaceBilling(
   const call = <T>(op: (...args: any[]) => Promise<T>, ...args: any[]): Promise<T> =>
     contextSpec ? op(contextSpec, ...args) : op(...args)
 
-  const { data: existing } = await call(client.models.WorkspaceSubscription.get, { workspaceId })
+  const { data: existing } = await call<{ data: { stripeCustomerId?: string | null } | null; errors?: unknown }>(client.models.WorkspaceSubscription.get, { workspaceId })
 
   if (existing?.stripeCustomerId) {
     return { stripeCustomerId: existing.stripeCustomerId, created: false }
@@ -67,7 +67,7 @@ export async function ensureWorkspaceBilling(
     { idempotencyKey: workspaceId }
   )
 
-  const { errors } = await call(client.models.WorkspaceSubscription.create, {
+  const { errors } = await call<{ data?: unknown; errors?: unknown }>(client.models.WorkspaceSubscription.create, {
     workspaceId,
     planId: 'free',
     stripeSubscriptionId: null,

@@ -128,7 +128,7 @@ export default defineEventHandler(async (event) => {
               type: 'subscription_update_confirm',
               subscription_update_confirm: {
                 subscription: subscriptionId,
-                discounts: [{ coupon: discount_id, promotion_code: null }],
+                discounts: [{ coupon: discount_id, promotion_code: undefined }],
                 items: [{ id: item.id, price: item.price.id }]
               }
             }

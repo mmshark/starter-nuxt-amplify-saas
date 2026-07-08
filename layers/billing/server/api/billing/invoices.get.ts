@@ -137,7 +137,7 @@ function getInvoiceDescription(invoice: Stripe.Invoice): string {
   // the line description, or a generic label if none is set.
   if (invoice.lines.data.length > 0) {
     const line = invoice.lines.data[0]
-    if (line.description) {
+    if (line?.description) {
       return line.description
     }
   }
@@ -148,7 +148,8 @@ function getInvoiceDescription(invoice: Stripe.Invoice): string {
 // Helper function to extract payment method info from the payment intent's
 // latest charge (Stripe removed `PaymentIntent.charges` — review M1).
 function getPaymentMethodInfo(invoice: Stripe.Invoice) {
-  const paymentIntent = invoice.payment_intent
+  // TODO(E02): `payment_intent` was removed from Stripe.Invoice in stripe-node v18; latent gap — this now always reads undefined.
+  const paymentIntent = (invoice as Stripe.Invoice & { payment_intent?: string | Stripe.PaymentIntent | null }).payment_intent
 
   if (paymentIntent && typeof paymentIntent === 'object') {
     const latestCharge = paymentIntent.latest_charge
