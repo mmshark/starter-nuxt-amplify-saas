@@ -1,6 +1,6 @@
 # Auth Layer
 
-A comprehensive authentication layer for Nuxt 3 applications using AWS Amplify and Cognito. This layer provides complete user authentication functionality including sign-in, sign-up, email verification, session management, route protection, and user profile management with GraphQL integration.
+A comprehensive authentication layer for Nuxt 4 applications using AWS Amplify and Cognito. This layer provides complete user authentication functionality including sign-in, sign-up, email verification, session management, route protection, and user profile management with GraphQL integration.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ A comprehensive authentication layer for Nuxt 3 applications using AWS Amplify a
 
 ## Overview
 
-The Auth layer integrates AWS Amplify Auth with Nuxt 3, providing:
+The Auth layer integrates AWS Amplify Auth with Nuxt 4, providing:
 
 - 🔐 Complete authentication flow (sign-in, sign-up, verification, password reset)
 - 🛡️ Route protection via middleware
@@ -584,4 +584,4 @@ The layer includes comprehensive error handling with user-friendly messages:
 'TooManyRequestsException' → 'Too many requests. Please try again later'
 ```
 
-This comprehensive auth layer provides everything needed for secure user authentication in a Nuxt 3 application with AWS Amplify, including server-side API protection and GraphQL-based user profile management.
+This comprehensive auth layer provides everything needed for secure user authentication in a Nuxt 4 application with AWS Amplify, including server-side API protection and GraphQL-based user profile management.

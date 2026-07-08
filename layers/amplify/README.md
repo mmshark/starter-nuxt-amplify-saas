@@ -24,7 +24,7 @@ AWS Amplify Gen2 integration layer for Nuxt 4 applications (`@mmshark/amplify-la
 - 🖥️ **SSR support** — cookie-backed token/credentials providers so server-rendered pages and Nitro routes see the caller's session
 - ⚡ **Server helpers** — `withAmplifyAuth`/`withAmplifyPublic` + preconfigured Data clients for Nitro `server/api/**` routes (which have no Nuxt app context)
 - 🧩 **Workspace membership invoke helper** — shared by the `workspaces` and `billing` layers to call the backend's privileged `workspace-membership` Lambda
-- 🪵 **Structured logger** — environment-aware `createLogger(scope)` used instead of ad hoc `console.*`
+- 🪵 **Structured logger** — environment-aware `createLogger(scope)` available for server-side logging (**not yet adopted** — server code still uses `console.*`; adopt-or-delete is tracked as DEAD-05 for E10)
 
 ## Architecture
 
@@ -164,7 +164,9 @@ logger.warn('retrying...')      // always logs
 logger.error('failed', err)     // always logs
 ```
 
-`createLogger(scope)` returns `{ debug, info, warn, error }`, each prefixed `[scope]`. `debug`/`info` are silenced outside development; `warn`/`error` always log. Prefer this over ad hoc `console.*` calls in new server-side code (Nitro routes, Amplify Lambda handlers) so output stays consistent and filterable.
+`createLogger(scope)` returns `{ debug, info, warn, error }`, each prefixed `[scope]`. `debug`/`info` are silenced outside development; `warn`/`error` always log.
+
+> **Adoption status:** this utility currently has **zero call sites** — server code (Nitro routes, Amplify Lambda handlers) still uses raw `console.*`. Whether to adopt it repo-wide or remove it is E10's decision (tracked as DEAD-05 in [`.context/architecture/tech-debt.md`](../../.context/architecture/tech-debt.md)). Until then, prefer it for *new* server-side code so output stays consistent and filterable.
 
 ## Usage Examples
 

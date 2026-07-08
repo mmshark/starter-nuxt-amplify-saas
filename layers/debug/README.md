@@ -1,6 +1,6 @@
 # Debug Layer
 
-Development debugging tools and utilities for Nuxt 3 applications. This layer provides comprehensive debugging pages and tools for development and testing environments.
+Development debugging tools and utilities for Nuxt 4 applications. This layer provides comprehensive debugging pages and tools for development and testing environments.
 
 ## Table of Contents
 
