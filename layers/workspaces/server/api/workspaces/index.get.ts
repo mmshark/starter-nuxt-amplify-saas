@@ -70,7 +70,7 @@ export default defineEventHandler(async (event) => {
       return {
         id: ws.id,
         name: ws.name,
-        slug: ws.slug || undefined,
+        slug: ws.slug || '',
         description: ws.description || undefined,
         ownerId: ws.ownerId,
         isPersonal: ws.isPersonal || false,
