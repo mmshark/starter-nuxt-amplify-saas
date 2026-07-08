@@ -24,7 +24,6 @@ onMounted(() => {
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <UAvatar
-                :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(currentWorkspace.name)}&background=random`"
                 :alt="currentWorkspace.name"
                 size="lg"
               />
@@ -80,7 +79,6 @@ onMounted(() => {
             <div class="space-y-3">
               <div class="flex items-center gap-3">
                 <UAvatar
-                  :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(workspace.name)}&background=random`"
                   :alt="workspace.name"
                   size="md"
                 />

@@ -8,7 +8,6 @@
       v-bind="{
         label: collapsed ? undefined : currentWorkspace?.name,
         avatar: currentWorkspace ? {
-          src: `https://ui-avatars.com/api/?name=${encodeURIComponent(currentWorkspace.name)}&background=random`,
           alt: currentWorkspace.name
         } : undefined,
         trailingIcon: collapsed ? undefined : 'i-lucide-chevrons-up-down'
@@ -49,7 +48,6 @@ const items = computed<DropdownMenuItem[][]>(() => {
     workspaces.value.map(workspace => ({
       label: workspace.name,
       avatar: {
-        src: `https://ui-avatars.com/api/?name=${encodeURIComponent(workspace.name)}&background=random`,
         alt: workspace.name
       },
       onSelect() {
