@@ -54,7 +54,7 @@ const handleSubmit = async () => {
   errorMessage.value = ''
 
   try {
-    const attributes = {}
+    const attributes: Record<string, string> = {}
     
     // Only include non-empty values
     if (profileForm.displayName.trim()) {
@@ -74,7 +74,7 @@ const handleSubmit = async () => {
       success.value = false
     }, 3000)
   } catch (err) {
-    errorMessage.value = err.message || 'An error occurred while updating profile'
+    errorMessage.value = err instanceof Error ? err.message : 'An error occurred while updating profile'
   } finally {
     saving.value = false
   }

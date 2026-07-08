@@ -41,8 +41,24 @@ const isActive = computed(() => status.value === 'active')
 const appConfig = useAppConfig()
 const runtimeConfig = useRuntimeConfig()
 
+// Types for this debug page's local state
+interface DebugBillingPlan {
+  id: string
+  name: string
+  price: number
+  interval: string
+  stripePriceId?: string
+}
+
+interface BillingActionResponse {
+  success?: boolean
+  error?: string
+}
+
+type BillingAction = 'checkout' | 'portal' | 'subscription' | 'cancel'
+
 // Local state
-const billingResponse = ref(null)
+const billingResponse = ref<BillingActionResponse | null>(null)
 const selectedPlan = ref('pro')
 const loadingStates = ref({
   checkout: false,
@@ -52,7 +68,11 @@ const loadingStates = ref({
 })
 
 // Computed properties
-const availablePlans = computed(() => appConfig.billing?.plans || [])
+// TODO(E02): BUG-08 — `appConfig.billing` has no `plans` key; this reads a dead
+// config path that always resolves to []. Cast preserves the current behavior.
+const availablePlans = computed(() =>
+  (appConfig.billing as { plans?: DebugBillingPlan[] } | undefined)?.plans || []
+)
 
 const planOptions = computed(() => 
   availablePlans.value.map(plan => ({
@@ -75,7 +95,7 @@ const systemInfo = computed(() => ({
 }))
 
 // Helper function to execute billing operations
-const executeBillingAction = async (action: string, fn: () => Promise<any>) => {
+const executeBillingAction = async (action: BillingAction, fn: () => Promise<any>) => {
   clearBillingError()
   billingResponse.value = null
   loadingStates.value[action] = true
@@ -110,15 +130,21 @@ const testCheckout = () => executeBillingAction('checkout', async () => {
     }
   }
 
+  // TODO(E02): the debug page passes success/cancel URLs, but createCheckoutSession's
+  // signature is (priceId, planId?, billingInterval?). The URLs land in the wrong
+  // params (planId/billingInterval) — a real defect. Cast preserves the current call.
   return createCheckoutSession(
     plan.stripePriceId,
     `${window.location.origin}/debug?checkout=success`,
-    `${window.location.origin}/debug?checkout=canceled`
+    `${window.location.origin}/debug?checkout=canceled` as unknown as 'monthly' | 'yearly'
   )
 })
 
-const testPortal = () => executeBillingAction('portal', () => 
-  createPortalSession(`${window.location.origin}/debug`)
+// TODO(E02): createPortalSession() takes no args — the portal return URL is now
+// derived server-side and can't be overridden by the caller. The passed URL was
+// ignored at runtime, so dropping it is behavior-preserving.
+const testPortal = () => executeBillingAction('portal', () =>
+  createPortalSession()
 )
 
 const fetchSubscriptionData = () => executeBillingAction('subscription', fetchSubscription)
@@ -141,6 +167,9 @@ function getComposablesStatus(): string[] {
     if (typeof useBilling === 'function') composables.push('useBilling')
   } catch {}
   try {
+    // TODO(E02): `useStripe` composable is not implemented; referencing it throws
+    // at runtime (caught below), so it is never listed. Kept behavior-identical.
+    // @ts-expect-error useStripe is intentionally undefined until E02 adds it
     if (typeof useStripe === 'function') composables.push('useStripe')  
   } catch {}
   return composables
@@ -393,7 +422,7 @@ function getComposablesStatus(): string[] {
                 />
               </div>
               <div class="text-xs text-gray-500">
-                Total plans: {{ availablePlans.length }} | With Price IDs: {{ availablePlans.filter(p => p.stripePriceId).length }} | Selected: {{ selectedPlan }}
+                Total plans: {{ availablePlans.length }} | With Price IDs: {{ availablePlans.filter((p: DebugBillingPlan) => p.stripePriceId).length }} | Selected: {{ selectedPlan }}
               </div>
               
               <div v-if="availablePlans.length === 0" class="text-sm text-amber-600">
@@ -504,7 +533,7 @@ function getComposablesStatus(): string[] {
                   // App Configuration Plans
                   appPlans: {
                     totalPlans: availablePlans.length,
-                    plansWithPriceIds: availablePlans.filter(p => p.stripePriceId).length,
+                    plansWithPriceIds: availablePlans.filter((p: DebugBillingPlan) => p.stripePriceId).length,
                     allPlans: availablePlans,
                     selectOptions: planOptions,
                     selectedPlan: selectedPlan

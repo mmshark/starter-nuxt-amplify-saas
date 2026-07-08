@@ -10,7 +10,7 @@ if (!import.meta.dev) {
 }
 
 // State
-const plans = ref([])
+const plans = ref<Schema['SubscriptionPlan']['type'][]>([])
 const loading = ref(false)
 const error = ref('')
 
@@ -32,7 +32,7 @@ const fetchPlans = async () => {
     plans.value = data || []
   } catch (err) {
     console.error('Error fetching plans:', err)
-    error.value = err.message || 'Unknown error occurred'
+    error.value = err instanceof Error ? err.message : 'Unknown error occurred'
   } finally {
     loading.value = false
   }
@@ -135,7 +135,7 @@ const getPlanStatus = (plan: any) => {
             <div class="text-sm text-red-800">Inactive Plans</div>
           </div>
           <div class="text-center p-4 bg-purple-50 rounded-lg">
-            <div class="text-2xl font-bold text-purple-600">{{ plans.filter(p => p.planId === 'free').length }}</div>
+            <div class="text-2xl font-bold text-purple-600">{{ plans.filter((p: Schema['SubscriptionPlan']['type']) => p.planId === 'free').length }}</div>
             <div class="text-sm text-purple-800">Free Plans</div>
           </div>
         </div>
