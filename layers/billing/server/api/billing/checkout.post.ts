@@ -140,7 +140,9 @@ export default defineEventHandler(async (event) => {
         workspaceId
       },
       success_url: `${baseUrl}/settings/billing?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/pricing`,
+      // Phase 0: no /pricing page exists yet; return to plan management. E05
+      // re-points this at the real /pricing page once it's built.
+      cancel_url: `${baseUrl}/settings/billing?checkout=canceled`,
       allow_promotion_codes: true,
       billing_address_collection: 'required',
       customer_update: {
