@@ -1,7 +1,7 @@
 <template>
   <UPageCard
     title="Account"
-    description="Manage your account settings, email, and password."
+    description="View your account information."
   >
     <UserAccountForm />
   </UPageCard>
