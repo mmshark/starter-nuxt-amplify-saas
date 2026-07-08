@@ -148,10 +148,13 @@ const schema = a
       processedAt: a.datetime().required(),
     })
       .identifier(['eventId'])
-      // Internal dedupe table: no client access at all. The only writer is
-      // stripe-webhook, granted at SCHEMA scope (see the schema-level
-      // `.authorization` below).
-      .authorization(() => []),
+      // Internal dedupe table: written only by stripe-webhook (schema-scope
+      // `allow.resource` grant below). Amplify requires every model to declare
+      // at least one authorization rule, so client reads are locked to the
+      // static `admin` group — regular users are never in it, so this grants no
+      // effective client access. (An empty `.authorization(() => [])` is
+      // rejected: "Model `ProcessedStripeEvent` is missing authorization rules".)
+      .authorization((allow) => [allow.groups(['admin']).to(['read'])]),
 
     WorkspaceMember: a.model({
       workspaceId: a.id().required(),
