@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   // Authorize: only a caller whose role grants `manage-billing` (OWNER only,
   // see layers/entitlements/config/permissions.ts) may manage billing for
   // this workspace. `workspaceId` comes from the request body, not the
-  // `currentWorkspaceId` cookie, so it's passed explicitly.
+  // `current-workspace-id` cookie, so it's passed explicitly.
   await requirePermission(event, 'manage-billing', workspaceId)
 
   return await withAmplifyAuth(event, async (contextSpec) => {

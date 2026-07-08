@@ -28,8 +28,9 @@ export default defineNuxtRouteMiddleware((to) => {
 
   // Check if user has the required permission
   if (!hasPermission(requiredPermission)) {
+    // The dashboard home lives at the app root; there is no /dashboard route.
     return navigateTo({
-      path: '/dashboard',
+      path: '/',
       query: { error: 'insufficient_permissions' },
     })
   }

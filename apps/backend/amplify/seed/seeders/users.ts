@@ -337,9 +337,12 @@ async function seedUser(client: any, user: SeedUser): Promise<void> {
       console.log(`ℹ️  User ${user.username} is already a member of the personal workspace`);
     }
 
-    // Create subscription if planId is specified
-    if (user.planId && user.billingInterval) {
-      await createWorkspaceSubscription(client, workspace!.id, userId, user.planId, user.billingInterval, user.paymentMethod);
+    // Create a subscription whenever a plan is specified. No fixture user set
+    // billingInterval, so gating on it meant paid users never got a
+    // subscription (BUG-06). Default the interval to 'month' (the free-plan
+    // path ignores it anyway).
+    if (user.planId) {
+      await createWorkspaceSubscription(client, workspace!.id, userId, user.planId, user.billingInterval ?? 'month', user.paymentMethod);
     }
   } catch (error) {
     console.warn(`⚠️  Could not provision workspace/profile for ${user.username}:`, error);

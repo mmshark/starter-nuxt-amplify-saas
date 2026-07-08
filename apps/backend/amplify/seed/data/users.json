@@ -26,6 +26,7 @@
         "family_name": "User1"
       },
       "planId": "pro",
+      "billingInterval": "month",
       "paymentMethod": {
         "type": "card",
         "card": {
@@ -44,6 +45,7 @@
         "family_name": "User2"
       },
       "planId": "pro",
+      "billingInterval": "month",
       "paymentMethod": {
         "type": "card",
         "card": {
@@ -62,6 +64,7 @@
         "family_name": "User1"
       },
       "planId": "enterprise",
+      "billingInterval": "month",
       "paymentMethod": {
         "type": "card",
         "card": {
@@ -80,6 +83,7 @@
         "family_name": "User2"
       },
       "planId": "enterprise",
+      "billingInterval": "month",
       "paymentMethod": {
         "type": "card",
         "card": {

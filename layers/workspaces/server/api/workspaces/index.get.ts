@@ -1,5 +1,5 @@
 import { getServerUserPoolDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
-import type { Workspace } from '../../../types/workspaces'
+import type { Workspace, WorkspaceSubscription } from '../../../types/workspaces'
 
 /**
  * GET /api/workspaces
@@ -44,16 +44,41 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    const items: Workspace[] = (workspaces || []).map(ws => ({
-      id: ws.id,
-      name: ws.name,
-      slug: ws.slug || undefined,
-      description: ws.description || undefined,
-      ownerId: ws.ownerId,
-      isPersonal: ws.isPersonal || false,
-      memberCount: ws.memberCount || 0,
-      createdAt: ws.createdAt,
-      updatedAt: ws.updatedAt
+    // Hydrate each workspace's subscription so the client/SSR entitlements
+    // (useEntitlements().subscriptionPlan reads currentWorkspace.subscription
+    // .planId) resolve the real plan instead of always falling back to 'free'.
+    // Keyed gets on WorkspaceSubscription (PK: workspaceId) via the caller's
+    // userPool session — same authorization and pattern as
+    // getWorkspaceContext.ts. Page size is capped (limit ≤ 100) so the fan-out
+    // stays bounded.
+    const items: Workspace[] = await Promise.all((workspaces || []).map(async (ws): Promise<Workspace> => {
+      const { data: sub } = await client.models.WorkspaceSubscription.get(
+        contextSpec,
+        { workspaceId: ws.id },
+        { selectionSet: ['workspaceId', 'planId', 'status', 'currentPeriodEnd', 'cancelAtPeriodEnd'] }
+      )
+
+      const subscription: WorkspaceSubscription | null = sub
+        ? {
+            planId: sub.planId,
+            status: sub.status as WorkspaceSubscription['status'],
+            currentPeriodEnd: sub.currentPeriodEnd || undefined,
+            cancelAtPeriodEnd: sub.cancelAtPeriodEnd ?? undefined,
+          }
+        : null
+
+      return {
+        id: ws.id,
+        name: ws.name,
+        slug: ws.slug || undefined,
+        description: ws.description || undefined,
+        ownerId: ws.ownerId,
+        isPersonal: ws.isPersonal || false,
+        memberCount: ws.memberCount || 0,
+        subscription,
+        createdAt: ws.createdAt,
+        updatedAt: ws.updatedAt
+      }
     }))
 
     return {

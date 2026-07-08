@@ -118,7 +118,6 @@ All scripts are defined in `apps/backend/package.json`:
 | `seed:users` | Same, with `SEED_TASK=users` — seeds `amplify/seed/data/users.json` only. |
 | `seed:stripe` | `stripe fixtures amplify/seed/data/stripe.json --api-key $STRIPE_SECRET_KEY` — loads demo products/prices into Stripe. |
 | `sandbox:stripe:seed` | `stripe fixtures --api-key $STRIPE_SECRET_KEY` — generic fixtures runner (no fixture file argument). |
-| `sandbox:amplify:seed` | `tsx scripts/amplify-seed.ts` — standalone seed script runner. |
 | `sandbox:generate-outputs` | `ampx generate outputs` — regenerate `amplify_outputs.json` for the sandbox. |
 | `sandbox:generate-graphql-client-code` | `ampx generate graphql-client-code` — regenerate typed GraphQL client code. |
 | `generate-outputs` | Same as above, scoped to a deployed `$AWS_BRANCH`/`$AWS_APP_ID`. |

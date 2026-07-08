@@ -16,7 +16,6 @@
     "seed:plans": "SEED_TASK=plans pnpm exec ampx sandbox seed",
     "seed:users": "SEED_TASK=users pnpm exec ampx sandbox seed",
     "seed:stripe": "stripe fixtures amplify/seed/data/stripe.json --api-key $STRIPE_SECRET_KEY",
-    "sandbox:amplify:seed": "tsx scripts/amplify-seed.ts",
     "sandbox:generate-outputs": "pnpm exec ampx generate outputs",
     "sandbox:generate-graphql-client-code": "pnpm exec ampx generate graphql-client-code",
     "generate-outputs": "pnpm exec ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID",

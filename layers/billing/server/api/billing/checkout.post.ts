@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
   // Authorize: only a caller whose role grants `manage-billing` (OWNER only,
   // see layers/entitlements/config/permissions.ts) may start a checkout for
   // this workspace. `workspaceId` comes from the request body, not the
-  // `currentWorkspaceId` cookie, so it's passed explicitly — the permission
+  // `current-workspace-id` cookie, so it's passed explicitly — the permission
   // check must target the workspace actually being billed.
   await requirePermission(event, 'manage-billing', workspaceId)
 
@@ -140,7 +140,9 @@ export default defineEventHandler(async (event) => {
         workspaceId
       },
       success_url: `${baseUrl}/settings/billing?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/pricing`,
+      // Phase 0: no /pricing page exists yet; return to plan management. E05
+      // re-points this at the real /pricing page once it's built.
+      cancel_url: `${baseUrl}/settings/billing?checkout=canceled`,
       allow_promotion_codes: true,
       billing_address_collection: 'required',
       customer_update: {

@@ -31,7 +31,9 @@ const currentPlanName = computed(() => {
 })
 
 const upgradeUrl = computed(() => {
-  return `/billing?plan=${props.requiredPlan}`
+  // Phase 0: /settings/billing is the real plan-management page; E05/E06
+  // re-point this at a dedicated /upgrade or /pricing page.
+  return `/settings/billing?plan=${props.requiredPlan}`
 })
 
 const navigateToUpgrade = () => {
