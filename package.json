@@ -12,7 +12,6 @@
     "backend:sandbox:delete": "pnpm --filter @starter-nuxt-amplify-saas/backend run sandbox:delete -y",
     "backend:sandbox:secrets": "pnpm --filter @starter-nuxt-amplify-saas/backend run sandbox:secrets",
     "billing:sandbox:stripe:seed": "pnpm --filter @starter-nuxt-amplify-saas/backend run sandbox:stripe:seed -- amplify/seed/data/stripe.json",
-    "backend:sandbox:amplify:seed": "pnpm --filter @starter-nuxt-amplify-saas/backend run sandbox:amplify:seed",
     "backend:sandbox:seed": "pnpm --filter @starter-nuxt-amplify-saas/backend run seed",
     "backend:sandbox:seed:plans": "pnpm --filter @starter-nuxt-amplify-saas/backend run seed:plans",
     "backend:sandbox:seed:users": "pnpm --filter @starter-nuxt-amplify-saas/backend run seed:users",

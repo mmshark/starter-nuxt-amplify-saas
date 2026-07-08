@@ -180,10 +180,8 @@ see [environments.md](environments.md). Summary:
    # or plans+users together: pnpm backend:sandbox:seed
    ```
    Stripe is the source of truth for plans, so the Stripe fixture seed must
-   run before `seed:plans`. Note (audit-verified): the checked-in user
-   fixture never sets `planId`/`billingInterval`, so all seeded users land
-   on the free plan; and `pnpm backend:sandbox:amplify:seed` is broken
-   (`apps/backend/scripts/` doesn't exist) — don't use it.
+   run before `seed:plans`. Seeded paid users (`pro`/`enterprise`) get real
+   `WorkspaceSubscription` records; free users get a free subscription.
 
 7. **Run the apps**
    ```bash

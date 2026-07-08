@@ -87,7 +87,5 @@ Create `apps/saas/.env` by copying `layers/billing/.env.example`. Never commit `
 
 ## Current status / known issues (audit-verified)
 
-- **Broken seed script**: `pnpm backend:sandbox:amplify:seed` runs `tsx scripts/amplify-seed.ts`, but `apps/backend/scripts/` does not exist — the command always fails. Use `pnpm backend:sandbox:seed` instead.
-- **User seed never creates subscriptions**: `apps/backend/amplify/seed/seeders/users.ts` only calls `createWorkspaceSubscription` when a fixture user has `planId` **and** `billingInterval`, and no user in the checked-in fixture sets them — seeded users all land on the free plan.
 - **E2E needs live infra**: the Playwright suite requires a running sandbox, real Cognito sign-up, a Stripe test account, and Gmail IMAP credentials; it is not runnable in default CI.
 - **Clean-checkout builds fail** without `amplify_outputs.json` (see above) — this is also why CI is currently red by design (see [deployment.md](deployment.md) and the roadmap's Phase 0 `E01 — green-ci` epic in [../prd/roadmap.md](../prd/roadmap.md)).
