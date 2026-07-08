@@ -8,7 +8,7 @@
     ".": "./nuxt.config.ts",
     "./composables/*": "./composables/*",
     "./components/*": "./components/*",
-    "./config/*": "./config/*",
+    "./config/*": "./config/*.ts",
     "./types/*": "./types/*"
   },
   "files": [
