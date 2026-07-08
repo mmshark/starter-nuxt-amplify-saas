@@ -209,9 +209,18 @@ importers:
       '@mmshark/amplify-layer':
         specifier: workspace:*
         version: link:../amplify
+      '@nuxt/ui':
+        specifier: ^4.9.0
+        version: 4.9.0(5e94dc28dd8905af15da03b4e9c571e7)
+      aws-amplify:
+        specifier: ^6.0.0
+        version: 6.18.0
       nuxt:
         specifier: ^4.0.0
         version: 4.4.8(@babel/plugin-syntax-jsx@7.29.7(@babel/core@7.29.7))(@babel/plugin-syntax-typescript@7.29.7(@babel/core@7.29.7))(@parcel/watcher@2.5.6)(@types/node@26.1.0)(@vue/compiler-sfc@3.5.39)(cac@6.7.14)(db0@0.3.4(mysql2@3.9.9))(esbuild@0.28.1)(eslint@10.6.0(jiti@2.7.0))(ioredis@5.11.1)(lightningcss@1.32.0)(magicast@0.5.3)(mysql2@3.9.9)(optionator@0.9.4)(rollup-plugin-visualizer@7.0.1(rollup@4.62.2))(rollup@4.62.2)(terser@5.48.0)(tsx@4.23.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.1.0)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.48.0)(tsx@4.23.0)(yaml@2.9.0))(vue-tsc@3.3.6(typescript@5.9.3))(yaml@2.9.0)
+      zod:
+        specifier: ^4.0.0
+        version: 4.4.3
     devDependencies:
       '@mmshark/uix-layer':
         specifier: workspace:*
