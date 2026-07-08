@@ -6,9 +6,9 @@
   "main": "./nuxt.config.ts",
   "exports": {
     ".": "./nuxt.config.ts",
-    "./composables/*": "./composables/*",
-    "./components/*": "./components/*",
-    "./types/*": "./types/*"
+    "./composables/*": "./composables/*.ts",
+    "./components/*": "./components/*.vue",
+    "./types/*": "./types/*.ts"
   },
   "files": [
     "nuxt.config.ts",
@@ -52,6 +52,8 @@
     "@mmshark/amplify-layer": "workspace:*",
     "@mmshark/auth-layer": "workspace:*",
     "@mmshark/billing-layer": "workspace:*",
+    "aws-amplify": "^6.0.0",
+    "@nuxt/ui": "^4.9.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {

@@ -54,6 +54,7 @@
     "@mmshark/amplify-layer": "workspace:*",
     "@mmshark/auth-layer": "workspace:*",
     "@mmshark/entitlements-layer": "workspace:*",
+    "aws-amplify": "^6.0.0",
     "stripe": "^18.0.0"
   },
   "devDependencies": {

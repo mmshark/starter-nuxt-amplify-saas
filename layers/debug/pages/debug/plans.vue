@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { generateClient } from 'aws-amplify/data'
-import type { Schema } from '@starter-nuxt-amplify-saas/backend/amplify/data/resource'
+import type { Schema } from '@starter-nuxt-amplify-saas/backend/schema'
 definePageMeta({
   layout: false
 })
