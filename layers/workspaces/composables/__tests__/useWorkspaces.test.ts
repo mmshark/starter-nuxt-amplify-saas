@@ -74,6 +74,32 @@ describe('useWorkspaces.loadWorkspaces', () => {
     expect(personalWorkspace.value).not.toBeNull()
     expect((personalWorkspace.value as { id: string }).id).toBe('p')
   })
+
+  it('passes a hydrated subscription through to workspace state', async () => {
+    installNuxtStubs({
+      user: { userId: 'u1' },
+      fetchResult: {
+        workspaces: [
+          {
+            id: 'p',
+            isPersonal: true,
+            ownerId: 'u1',
+            subscription: { planId: 'pro', status: 'active' },
+          },
+        ],
+        nextToken: null,
+      },
+    })
+    const { useWorkspaces } = await import('../useWorkspaces')
+    const { workspaces, loadWorkspaces } = useWorkspaces()
+
+    await loadWorkspaces()
+
+    // useEntitlements().subscriptionPlan reads currentWorkspace.subscription
+    // .planId — it can only resolve non-'free' if the listing carries it.
+    const sub = (workspaces.value[0] as { subscription?: { planId?: string } }).subscription
+    expect(sub?.planId).toBe('pro')
+  })
 })
 
 describe('useWorkspaces cookie persistence', () => {
