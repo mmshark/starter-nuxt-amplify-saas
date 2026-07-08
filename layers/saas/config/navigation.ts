@@ -65,18 +65,3 @@ export const profileSidebar: NavigationMenuItem = {
 export const userMenuItems: NavigationMenuItem[][] = [
   profileSidebar.children || []
 ]
-
-/**
- * Footer navigation items (Help & Support, etc.)
- */
-export const footerNavigation: NavigationMenuItem[] = [{
-  label: 'Feedback',
-  icon: 'i-lucide-message-circle',
-  to: 'https://github.com/nuxt-ui-pro/dashboard',
-  target: '_blank'
-}, {
-  label: 'Help & Support',
-  icon: 'i-lucide-info',
-  to: 'https://github.com/nuxt/ui-pro',
-  target: '_blank'
-}]
