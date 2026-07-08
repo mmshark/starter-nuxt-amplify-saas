@@ -97,11 +97,12 @@ const schema = a
       subscription: a.hasOne('WorkspaceSubscription', 'workspaceId'),
     })
       .authorization((allow) => [
-        // Clients: READ-ONLY. All writes go through workspace-membership.
+        // Clients: READ-ONLY. All writes go through workspace-membership, which
+        // is granted data access at SCHEMA scope (see the schema-level
+        // `.authorization` below — Amplify does not support per-model function
+        // grants).
         allow.ownerDefinedIn('ownerId').to(['read']),
         allow.groupsDefinedIn('readerGroups').to(['read']),
-        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
-        allow.resource(workspaceMembership), // group + record lifecycle (see function docs)
       ])
       .secondaryIndexes((index) => [
         index('slug'),
@@ -129,12 +130,10 @@ const schema = a
     })
       .authorization((allow) => [
         // Clients: READ-ONLY. Only stripe-webhook / workspace-membership /
-        // post-confirmation may write subscription rows (incl. planId).
+        // post-confirmation may write subscription rows (incl. planId); those
+        // function grants live at SCHEMA scope (see the schema-level
+        // `.authorization` below).
         allow.groupsDefinedIn('readerGroups').to(['read']),
-        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
-        allow.resource(stripeWebhook), // Stripe webhook sync (sessionless Lambda, signature-authorized)
-        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
-        allow.resource(workspaceMembership), // billing bootstrap on workspace create
       ])
       .identifier(['workspaceId'])
       .secondaryIndexes((index) => [
@@ -149,10 +148,10 @@ const schema = a
       processedAt: a.datetime().required(),
     })
       .identifier(['eventId'])
-      .authorization((allow) => [
-        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
-        allow.resource(stripeWebhook),
-      ]),
+      // Internal dedupe table: no client access at all. The only writer is
+      // stripe-webhook, granted at SCHEMA scope (see the schema-level
+      // `.authorization` below).
+      .authorization(() => []),
 
     WorkspaceMember: a.model({
       workspaceId: a.id().required(),
@@ -167,11 +166,10 @@ const schema = a
     })
       .authorization((allow) => [
         // Clients: READ-ONLY. Membership rows (incl. `role`) are written only
-        // by workspace-membership / post-confirmation.
+        // by workspace-membership / post-confirmation, granted at SCHEMA scope
+        // (see the schema-level `.authorization` below).
         allow.ownerDefinedIn('userId').to(['read']),
         allow.groupsDefinedIn('readerGroups').to(['read']),
-        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
-        allow.resource(workspaceMembership), // membership lifecycle (invite accept, role, remove)
       ])
       .secondaryIndexes((index) => [
         index('workspaceId'),
@@ -197,17 +195,28 @@ const schema = a
         // Clients: READ-ONLY (workspace members can list invitations).
         // Invitations are CREATED only by workspace-membership, which derives
         // readerGroups/writerGroups from the workspace id — never from client
-        // input — and re-verifies the inviter's OWNER/ADMIN role.
+        // input — and re-verifies the inviter's OWNER/ADMIN role. That function
+        // grant lives at SCHEMA scope (see the schema-level `.authorization`).
         allow.groupsDefinedIn('readerGroups').to(['read']),
-        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
-        allow.resource(workspaceMembership), // create + accept/decline (invitee has no group yet)
       ])
       .secondaryIndexes((index) => [
         index('workspaceId'),
         index('email'),
       ]),
   })
-  .authorization((allow) => [allow.resource(postConfirmation)]);
+  // Function data access is configured ONLY at schema scope — Amplify does not
+  // support per-model function grants (docs: "Function access ... cannot be
+  // configured on individual models or fields"). Each of these Lambdas is
+  // trusted privileged code that re-verifies the caller's identity/role in its
+  // own handler; client-facing tenant isolation is enforced by the per-model
+  // group rules above, which are unchanged. This grants each function
+  // Query/Mutation/Subscription over the API (BUG-16: replaces the unsupported
+  // model-scope `allow.resource(...)` grants that no longer type-check).
+  .authorization((allow) => [
+    allow.resource(postConfirmation),    // user bootstrap: UserProfile, personal workspace, owner membership, free subscription
+    allow.resource(workspaceMembership), // workspace / member / invitation / subscription lifecycle
+    allow.resource(stripeWebhook),       // WorkspaceSubscription + ProcessedStripeEvent sync
+  ]);
 
 export type Schema = ClientSchema<typeof schema>;
 

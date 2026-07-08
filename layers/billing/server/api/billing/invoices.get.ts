@@ -148,7 +148,13 @@ function getInvoiceDescription(invoice: Stripe.Invoice): string {
 // Helper function to extract payment method info from the payment intent's
 // latest charge (Stripe removed `PaymentIntent.charges` — review M1).
 function getPaymentMethodInfo(invoice: Stripe.Invoice) {
-  // TODO(E02): `payment_intent` was removed from Stripe.Invoice in stripe-node v18; latent gap — this now always reads undefined.
+  // KNOWN GAP (tech-debt BUG-17): `payment_intent` was removed from
+  // Stripe.Invoice in the 2025-08-27.basil API (stripe-node v18), so this always
+  // reads undefined and card brand/last4/exp are dropped — it degrades to the
+  // no-card path and never throws. The basil path is `invoice.payments[]`
+  // (InvoicePayment) -> payment_intent -> latest_charge.payment_method_details;
+  // wiring it correctly needs a live Stripe test account to confirm the expand
+  // shape and the 4-level expand limit, so it is intentionally NOT changed blind.
   const paymentIntent = (invoice as Stripe.Invoice & { payment_intent?: string | Stripe.PaymentIntent | null }).payment_intent
 
   if (paymentIntent && typeof paymentIntent === 'object') {

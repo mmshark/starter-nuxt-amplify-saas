@@ -175,12 +175,6 @@ function getComposablesStatus(): string[] {
   try {
     if (typeof useBilling === 'function') composables.push('useBilling')
   } catch {}
-  try {
-    // TODO(E02): `useStripe` composable is not implemented; referencing it throws
-    // at runtime (caught below), so it is never listed. Kept behavior-identical.
-    // @ts-expect-error useStripe is intentionally undefined until E02 adds it
-    if (typeof useStripe === 'function') composables.push('useStripe')  
-  } catch {}
   return composables
 }
 </script>

@@ -36,7 +36,7 @@ export default defineEventHandler(async (event): Promise<WorkspaceInvitation[]> 
       })
     }
 
-    const userRole = membership[0].role
+    const userRole = membership[0]?.role
     if (userRole !== 'OWNER' && userRole !== 'ADMIN') {
       throw createError({
         statusCode: 403,
