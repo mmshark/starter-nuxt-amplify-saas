@@ -2,9 +2,10 @@
 import type { NavigationMenuItem, CommandPaletteGroup, CommandPaletteItem } from '@nuxt/ui'
 
 const appConfig = useAppConfig()
+const saasConfig = useSaasConfig()
 
-// `appConfig.saas` is typed as `{}` in this shell app; narrow to the sidebar
-// navigation shape we read below.
+// `appConfig.saas` is loosely typed here; narrow to the sidebar navigation
+// shape we read below.
 type SaasSidebarNav = { navigation?: { sidebar?: { main?: NavigationMenuItem[][]; footer?: NavigationMenuItem[][] } } }
 
 const open = ref(false)
@@ -48,7 +49,7 @@ const groups = computed(() => [{
       :ui="{ footer: 'lg:border-t lg:border-default' }"
     >
       <template #header="{ collapsed }">
-        <WorkspaceSwitcher :collapsed="collapsed" />
+        <WorkspaceSwitcher v-if="saasConfig.features?.workspaceSwitcher" :collapsed="collapsed" />
       </template>
 
       <template #default="{ collapsed }">
