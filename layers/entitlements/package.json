@@ -6,12 +6,12 @@
   "main": "./nuxt.config.ts",
   "exports": {
     ".": "./nuxt.config.ts",
-    "./composables/*": "./composables/*",
-    "./components/*": "./components/*",
-    "./utils/*": "./utils/*",
-    "./config/*": "./config/*",
-    "./types/*": "./types/*",
-    "./server/*": "./server/*"
+    "./composables/*": "./composables/*.ts",
+    "./components/*": "./components/*.vue",
+    "./utils/*": "./utils/*.ts",
+    "./config/*": "./config/*.ts",
+    "./types/*": "./types/*.ts",
+    "./server/*": "./server/*.ts"
   },
   "files": [
     "nuxt.config.ts",
