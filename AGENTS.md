@@ -103,63 +103,72 @@ Tenant tables — `Workspace`, `WorkspaceMember`, `WorkspaceSubscription`, `Work
 
 ### Documentation Structure
 
-The `doc/` directory contains comprehensive project documentation for both human developers and AI agents. **All contributors MUST consult relevant documentation before making changes.**
+The `.context/` directory is the **single source of truth** for project documentation, for both human developers and AI agents. **All contributors MUST consult relevant documentation before making changes.**
 
-#### Product Requirements (doc/prd/)
+**Startup protocol**: read `.context/patterns/index.md` at the start of every session — it is the compact index of all mandatory patterns.
+
+#### Product Requirements (.context/prd/)
 Detailed product specifications for each layer. **MUST be consulted before implementing features.**
 
 Available PRDs:
-- [Amplify Layer](doc/prd/amplify.md) - AWS integration specifications
-- [Auth Layer](doc/prd/auth.md) - Authentication and user management
-- [Billing Layer](doc/prd/billing.md) - Stripe integration and subscription management
-- [Entitlements Layer](doc/prd/entitlements.md) - Authorization, RBAC, and feature gating
-- [Workspaces Layer](doc/prd/workspaces.md) - Multi-tenancy and team management
-- [i18n Layer](doc/prd/i18n.md) - Internationalization functionality
-- [UIX Layer](doc/prd/uix.md) - UI components and design system
-- [SaaS App](doc/prd/saas.md) - Main dashboard application
+- [Product Definition](.context/prd/current.md) - What the starter is and its architectural commitments
+- [Amplify Layer](.context/prd/amplify.md) - AWS integration specifications
+- [Auth Layer](.context/prd/auth.md) - Authentication and user management
+- [Billing Layer](.context/prd/billing.md) - Stripe integration and subscription management
+- [Entitlements Layer](.context/prd/entitlements.md) - Authorization, RBAC, and feature gating
+- [Workspaces Layer](.context/prd/workspaces.md) - Multi-tenancy and team management
+- [i18n Layer](.context/prd/i18n.md) - Internationalization functionality
+- [UIX Layer](.context/prd/uix.md) - UI components and design system
+- [SaaS Meta-Layer](.context/prd/saas-layer.md) - Application shell composed by `layers/saas`
+- [SaaS App](.context/prd/saas-app.md) - Main dashboard application
 
-Archived (future features, not yet built — see `doc/archive/`):
-- [Notifications](doc/archive/prd/notifications.md) - Notification system (not implemented)
-- [Onboarding](doc/archive/prd/onboarding.md) - User onboarding flows (not implemented)
+Future features (target specs, not yet built — marked `Status: Future`):
+- [Notifications](.context/prd/notifications.md) - Notification system (not implemented)
+- [Onboarding](.context/prd/onboarding.md) - User onboarding flows (not implemented)
 
-#### Architecture Decisions (doc/adr/)
+#### Required Code Patterns (.context/patterns/)
+**MANDATORY patterns that MUST be followed in all code.** Start from the index: [.context/patterns/index.md](.context/patterns/index.md).
 
-##### Required Code Patterns (doc/adr/patterns/)
-**MANDATORY patterns that MUST be followed in all code:**
+- **[API Server Pattern](.context/patterns/api-server.md)** - Secure server-side API routes
+- **[Composables Pattern](.context/patterns/composables.md)** - SSR-safe state management
+- **[Error Handling Pattern](.context/patterns/error-handling.md)** - Consistent error management
+- **[Git Conventions](.context/patterns/git-conventions.md)** - Commit message format
+- **[Layers Pattern](.context/patterns/layers.md)** - Layer structure and composition
+- **[Repository Structure](.context/patterns/repository-structure.md)** - File organization
+- **[App Config Composition](.context/patterns/app-config-composition.md)** - Layer/app config merging
+- **[Navigation Configuration](.context/patterns/navigation-config.md)** - Menu composition
 
-- **[API Server Pattern](doc/adr/patterns/api-server.pattern.md)** - Secure server-side API routes
-- **[Composables Pattern](doc/adr/patterns/composables.pattern.md)** - SSR-safe state management
-- **[Error Handling Pattern](doc/adr/patterns/error-handling.pattern.md)** - Consistent error management
-- **[Git Conventions](doc/adr/patterns/git-conventions.pattern.md)** - Commit message format
-- **[Layers Pattern](doc/adr/patterns/layers.pattern.md)** - Layer structure and composition
-- **[Repository Structure](doc/adr/patterns/repository-structure.pattern.md)** - File organization
+#### Architecture (.context/architecture/)
+- **[overview.md](.context/architecture/overview.md)** - Verified architecture reference (system, layers, data flow)
+- **[decisions/](.context/architecture/decisions/)** - Architecture Decision Records (ADR-001, ADR-002, …)
+- **[tech-debt.md](.context/architecture/tech-debt.md)** - Verified technical-debt ledger; check it before claiming a capability works
 
-#### Compliance Analysis (doc/analysis/)
-Automated and manual compliance reports for code quality validation:
-- **gap-analysis-code-vs-prd.md** - Feature implementation vs PRD requirements
-- **gap-analysis-code-vs-adr.md** - Code vs Architecture Decision Records/patterns compliance
-- **layer-dependencies.md** - Layer dependency validation
+#### Operations (.context/operations/)
+Operational guides: [deployment](.context/operations/deployment.md), [environments](.context/operations/environments.md), [debugging](.context/operations/debugging.md), [make-it-yours](.context/operations/make-it-yours.md), [using-published-layers](.context/operations/using-published-layers.md).
 
-#### Implementation Plans (doc/plan/)
-Layer-specific implementation roadmaps and task breakdowns.
+#### Audits (.context/audits/)
+Verified audit checklists (`checklists/`) and reports (`reports/`) validating code against documentation claims — e.g. [saas-starter-features-2026-07-08.md](.context/audits/reports/saas-starter-features-2026-07-08.md).
+
+#### Planning (.context/prd/roadmap.md + .context/epic/)
+[roadmap.md](.context/prd/roadmap.md) is the single source of truth for development sequencing; each epic's spec/design/plan/tasks live in `.context/epic/<id>/`.
 
 ### Compliance Requirements
 
 **All contributors and AI agents MUST adhere to the following:**
 
 1. **Consult PRDs First**
-   - Read the relevant PRD in `doc/prd/` before implementing any feature
+   - Read the relevant PRD in `.context/prd/` before implementing any feature
    - Ensure your implementation matches the specifications exactly
    - If requirements are unclear, ask for clarification
 
 2. **Follow Code Patterns Strictly**
-   - All patterns defined in `doc/adr/patterns/` are MANDATORY
+   - All patterns defined in `.context/patterns/` are MANDATORY — start from `.context/patterns/index.md`
    - Review applicable patterns before writing code
    - Code that violates patterns may be rejected during review
 
 3. **Validate Compliance**
    - Check that your implementation aligns with both PRDs and patterns
-   - Review relevant analysis documents in `doc/analysis/`
+   - Review relevant audit reports in `.context/audits/` and the tech-debt ledger in `.context/architecture/tech-debt.md`
    - Run tests and type checks to ensure correctness
 
 #### Exception Process
@@ -181,7 +190,7 @@ If a deviation from PRDs or patterns is absolutely necessary:
 
 3. **Update Documentation if Needed**
    - If the exception becomes a recurring pattern, update the relevant documentation
-   - Document the new pattern in `doc/adr/patterns/` or update existing PRD
+   - Document the new pattern in `.context/patterns/` (and append it to `.context/patterns/index.md`) or update the existing PRD
 
 #### Non-Compliance Consequences
 
@@ -203,11 +212,11 @@ For consistency and scalability, we follow strict architectural patterns. Refer 
 
 | Pattern | Description | Documentation |
 | :--- | :--- | :--- |
-| **Nuxt Layers** | Structure, encapsulation, composition, and dependency management. | [layers.pattern.md](doc/adr/patterns/layers.pattern.md) |
-| **Composables** | SSR-safe state management and logic sharing. | [composables.pattern.md](doc/adr/patterns/composables.pattern.md) |
-| **API Server** | Secure and consistent server-side API routes (standard). | [api-server.pattern.md](doc/adr/patterns/api-server.pattern.md) |
-| **Git Conventions** | Semantic versioning and commit message format. | [git-conventions.pattern.md](doc/adr/patterns/git-conventions.pattern.md) |
-| **Repository Structure** | Organization of context, operations, and infrastructure. | [repository-structure.pattern.md](doc/adr/patterns/repository-structure.pattern.md) |
+| **Nuxt Layers** | Structure, encapsulation, composition, and dependency management. | [layers.md](.context/patterns/layers.md) |
+| **Composables** | SSR-safe state management and logic sharing. | [composables.md](.context/patterns/composables.md) |
+| **API Server** | Secure and consistent server-side API routes (standard). | [api-server.md](.context/patterns/api-server.md) |
+| **Git Conventions** | Semantic versioning and commit message format. | [git-conventions.md](.context/patterns/git-conventions.md) |
+| **Repository Structure** | Organization of context, operations, and infrastructure. | [repository-structure.md](.context/patterns/repository-structure.md) |
 
 ### REST API Pattern (Standard)
 
@@ -218,7 +227,7 @@ For all server-side API development, **REST API endpoints** are the standard pat
 - **Validation**: Use Zod schemas for input validation.
 - **Errors**: Use `createError()` for consistent error responses.
 
-See [api-server.pattern.md](doc/adr/patterns/api-server.pattern.md) for the complete pattern documentation.
+See [api-server.md](.context/patterns/api-server.md) for the complete pattern documentation.
 
 ## Quick Start
 ```bash
@@ -266,12 +275,12 @@ pnpm saas:dev
 - `pnpm saas:test:e2e` — Playwright e2e suite (from `apps/saas`; requires a live Amplify sandbox + real Cognito sign-up, not run in default CI). Narrower slices: `saas:test:e2e:auth`, `saas:test:e2e:billing`; also `saas:test:e2e:headed`, `saas:test:e2e:ui`, `saas:test:e2e:setup` (installs the Playwright browser), `saas:test:e2e:clean`
 
 ### Logging
-- `layers/amplify/utils/logger.ts` exports `createLogger(scope: string)`, a small environment-aware logger (`debug`/`info`/`warn`/`error`, prefixed `[scope]`) — `debug`/`info` are dev-only (`import.meta.dev`), `warn`/`error` always log. Used across server routes and Lambdas instead of ad hoc `console.*` calls; prefer it for new server-side code.
+- `layers/amplify/utils/logger.ts` exports `createLogger(scope: string)`, a small environment-aware logger (`debug`/`info`/`warn`/`error`, prefixed `[scope]`) — `debug`/`info` are dev-only (`import.meta.dev`), `warn`/`error` always log. **Not yet adopted**: existing server routes and Lambdas still use ad hoc `console.*` calls (tracked as DEAD-05 in `.context/architecture/tech-debt.md`); prefer `createLogger` for new server-side code.
 
 ## Development Workflows
 
 ### Frontend Feature Implementation
-1. **Consult PRD**: Read relevant PRD in `doc/prd/` and review applicable patterns in `doc/adr/patterns/`
+1. **Consult PRD**: Read relevant PRD in `.context/prd/` and review applicable patterns via `.context/patterns/index.md`
 2. **Plan**: Determine if feature belongs in a layer (reusable) or app (instance-specific)
 3. **Develop**: Use layers for composables/components, `apps/saas/app/` for pages
 4. **Protect**: Add `definePageMeta({ middleware: 'auth' })` to protected pages
@@ -280,7 +289,7 @@ pnpm saas:dev
 7. **Validate**: Ensure implementation matches PRD specifications and follows patterns
 
 ### Backend Schema Changes
-1. **Consult PRD**: Review data model specifications in relevant `doc/prd/` files
+1. **Consult PRD**: Review data model specifications in relevant `.context/prd/` files
 2. **Edit**: Modify `apps/backend/amplify/data/resource.ts`
 3. **Generate**: `pnpm amplify:sandbox:generate-graphql-client-code`
 4. **Verify**: Check generated types compile
@@ -306,7 +315,7 @@ Plans are **not** configured in a local JSON file — Stripe is the source of tr
 
 ### Git Conventions
 
-We follow the **Conventional Commits** pattern. Refer to [git-conventions.pattern.md](doc/adr/patterns/git-conventions.pattern.md) for the full specification and type definitions.
+We follow the **Conventional Commits** pattern. Refer to [git-conventions.md](.context/patterns/git-conventions.md) for the full specification and type definitions.
 
 **Project Scopes:**
 - `billing`, `auth`, `i18n`, `saas`, `amplify`, `uix`, `workspaces`, `entitlements`, `debug`, `deps`, `docs`
@@ -369,11 +378,12 @@ pnpm saas:dev
 - **Layer documentation**: `layers/*/README.md`
 - **Build configs**: `apps/*/amplify.yml`
 - **Instance configuration**: `apps/saas/app/app.config.ts`
-- **Product Requirements**: `doc/prd/*.md` - Feature specifications by layer
-- **Architecture Decisions**: `doc/adr/*.md` - ADRs and cross-cutting concerns
-- **Code Patterns**: `doc/adr/patterns/*.md` - Mandatory implementation patterns
-- **Compliance Reports**: `doc/analysis/*.md` - Code vs specification validation
-- **Implementation Plans**: `doc/plan/*.md` - Layer roadmaps and task breakdowns
+- **Product Requirements**: `.context/prd/*.md` - Feature specifications by layer
+- **Architecture**: `.context/architecture/` - Overview, decision records (`decisions/`), and the tech-debt ledger
+- **Code Patterns**: `.context/patterns/*.md` - Mandatory implementation patterns (index: `.context/patterns/index.md`)
+- **Operations Guides**: `.context/operations/*.md` - Deployment, environments, debugging, customization
+- **Audit Reports**: `.context/audits/` - Code vs specification validation (checklists + reports)
+- **Planning**: `.context/prd/roadmap.md` + `.context/epic/*/` - Roadmap and epic specs/plans/tasks
 
 ### External Documentation & Resources
 

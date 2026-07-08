@@ -700,7 +700,7 @@ export default defineNuxtConfig({
 })
 ```
 
-For detailed installation instructions, available layers, and usage examples, see [Using Published Layers Guide](doc/guides/using-published-layers.md).
+For detailed installation instructions, available layers, and usage examples, see [Using Published Layers Guide](.context/operations/using-published-layers.md).
 
 ## 📚 Documentation
 
@@ -709,7 +709,7 @@ This project includes comprehensive documentation for developers and AI agents:
 ### Core Documentation
 - **[AGENTS.md](AGENTS.md)** - Complete guide for AI agents and developers working with this repository
 - **Project README** - This file, for project overview and setup
-- **[Using Published Layers](doc/guides/using-published-layers.md)** - Guide for consuming layers in external projects
+- **[Using Published Layers](.context/operations/using-published-layers.md)** - Guide for consuming layers in external projects
 
 ### Layer-Specific Documentation
 Each layer includes detailed documentation with specific implementation details:
@@ -728,7 +728,7 @@ Each layer includes detailed documentation with specific implementation details:
 
 ### When to Use Each Documentation
 - **Quick Reference**: Use this README for setup and overview
-- **Using Published Layers**: See the [published layers guide](doc/guides/using-published-layers.md) for consuming layers externally
+- **Using Published Layers**: See the [published layers guide](.context/operations/using-published-layers.md) for consuming layers externally
 - **Development Guidance**: Use AGENTS.md for architectural decisions and patterns
 - **Implementation Details**: Use layer READMEs for specific component usage and API details
 - **Troubleshooting**: Check layer-specific READMEs for detailed troubleshooting
