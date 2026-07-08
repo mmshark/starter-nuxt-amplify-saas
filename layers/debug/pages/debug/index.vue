@@ -38,16 +38,25 @@ const currentPlan = computed(() => subscription.value?.plan)
 const status = computed(() => subscription.value?.subscription?.status)
 const isActive = computed(() => status.value === 'active')
 
-const appConfig = useAppConfig()
 const runtimeConfig = useRuntimeConfig()
 
-// Types for this debug page's local state
-interface DebugBillingPlan {
+// Plan shape returned by GET /api/billing/plans (see plans.get.ts).
+interface BillingPlan {
   id: string
   name: string
-  price: number
-  interval: string
-  stripePriceId?: string
+  description?: string | null
+  monthlyPrice: number
+  yearlyPrice: number
+  currency?: string | null
+  stripeMonthlyPriceId?: string | null
+  stripeYearlyPriceId?: string | null
+  stripeProductId?: string | null
+  yearlySavings: number
+}
+
+interface PlansResponse {
+  success: boolean
+  data: { plans: BillingPlan[]; count: number }
 }
 
 interface BillingActionResponse {
@@ -67,19 +76,23 @@ const loadingStates = ref({
   cancel: false
 })
 
-// Computed properties
-// TODO(E02): BUG-08 — `appConfig.billing` has no `plans` key; this reads a dead
-// config path that always resolves to []. Cast preserves the current behavior.
-const availablePlans = computed(() =>
-  (appConfig.billing as { plans?: DebugBillingPlan[] } | undefined)?.plans || []
-)
+// Plans come from the real billing API (SubscriptionPlan synced from Stripe).
+// The previous app-config plan source had no backing key since the
+// plans-from-Stripe migration, so the selector was always empty (BUG-08).
+const { data: plansData } = useFetch<PlansResponse>('/api/billing/plans')
+const availablePlans = computed<BillingPlan[]>(() => plansData.value?.data?.plans ?? [])
 
-const planOptions = computed(() => 
-  availablePlans.value.map(plan => ({
-    label: `${plan.name} - $${(plan.price / 100).toFixed(2)}/${plan.interval}${!plan.stripePriceId ? ' (No Price ID)' : ''}`,
-    value: plan.id,
-    disabled: !plan.stripePriceId
-  }))
+// The monthly price id drives the checkout test; the monthly price is shown in
+// the label. Prices are DECIMAL DOLLARS — use the shared formatter, never /100.
+const planOptions = computed(() =>
+  availablePlans.value.map((plan) => {
+    const priceId = plan.stripeMonthlyPriceId
+    return {
+      label: `${plan.name} - ${formatPrice(plan.monthlyPrice, plan.currency)}/mo${!priceId ? ' (No Price ID)' : ''}`,
+      value: plan.id,
+      disabled: !priceId
+    }
+  })
 )
 
 const systemInfo = computed(() => ({
@@ -122,22 +135,18 @@ const executeBillingAction = async (action: BillingAction, fn: () => Promise<any
 // Billing action functions
 const testCheckout = () => executeBillingAction('checkout', async () => {
   const plan = availablePlans.value.find(p => p.id === selectedPlan.value)
-  
-  if (!plan?.stripePriceId) {
+  const priceId = plan?.stripeMonthlyPriceId
+
+  if (!priceId) {
     return {
       success: false,
-      error: `Plan "${selectedPlan.value}" not found or missing price ID`
+      error: `Plan "${selectedPlan.value}" not found or missing a monthly price ID`
     }
   }
 
-  // TODO(E02): the debug page passes success/cancel URLs, but createCheckoutSession's
-  // signature is (priceId, planId?, billingInterval?). The URLs land in the wrong
-  // params (planId/billingInterval) — a real defect. Cast preserves the current call.
-  return createCheckoutSession(
-    plan.stripePriceId,
-    `${window.location.origin}/debug?checkout=success`,
-    `${window.location.origin}/debug?checkout=canceled` as unknown as 'monthly' | 'yearly'
-  )
+  // createCheckoutSession(priceId) derives planId/interval from the plans API
+  // and lets the checkout route set the success/cancel URLs server-side.
+  return createCheckoutSession(priceId)
 })
 
 // TODO(E02): createPortalSession() takes no args — the portal return URL is now
@@ -422,11 +431,11 @@ function getComposablesStatus(): string[] {
                 />
               </div>
               <div class="text-xs text-gray-500">
-                Total plans: {{ availablePlans.length }} | With Price IDs: {{ availablePlans.filter((p: DebugBillingPlan) => p.stripePriceId).length }} | Selected: {{ selectedPlan }}
+                Total plans: {{ availablePlans.length }} | With Price IDs: {{ availablePlans.filter((p: BillingPlan) => p.stripeMonthlyPriceId).length }} | Selected: {{ selectedPlan }}
               </div>
-              
+
               <div v-if="availablePlans.length === 0" class="text-sm text-amber-600">
-                No billing plans found in app configuration
+                No billing plans found (is the SubscriptionPlan table seeded?)
               </div>
             </div>
           </div>
@@ -533,7 +542,7 @@ function getComposablesStatus(): string[] {
                   // App Configuration Plans
                   appPlans: {
                     totalPlans: availablePlans.length,
-                    plansWithPriceIds: availablePlans.filter((p: DebugBillingPlan) => p.stripePriceId).length,
+                    plansWithPriceIds: availablePlans.filter((p: BillingPlan) => p.stripeMonthlyPriceId).length,
                     allPlans: availablePlans,
                     selectOptions: planOptions,
                     selectedPlan: selectedPlan
