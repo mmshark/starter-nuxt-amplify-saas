@@ -17,15 +17,6 @@ export default defineAppConfig({
           label: 'Home',
           icon: 'i-lucide-house',
           to: '/'
-        }, {
-          label: 'Inbox',
-          icon: 'i-lucide-inbox',
-          to: '/inbox',
-          badge: '4'
-        }, {
-          label: 'Customers',
-          icon: 'i-lucide-users',
-          to: '/customers'
         },
         settingsSidebar  // Imported from saas layer
         ]]
