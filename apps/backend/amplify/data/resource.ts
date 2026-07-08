@@ -100,6 +100,7 @@ const schema = a
         // Clients: READ-ONLY. All writes go through workspace-membership.
         allow.ownerDefinedIn('ownerId').to(['read']),
         allow.groupsDefinedIn('readerGroups').to(['read']),
+        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
         allow.resource(workspaceMembership), // group + record lifecycle (see function docs)
       ])
       .secondaryIndexes((index) => [
@@ -130,7 +131,9 @@ const schema = a
         // Clients: READ-ONLY. Only stripe-webhook / workspace-membership /
         // post-confirmation may write subscription rows (incl. planId).
         allow.groupsDefinedIn('readerGroups').to(['read']),
+        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
         allow.resource(stripeWebhook), // Stripe webhook sync (sessionless Lambda, signature-authorized)
+        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
         allow.resource(workspaceMembership), // billing bootstrap on workspace create
       ])
       .identifier(['workspaceId'])
@@ -147,6 +150,7 @@ const schema = a
     })
       .identifier(['eventId'])
       .authorization((allow) => [
+        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
         allow.resource(stripeWebhook),
       ]),
 
@@ -166,6 +170,7 @@ const schema = a
         // by workspace-membership / post-confirmation.
         allow.ownerDefinedIn('userId').to(['read']),
         allow.groupsDefinedIn('readerGroups').to(['read']),
+        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
         allow.resource(workspaceMembership), // membership lifecycle (invite accept, role, remove)
       ])
       .secondaryIndexes((index) => [
@@ -194,6 +199,7 @@ const schema = a
         // readerGroups/writerGroups from the workspace id — never from client
         // input — and re-verifies the inviter's OWNER/ADMIN role.
         allow.groupsDefinedIn('readerGroups').to(['read']),
+        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
         allow.resource(workspaceMembership), // create + accept/decline (invitee has no group yet)
       ])
       .secondaryIndexes((index) => [
