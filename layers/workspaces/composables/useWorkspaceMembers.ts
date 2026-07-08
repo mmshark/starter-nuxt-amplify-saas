@@ -1,13 +1,16 @@
 import type { InviteMemberInput, WorkspaceInvitation, WorkspaceMember, WorkspaceRole } from '../types/workspaces';
 
-export const useWorkspaceMembers = (workspaceId: MaybeRef<string | null | undefined>) => {
+export const useWorkspaceMembers = (workspaceId: MaybeRefOrGetter<string | null | undefined>) => {
   // Use useAsyncData for caching and hydration
   const { data: members, refresh: refreshMembers, status: membersStatus } = useAsyncData<WorkspaceMember[]>(
     () => `members-${toValue(workspaceId)}`,
     async () => {
       const id = toValue(workspaceId)
       if (!id) return []
-      return $fetch(`/api/workspaces/${id}/members`)
+      // Explicit generic: the route returns WorkspaceMember[]. Without it, $fetch
+      // infers from the typed route registry and blows the instantiation depth
+      // (TS2321) against the demo API routes.
+      return $fetch<WorkspaceMember[]>(`/api/workspaces/${id}/members`)
     },
     {
       default: () => [],
@@ -20,7 +23,9 @@ export const useWorkspaceMembers = (workspaceId: MaybeRef<string | null | undefi
     async () => {
       const id = toValue(workspaceId)
       if (!id) return []
-      return $fetch(`/api/workspaces/${id}/invitations`)
+      // Explicit generic (see members above): avoids the typed-route
+      // instantiation-depth blow-up (TS2321) against the demo API routes.
+      return $fetch<WorkspaceInvitation[]>(`/api/workspaces/${id}/invitations`)
     },
     {
       default: () => [],
@@ -74,7 +79,7 @@ export const useWorkspaceMembers = (workspaceId: MaybeRef<string | null | undefi
     const memberIndex = members.value?.findIndex(m => m.userId === userId)
 
     if (memberIndex !== undefined && memberIndex !== -1 && members.value) {
-      members.value[memberIndex].role = role
+      members.value[memberIndex]!.role = role
     }
 
     try {

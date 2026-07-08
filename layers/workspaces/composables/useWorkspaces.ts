@@ -28,7 +28,7 @@ export const useWorkspaces = () => {
       if (!currentWorkspaceId.value && workspaces.value.length > 0) {
         // Prefer personal workspace, otherwise first available
         const personal = workspaces.value.find(w => w.isPersonal)
-        currentWorkspaceId.value = personal ? personal.id : workspaces.value[0].id
+        currentWorkspaceId.value = personal ? personal.id : workspaces.value[0]!.id
       }
     } catch (error) {
       console.error('Failed to load workspaces:', error)
