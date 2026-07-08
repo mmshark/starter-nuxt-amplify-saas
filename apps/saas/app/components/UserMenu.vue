@@ -46,7 +46,7 @@ const themeSelector = {
       slot: 'chip',
       checked: appConfig.ui.colors.primary === color,
       type: 'checkbox',
-      onSelect: (e) => {
+      onSelect: (e: Event) => {
         e.preventDefault()
         appConfig.ui.colors.primary = color
       }
@@ -65,7 +65,7 @@ const themeSelector = {
       slot: 'chip',
       type: 'checkbox',
       checked: appConfig.ui.colors.neutral === color,
-      onSelect: (e) => {
+      onSelect: (e: Event) => {
         e.preventDefault()
         appConfig.ui.colors.neutral = color
       }
@@ -103,7 +103,8 @@ const appearanceSelector = {
 }
 
 // Read menu configuration from app.config
-const menuConfig = appConfig.saas?.navigation?.userMenu || []
+// `appConfig.saas` is typed as `{}` here; narrow to the userMenu shape we read.
+const menuConfig = (appConfig.saas as { navigation?: { userMenu?: unknown[][] } })?.navigation?.userMenu || []
 
 // Build final items array
 const items = computed<DropdownMenuItem[][]>(() => {

@@ -36,7 +36,8 @@ const appConfig = useAppConfig()
 
 // Compose sidebar items: app items + settings from layer
 const sidebarItems = computed<NavigationMenuItem[][]>(() => [
-  ...(appConfig.saas?.navigation?.sidebarExtra || []),
+  // `appConfig.saas` is typed as `{}` here; narrow to the shape we read.
+  ...((appConfig.saas as { navigation?: { sidebarExtra?: NavigationMenuItem[][] } })?.navigation?.sidebarExtra || []),
   [settingsSidebar] // Settings menu from layer config
 ])
 

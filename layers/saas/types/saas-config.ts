@@ -1,4 +1,7 @@
 import type { NavigationMenuItem } from '@nuxt/ui'
+// `AppConfigInput` is augmented below via `declare module`; import it so the
+// module-scope reference on the `SaasConfig` export (bottom of file) resolves.
+import type { AppConfigInput } from 'nuxt/schema'
 
 /**
  * SaaS Configuration Type Definitions
