@@ -229,14 +229,35 @@ For all server-side API development, **REST API endpoints** are the standard pat
 
 See [api-server.md](.context/patterns/api-server.md) for the complete pattern documentation.
 
+## Operational Interface (Taskfile)
+
+**[`taskfile.yaml`](taskfile.yaml) is the single operational interface for this repository.** It follows the Ontopix [Taskfile as Contract](https://docs.ontopix.dev/engineering/patterns/organizational/taskfile-contract) pattern: colon-separated `namespace:action[:target]` names, one `desc:` per task, `.env` via `dotenv`. Run `task --list` to discover operations.
+
+**Agents MUST use Taskfile tasks when they exist** — do not invoke `pnpm`/`eslint`/`vitest`/`ampx` directly for an operation that has a task. The `pnpm` scripts in `package.json` remain the *underlying implementation* the tasks delegate to (and stay usable for ad-hoc slicing); the tasks are the *interface*.
+
+Standard namespaces:
+
+| Namespace | Key tasks | Purpose |
+| :--- | :--- | :--- |
+| `setup:*` | `setup`, `setup:install`, `setup:clean` | First-use setup (env + deps). `task setup` is the post-clone entry point. |
+| `dev:*` | `dev:saas`, `dev:landing` | Run an app dev server. |
+| `lint:*` | `lint:check`, `lint:fix`, `lint:types`, `lint:all` | ESLint + `nuxt typecheck`. |
+| `test:*` | `test:unit`, `test:e2e`, `test:all` | Vitest (`test:all`); Playwright e2e needs a live sandbox and is excluded from `test:all`. |
+| `ci:*` | `ci:lint`, `ci:test`, `ci:build`, `ci:all` | Local mirror of CI — **if `task ci:all` passes, CI passes.** |
+| `build:*` | `build:saas`, `build:landing`, `build:all` | Production builds (SaaS SSR + landing static). |
+| `amplify:*` | `amplify:sandbox:{init,delete,secrets,generate,seed}`, `amplify:outputs:stub` | AWS Amplify Gen2 cloud sandbox. Guarded by `amplify:checks` (`AWS_PROFILE`, `SANDBOX_STACK_NAME`). |
+| `billing:*` | `billing:stripe:{login,listen,seed}` | Stripe CLI operations. |
+| `clean` | `clean`, `clean:{nuxt,amplify,test,logs,node}` | Reset the working tree. |
+
+> This repo has **no local (LocalStack) sandbox**, so the pattern's `sandbox:*` namespace does not apply; the Amplify *cloud* sandbox lives under `amplify:*`. Copy `.env.example` → `.env` (or run `task setup:prepare`) and set `AWS_PROFILE` / `SANDBOX_STACK_NAME` / `STRIPE_SECRET_KEY` before running `amplify:*` tasks.
+
 ## Quick Start
 ```bash
-corepack enable
-pnpm install
-pnpm backend:sandbox:init
-pnpm amplify:sandbox:generate-outputs
-pnpm amplify:sandbox:generate-graphql-client-code
-pnpm saas:dev
+task setup                        # corepack + pnpm install (creates .env from .env.example)
+# edit .env: set AWS_PROFILE and SANDBOX_STACK_NAME
+task amplify:sandbox:init         # deploy AWS sandbox resources
+task amplify:sandbox:generate     # generate amplify_outputs.json + GraphQL client code
+task dev:saas                     # http://localhost:3000
 ```
 
 - SaaS: `http://localhost:3000` (or `http://localhost:3001` if 3000 occupied)
@@ -244,6 +265,8 @@ pnpm saas:dev
 - Secrets: `apps/saas/.env` holds `STRIPE_SECRET_KEY`/`STRIPE_PUBLISHABLE_KEY` (copy from `layers/billing/.env.example`, never commit). `STRIPE_WEBHOOK_SECRET` is set as an Amplify **sandbox secret** instead (`pnpm backend:sandbox:secrets`) — the Nuxt app never reads it; the `stripe-webhook` Lambda verifies signatures itself. See "Billing" below.
 
 ## Essential Commands
+
+> These `pnpm` scripts are the implementation the Taskfile delegates to. Prefer the equivalent `task` (see [Operational Interface](#operational-interface-taskfile)) as the entry point; e.g. `task dev:saas` over `pnpm saas:dev`, `task ci:all` over running lint/test/build by hand.
 
 ### Development
 - `pnpm saas:dev` — Main dashboard app dev server
