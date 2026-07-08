@@ -1,5 +1,5 @@
 import { getServerUserPoolDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
-import type { WorkspaceMember } from '../../../../types/workspaces'
+import type { WorkspaceMember } from '../../../../../types/workspaces'
 
 /**
  * GET /api/workspaces/[id]/members
