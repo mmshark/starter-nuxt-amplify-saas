@@ -245,18 +245,18 @@ Standard namespaces:
 | `test:*` | `test:unit`, `test:e2e`, `test:all` | Vitest (`test:all`); Playwright e2e needs a live sandbox and is excluded from `test:all`. |
 | `ci:*` | `ci:lint`, `ci:test`, `ci:build`, `ci:all` | Local mirror of CI — **if `task ci:all` passes, CI passes.** |
 | `build:*` | `build:saas`, `build:landing`, `build:all` | Production builds (SaaS SSR + landing static). |
-| `amplify:*` | `amplify:sandbox:{init,delete,secrets,generate,seed}`, `amplify:outputs:stub` | AWS Amplify Gen2 cloud sandbox. Guarded by `amplify:checks` (`AWS_PROFILE`, `SANDBOX_STACK_NAME`). |
+| `sandbox:*` | `sandbox:start`, `sandbox:stop`, `sandbox:generate`, `sandbox:seed`, `sandbox:secrets`, `sandbox:outputs:stub` | AWS Amplify Gen2 **cloud** sandbox. `sandbox:start` = `ampx sandbox` (deploy + watch), `sandbox:stop` = `ampx sandbox delete`. Guarded by `sandbox:checks` (`AWS_PROFILE`, `SANDBOX_STACK_NAME`). |
 | `billing:*` | `billing:stripe:{login,listen,seed}` | Stripe CLI operations. |
 | `clean` | `clean`, `clean:{nuxt,amplify,test,logs,node}` | Reset the working tree. |
 
-> This repo has **no local (LocalStack) sandbox**, so the pattern's `sandbox:*` namespace does not apply; the Amplify *cloud* sandbox lives under `amplify:*`. Copy `.env.example` → `.env` (or run `task setup:prepare`) and set `AWS_PROFILE` / `SANDBOX_STACK_NAME` / `STRIPE_SECRET_KEY` before running `amplify:*` tasks.
+> `sandbox:*` is this repo's Amplify **cloud** sandbox — there is no local (LocalStack) sandbox. Copy `.env.example` → `.env` (or run `task setup:prepare`) and set `AWS_PROFILE` / `SANDBOX_STACK_NAME` / `STRIPE_SECRET_KEY` before running `sandbox:*` tasks.
 
 ## Quick Start
 ```bash
 task setup                        # corepack + pnpm install (creates .env from .env.example)
 # edit .env: set AWS_PROFILE and SANDBOX_STACK_NAME
-task amplify:sandbox:init         # deploy AWS sandbox resources
-task amplify:sandbox:generate     # generate amplify_outputs.json + GraphQL client code
+task sandbox:start                # deploy + watch the Amplify sandbox
+task sandbox:generate             # generate amplify_outputs.json + GraphQL client code
 task dev:saas                     # http://localhost:3000
 ```
 

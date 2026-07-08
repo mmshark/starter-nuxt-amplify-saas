@@ -20,7 +20,7 @@ jobs:
       # and the later typecheck/build resolve the statically-imported config
       # without AWS credentials. Idempotent (skips if a real file exists); the
       # real file stays gitignored.
-      - run: task amplify:outputs:stub
+      - run: task sandbox:outputs:stub
       # Install is CI-environment setup (frozen lockfile + pnpm cache), so it
       # stays in the workflow rather than in `ci:*` — per the Taskfile contract.
       - run: pnpm install --frozen-lockfile

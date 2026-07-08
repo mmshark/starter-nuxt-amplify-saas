@@ -11,8 +11,9 @@ version: '3'
 #   - Every task has a `desc:` and is idempotent where possible
 #   - Environment comes from `.env` (see .env.example); shell env overrides it
 #
-# NOTE: this repo has no local (LocalStack) sandbox, so the standard `sandbox:*`
-# namespace does not apply. AWS Amplify's *cloud* sandbox lives under `amplify:*`.
+# NOTE: `sandbox:*` operates the AWS Amplify Gen2 *cloud* sandbox — there is no
+# local (LocalStack) sandbox in this repo. `sandbox:start` runs `ampx sandbox`
+# (deploy backend + watch); `sandbox:stop` runs `ampx sandbox delete`.
 
 dotenv: ['.env']
 
@@ -38,7 +39,7 @@ tasks:
       - echo ""
       - echo "Setup complete. Next steps:"
       - echo "  1. Review .env (AWS_PROFILE / SANDBOX_STACK_NAME / STRIPE_SECRET_KEY)"
-      - echo "  2. task amplify:sandbox:init   — deploy the Amplify sandbox"
+      - echo "  2. task sandbox:start          — deploy + watch the Amplify sandbox"
       - echo "  3. task dev:saas               — start the dashboard dev server"
       - echo "  4. task --list                 — see all available operations"
 
@@ -71,7 +72,7 @@ tasks:
     desc: "Start the SaaS dashboard dev server"
     preconditions:
       - sh: 'test -f layers/amplify/amplify_outputs.json'
-        msg: "amplify_outputs.json missing. Run: task amplify:sandbox:generate (or task amplify:outputs:stub for offline UI work)"
+        msg: "amplify_outputs.json missing. Run: task sandbox:generate (or task sandbox:outputs:stub for offline UI work)"
     cmds:
       - pnpm --filter {{.SAAS}} run dev
 
@@ -79,7 +80,7 @@ tasks:
     desc: "Start the landing (marketing) dev server"
     preconditions:
       - sh: 'test -f layers/amplify/amplify_outputs.json'
-        msg: "amplify_outputs.json missing. Run: task amplify:sandbox:generate (or task amplify:outputs:stub for offline UI work)"
+        msg: "amplify_outputs.json missing. Run: task sandbox:generate (or task sandbox:outputs:stub for offline UI work)"
     cmds:
       - pnpm --filter {{.LANDING}} run dev
 
@@ -97,7 +98,7 @@ tasks:
 
   lint:types:
     desc: "Type-check the SaaS app (nuxt typecheck)"
-    deps: [amplify:outputs:stub]
+    deps: [sandbox:outputs:stub]
     cmds:
       - pnpm --filter {{.SAAS}} run typecheck
 
@@ -153,13 +154,13 @@ tasks:
 
   build:saas:
     desc: "Build the SaaS dashboard (SSR) for production"
-    deps: [amplify:outputs:stub]
+    deps: [sandbox:outputs:stub]
     cmds:
       - pnpm --filter {{.SAAS}} run build
 
   build:landing:
     desc: "Generate the landing site (static)"
-    deps: [amplify:outputs:stub]
+    deps: [sandbox:outputs:stub]
     cmds:
       - pnpm --filter {{.LANDING}} run generate
 
@@ -169,9 +170,9 @@ tasks:
       - task: build:saas
       - task: build:landing
 
-  # ── amplify: AWS Amplify Gen2 backend / cloud sandbox ──────────────────────
+  # ── sandbox: AWS Amplify Gen2 cloud sandbox ────────────────────────────────
 
-  amplify:checks:
+  sandbox:checks:
     desc: "Verify Amplify sandbox prerequisites (AWS_PROFILE, SANDBOX_STACK_NAME)"
     silent: true
     preconditions:
@@ -180,45 +181,45 @@ tasks:
       - sh: 'test -n "$SANDBOX_STACK_NAME"'
         msg: "SANDBOX_STACK_NAME is not set (add it to .env or export it)"
 
-  amplify:outputs:stub:
+  sandbox:outputs:stub:
     desc: "Provision a stub amplify_outputs.json if none exists (offline install/typecheck/build)"
     status:
       - test -f layers/amplify/amplify_outputs.json
     cmds:
       - cp layers/amplify/amplify_outputs.stub.json layers/amplify/amplify_outputs.json
 
-  amplify:sandbox:init:
-    desc: "Deploy the Amplify sandbox to AWS"
+  sandbox:start:
+    desc: "Start the Amplify sandbox in AWS (ampx sandbox: deploy + watch)"
     cmds:
-      - task: amplify:checks
+      - task: sandbox:checks
       - pnpm --filter {{.BACKEND}} run sandbox:init
 
-  amplify:sandbox:delete:
-    desc: "Delete the Amplify sandbox in AWS"
+  sandbox:stop:
+    desc: "Stop and delete the Amplify sandbox in AWS"
     cmds:
-      - task: amplify:checks
+      - task: sandbox:checks
       - pnpm --filter {{.BACKEND}} run sandbox:delete -y
 
-  amplify:sandbox:secrets:
+  sandbox:secrets:
     desc: "Set the Amplify sandbox secrets (e.g. STRIPE_SECRET_KEY)"
     preconditions:
       - sh: 'test -n "$STRIPE_SECRET_KEY"'
         msg: "STRIPE_SECRET_KEY is not set (add it to .env or export it)"
     cmds:
-      - task: amplify:checks
+      - task: sandbox:checks
       - pnpm --filter {{.BACKEND}} run sandbox:secrets
 
-  amplify:sandbox:generate:
-    desc: "Generate Amplify outputs and the GraphQL client code"
+  sandbox:generate:
+    desc: "Generate amplify_outputs.json and the GraphQL client code from the sandbox"
     cmds:
-      - task: amplify:checks
+      - task: sandbox:checks
       - pnpm --filter {{.BACKEND}} run sandbox:generate-outputs
       - pnpm --filter {{.BACKEND}} run sandbox:generate-graphql-client-code
 
-  amplify:sandbox:seed:
+  sandbox:seed:
     desc: "Seed the Amplify sandbox (base data + plans + users)"
     cmds:
-      - task: amplify:checks
+      - task: sandbox:checks
       - pnpm --filter {{.BACKEND}} run seed
       - pnpm --filter {{.BACKEND}} run seed:plans
       - pnpm --filter {{.BACKEND}} run seed:users
