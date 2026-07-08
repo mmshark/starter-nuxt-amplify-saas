@@ -11,14 +11,19 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
+      - uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       # Provision a schema-valid stub amplify_outputs.json before install so the
       # apps' postinstall `nuxt prepare` (which loads every layer's nuxt.config)
       # and the later typecheck/build resolve the statically-imported config
-      # without AWS credentials. The real file stays gitignored.
-      - run: cp layers/amplify/amplify_outputs.stub.json layers/amplify/amplify_outputs.json
+      # without AWS credentials. Idempotent (skips if a real file exists); the
+      # real file stays gitignored.
+      - run: task amplify:outputs:stub
+      # Install is CI-environment setup (frozen lockfile + pnpm cache), so it
+      # stays in the workflow rather than in `ci:*` — per the Taskfile contract.
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm test
-      - run: pnpm --filter @starter-nuxt-amplify-saas/saas run typecheck
-      - run: pnpm --filter @starter-nuxt-amplify-saas/saas build
-      - run: pnpm --filter @starter-nuxt-amplify-saas/landing generate
+      # Everything CI verifies is defined as tasks: lint:all + test:all + build:all.
+      # If `task ci:all` passes locally, this job passes.
+      - run: task ci:all
