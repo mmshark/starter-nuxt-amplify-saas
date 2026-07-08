@@ -7,7 +7,7 @@
           :src="config.brand.logo"
           :alt="config.brand.name"
           class="h-12 mx-auto mb-4"
-        />
+        >
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
           {{ config.brand.name }}
         </h1>
@@ -36,10 +36,9 @@
 </template>
 
 <script setup lang="ts">
+// NOTE: `definePageMeta` is a no-op when called from a layout — Nuxt only
+// reads page meta declared on the page component itself. Pages using this
+// layout must declare `middleware: 'guest'` themselves (see
+// pages/auth/login.vue, pages/auth/signup.vue, pages/auth/forgot-password.vue).
 const config = useSaasConfig()
-
-// Redirect if already authenticated
-definePageMeta({
-  middleware: ['guest']
-})
 </script>

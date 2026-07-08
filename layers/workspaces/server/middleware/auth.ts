@@ -1,4 +1,4 @@
-import { withAmplifyAuth } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import { fetchAuthSession, getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth/server'
 import { H3Error } from 'h3'
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
-import { settingsSidebar } from '@starter-nuxt-amplify-saas/saas/config/navigation'
+import { settingsSidebar } from '@mmshark/saas-layer/config/navigation'
 
 definePageMeta({ middleware: 'auth' })
 

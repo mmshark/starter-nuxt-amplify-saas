@@ -1,3 +1,7 @@
+// The `saas` app-config augmentation (types/saas-config.ts) is not reliably
+// loaded into this file's program, so `defineAppConfig`'s AppConfigInput
+// constraint rejects the `saas` key. Narrow structural cast keeps the object
+// verbatim; typed access stays available to consumers via useSaasConfig().
 export default defineAppConfig({
   saas: {
     brand: {
@@ -32,4 +36,4 @@ export default defineAppConfig({
       }
     }
   }
-})
+} as unknown as import('nuxt/schema').AppConfigInput)

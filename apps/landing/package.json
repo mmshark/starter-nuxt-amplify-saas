@@ -10,13 +10,13 @@
     "postinstall": "nuxt prepare"
   },
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22"
   },
   "dependencies": {
-    "@starter-nuxt-amplify-saas/amplify-layer": "workspace:*",
-    "@starter-nuxt-amplify-saas/uix-layer": "workspace:*",
-    "nuxt": "^4.2.1",
-    "vue": "^3.5.25",
+    "@mmshark/amplify-layer": "workspace:*",
+    "@mmshark/uix-layer": "workspace:*",
+    "nuxt": "^4.4.8",
+    "vue": "^3.5.39",
     "vue-router": "^4.6.3"
   }
 }

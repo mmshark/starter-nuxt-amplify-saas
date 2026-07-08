@@ -1,6 +1,5 @@
 import type { H3Event, EventHandlerRequest } from 'h3'
 import { parseCookies } from 'h3'
-import type { CookieRef } from 'nuxt/app'
 import {
   createKeyValueStorageFromCookieStorageAdapter,
   createUserPoolsTokenProvider,
@@ -65,6 +64,14 @@ const createCookieStorageFromEvent = (event: H3Event<EventHandlerRequest>) => {
       amplifyCookies[name] = value
     },
     delete(name) {
+      // `name` is a token-storage key (idToken/accessToken/refreshToken/
+      // clockDrift) supplied by the Amplify adapter-core contract, not user
+      // input; setting it to `undefined` instead of deleting it would leave
+      // the key present in `getAll()`'s enumeration, which the Amplify
+      // cookie storage adapter treats as "cookie exists" — this is auth
+      // session/token storage, left as-is rather than reshaped for this
+      // lint pass.
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete amplifyCookies[name]
     }
   })
@@ -155,14 +162,33 @@ export const withAmplifyAuth = async <T>(
  * })
  * ```
  */
+/**
+ * Sessionless server context for PUBLIC (apiKey) reads only. It deliberately
+ * carries NO credentials provider: there is no guest/IAM identity to
+ * authenticate as, so it cannot reach any tenant data. (The previous
+ * guest-credentials wiring existed solely so the old Nitro webhook proxy
+ * could invoke the stripe-webhook Lambda; the webhook is now a direct,
+ * signature-verified Lambda Function URL — see
+ * `apps/backend/amplify/functions/stripe-webhook/`.)
+ */
 export const withAmplifyPublic = async <T>(
   callback: (contextSpec: any) => T | Promise<T>
 ): Promise<T> => {
   return runWithAmplifyServerContext<T>(
     amplifyConfig,
-    {}, // No auth options for public access
+    {},
     callback
   )
+}
+
+/**
+ * Custom Amplify outputs (the `custom` block written via `backend.addOutput()`
+ * in `apps/backend/amplify/backend.ts`). Used to look up deploy-time values
+ * that aren't part of the standard Amplify outputs shape, e.g. the name of
+ * the `workspace-membership` function that the workspace routes invoke.
+ */
+export const amplifyOutputs = outputs as unknown as {
+  custom?: Record<string, string>
 }
 
 /**
@@ -231,6 +257,7 @@ export const withAmplifyPublic = async <T>(
  * ```
  */
 export const getServerPublicDataClient = () => {
+  // @ts-expect-error aws-amplify v6 server generateClient options type omits authMode; runtime unchanged (revisit E02/E10)
   return generateClient<Schema>({ config: amplifyConfig, authMode: 'apiKey' })
 }
 
@@ -330,5 +357,57 @@ export const getServerPublicDataClient = () => {
  * ```
  */
 export const getServerUserPoolDataClient = () => {
+  // @ts-expect-error aws-amplify v6 server generateClient options type omits authMode; runtime unchanged (revisit E02/E10)
   return generateClient<Schema>({ config: amplifyConfig, authMode: 'userPool' })
 }
+
+/*
+ * NOTE — there is deliberately NO IAM ('iam' authMode) data client here.
+ *
+ * The previous `getServerIamDataClient` existed to satisfy
+ * `allow.authenticated('identityPool')` rules on the tenant models. That rule
+ * authorized EVERY authenticated Cognito principal (any signed-in user's
+ * browser could call AppSync directly with their identity-pool credentials
+ * and bypass the routes' OWNER/ADMIN checks), so it was removed.
+ *
+ * Tenant models are now protected by the group-per-workspace model
+ * (`readerGroups`/`writerGroups` dynamic Cognito group rules — see
+ * `apps/backend/amplify/data/resource.ts` and
+ * `layers/amplify/server/utils/workspaceGroups.ts`). Server routes acting on
+ * behalf of a signed-in user must use `getServerUserPoolDataClient()` inside
+ * `withAmplifyAuth` so the caller's `cognito:groups` claim governs AppSync
+ * access. Privileged sessionless writes happen only inside dedicated Lambda
+ * functions with `allow.resource(...)` grants (`stripe-webhook`,
+ * `workspace-membership`, `post-confirmation`).
+ */
+
+/**
+ * Resolve real AWS credentials for the current Amplify SSR context — the
+ * SIGNED-IN user's Cognito Identity Pool "authenticated" role. Only valid
+ * inside `withAmplifyAuth` (a user session is required; `withAmplifyPublic`
+ * carries no credentials provider).
+ *
+ * Use this to construct plain AWS SDK v3 clients (e.g. `@aws-sdk/client-lambda`)
+ * for operations that Amplify Data doesn't cover — such as the workspace
+ * routes invoking the dedicated `workspace-membership` Lambda function.
+ *
+ * @throws if no credentials are available for the current context
+ */
+export const getAwsCredentials = async (contextSpec: any) => {
+  const { fetchAuthSession } = await import('aws-amplify/auth/server')
+  const session = await fetchAuthSession(contextSpec)
+
+  if (!session.credentials) {
+    throw new Error('No AWS credentials available for the current Amplify server context')
+  }
+
+  return session.credentials
+}
+
+/**
+ * AWS region backing this Amplify project's Cognito Identity Pool, derived
+ * from the identity pool id (`<region>:<uuid>`). Useful when constructing
+ * plain AWS SDK v3 clients from Nitro server code.
+ */
+export const amplifyRegion =
+  amplifyConfig.Auth?.Cognito?.identityPoolId?.split(':')[0] || process.env.AWS_REGION

@@ -101,19 +101,6 @@ const getPriceId = (plan: Plan): string | null => {
   return plan.stripeMonthlyPriceId || null
 }
 
-const formatPrice = (value: number, currency?: string): string => {
-  // Stripe prices are always in cents
-  const amount = value / 100
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency: currency || 'USD'
-    }).format(amount)
-  } catch {
-    return `$${amount.toFixed(2)}`
-  }
-}
-
 const handleSelect = async () => {
   if (!autonomousPlan.value) return
 
@@ -137,7 +124,7 @@ const handleSelect = async () => {
       billingInterval: props.interval
     })
     if (result?.success && result?.data?.url) {
-      if (process.client) {
+      if (import.meta.client) {
         window.location.href = result.data.url
       } else {
         await navigateTo(result.data.url, { external: true })
@@ -145,8 +132,8 @@ const handleSelect = async () => {
     } else {
       useToast().add({
         title: 'Checkout error',
-        description: result?.error || 'No checkout URL returned',
-        color: 'red'
+        description: (result as { error?: string })?.error || 'No checkout URL returned',
+        color: 'error'
       })
     }
   } finally {

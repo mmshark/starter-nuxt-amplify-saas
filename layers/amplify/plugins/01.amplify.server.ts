@@ -48,8 +48,18 @@ import outputs from '../amplify_outputs.json'
  * WHY? The plugin-provided client is designed for authenticated user operations
  * where you need to know WHO the user is (e.g., fetching user profile, user-owned data).
  *
- * For public/webhook operations that don't need user context:
+ * For truly public reads (e.g. SubscriptionPlan on the landing page):
  * → Use server/utils/amplify.ts helpers: withAmplifyPublic() + getServerPublicDataClient()
+ * For tenant data (Workspace, WorkspaceMember, WorkspaceInvitation,
+ * WorkspaceSubscription): protected by the group-per-workspace model
+ * (readerGroups/writerGroups dynamic Cognito group rules — see
+ * apps/backend/amplify/data/resource.ts). Server routes acting for a
+ * signed-in user use getServerUserPoolDataClient() inside withAmplifyAuth so
+ * the caller's `cognito:groups` claim governs access. Privileged sessionless
+ * writes happen ONLY inside dedicated Lambda functions with
+ * allow.resource(...) grants (stripe-webhook receives Stripe events directly
+ * on a Function URL; workspace-membership manages groups + membership). The
+ * public API key is read-only on SubscriptionPlan only.
  *
  * USAGE EXAMPLES:
  * ===============
@@ -64,25 +74,6 @@ import outputs from '../amplify_outputs.json'
  *     variables: { userId: event.context.userId }
  *   })
  *   return { profile: userProfile.data }
- * })
- * ```
- *
- * Public/webhook operation (use utils with apiKey auth):
- * ```typescript
- * // In a webhook: server/api/webhooks/stripe.post.ts
- * import { withAmplifyPublic, getServerPublicDataClient } from '#amplify/server/utils/amplify'
- *
- * export default defineEventHandler(async (event) => {
- *   const stripeEvent = await readBody(event)
- *
- *   return await withAmplifyPublic(async (contextSpec) => {
- *     const client = getServerPublicDataClient()
- *     await client.models.UserSubscription.update(contextSpec, {
- *       userId: stripeEvent.customerId,
- *       status: stripeEvent.status
- *     })
- *     return { success: true }
- *   })
  * })
  * ```
  *
@@ -124,11 +115,17 @@ const getAmplifyAuthKeys = (lastAuthUser: string) =>
  * - Owner-based @auth rules work correctly
  * - Private data access (@auth private) is enabled
  *
- * For public operations (webhooks, public data), use getServerPublicDataClient()
- * from server/utils/amplify.ts which uses authMode: 'apiKey'
+ * For truly public reads (SubscriptionPlan only), use getServerPublicDataClient()
+ * from server/utils/amplify.ts (authMode: 'apiKey'). Tenant data is authorized
+ * per-caller via workspace Cognito groups (userPool authMode); there is no
+ * server-side IAM data client.
  */
 const gqlServerClient = generateClient<Schema>({
   config: amplifyConfig,
+  // aws-amplify v6's server generateClient options type is { config } only and
+  // omits authMode; the runtime call is unchanged (authMode kept). Preserving
+  // exact behaviour per the E01 stabilization scope — revisit in E02/E10.
+  // @ts-expect-error authMode not in server generateClient options type
   authMode: 'userPool' // Override API_KEY default for authenticated operations
 })
 
@@ -141,7 +138,7 @@ export default defineNuxtPlugin({
     expires.setDate(expires.getDate() + 30)
 
     // TIP: set path:'/' so cookies are sent for all routes in your app
-    const cookieOpts = { sameSite: 'lax', expires, secure: true, path: '/' as const }
+    const cookieOpts = { sameSite: 'lax' as const, expires, secure: true, path: '/' as const }
 
     // This cookie stores the username of the last authenticated user
     const lastAuthUserCookie = useCookie<string | null>(lastAuthUserCookieName, cookieOpts)

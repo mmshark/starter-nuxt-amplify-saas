@@ -23,8 +23,9 @@ export async function requirePlan(event: H3Event, minPlan: Plan): Promise<void> 
   // Plan hierarchy for comparison
   const planHierarchy: Record<Plan, number> = {
     free: 1,
-    pro: 2,
-    enterprise: 3,
+    starter: 2,
+    pro: 3,
+    enterprise: 4,
   }
 
   const userPlanLevel = planHierarchy[userPlan] || 0

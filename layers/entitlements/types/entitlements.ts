@@ -7,7 +7,7 @@
 /**
  * Subscription plan tiers
  */
-export type Plan = 'free' | 'pro' | 'enterprise'
+export type Plan = 'free' | 'starter' | 'pro' | 'enterprise'
 
 /**
  * User roles for role-based access control

@@ -5,7 +5,11 @@ export default defineNuxtConfig({
     defaultLocale: 'en',
     strategy: 'prefix_except_default',
     lazy: true,
-    langDir: 'i18n/locales',
+    // @nuxtjs/i18n v9+ defaults `restructureDir: 'i18n'` + `langDir: 'locales'`,
+    // resolving to `<layer>/i18n/locales` — which is exactly this layer's
+    // physical layout, so no explicit langDir override is needed anymore
+    // (v8's explicit 'i18n/locales' would now double-resolve to
+    // `<layer>/i18n/i18n/locales`).
 
     // Common number formats
     numberFormats: {
@@ -75,17 +79,17 @@ export default defineNuxtConfig({
     
     // Base locales - each layer can add its own locale files
     locales: [
-      { 
-        code: 'en', 
-        iso: 'en-US', 
-        name: 'English', 
-        file: 'en/common.json' 
+      {
+        code: 'en',
+        language: 'en-US',
+        name: 'English',
+        file: 'en/common.json'
       },
-      { 
-        code: 'es', 
-        iso: 'es-ES', 
-        name: 'Español', 
-        file: 'es/common.json' 
+      {
+        code: 'es',
+        language: 'es-ES',
+        name: 'Español',
+        file: 'es/common.json'
       }
     ]
   }

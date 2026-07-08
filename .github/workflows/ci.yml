@@ -1,0 +1,24 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [master]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      # Provision a schema-valid stub amplify_outputs.json before install so the
+      # apps' postinstall `nuxt prepare` (which loads every layer's nuxt.config)
+      # and the later typecheck/build resolve the statically-imported config
+      # without AWS credentials. The real file stays gitignored.
+      - run: cp layers/amplify/amplify_outputs.stub.json layers/amplify/amplify_outputs.json
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm --filter @starter-nuxt-amplify-saas/saas run typecheck
+      - run: pnpm --filter @starter-nuxt-amplify-saas/saas build
+      - run: pnpm --filter @starter-nuxt-amplify-saas/landing generate

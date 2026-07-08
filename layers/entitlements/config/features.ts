@@ -89,6 +89,10 @@ export const FEATURES: Record<Feature, FeatureDefinition> = {
  */
 export const PLAN_FEATURES: PlanFeatures = {
   free: ['basic-dashboard'],
+  starter: [
+    'basic-dashboard',
+    'data-export',
+  ],
   pro: [
     'basic-dashboard',
     'advanced-analytics',

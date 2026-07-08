@@ -295,8 +295,8 @@ const handlePortalOperations = async () => {
 Get current user's subscription details from their profile. Uses auth layer for authentication.
 
 ```typescript
-import { requireAuth } from '@starter-nuxt-amplify-saas/auth/server/utils/auth'
-import { useUserServer } from '@starter-nuxt-amplify-saas/auth/composables/useUser'
+import { requireAuth } from '@mmshark/auth-layer/server/utils/auth'
+import { useUserServer } from '@mmshark/auth-layer/composables/useUser'
 
 export default defineEventHandler(async (event) => {
   // Authenticate and fetch user data

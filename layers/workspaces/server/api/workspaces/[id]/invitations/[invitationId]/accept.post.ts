@@ -1,11 +1,26 @@
-import { getServerPublicDataClient, withAmplifyPublic } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { getSessionAccessToken, invokeWorkspaceMembership, readInvitationToken } from '../../../../../utils/workspaceMembership'
 
 /**
  * POST /api/workspaces/[id]/invitations/[invitationId]/accept
  * Accept a workspace invitation
+ *
+ * Delegates to the `workspace-membership` function: the accepting user is
+ * not yet in any of the workspace's Cognito groups, so they can neither read
+ * the invitation nor create their own member record with their current
+ * token. The Lambda validates the invitation (PENDING, not expired, email
+ * matches the VERIFIED caller email, the supplied invitation `token` matches
+ * the stored one), creates the membership and adds the user to
+ * `ws:<id>:members` (+ `ws:<id>:admins` for ADMIN/OWNER roles).
+ *
+ * The `token` is the one embedded in the invitation link/email — email
+ * match alone is not proof of possession (other members can see an
+ * invitee's email), so the token is required on top.
+ *
+ * NOTE: the new group only appears in the user's tokens after a refresh —
+ * clients should force-refresh their session after accepting.
  */
 export default defineEventHandler(async (event) => {
-  const user = event.context.user
   const workspaceId = getRouterParam(event, 'id')
   const invitationId = getRouterParam(event, 'invitationId')
 
@@ -16,88 +31,23 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return await withAmplifyPublic(async (contextSpec) => {
-    const client = getServerPublicDataClient()
-
-    // Fetch invitation
-    const { data: invitations } = await client.models.WorkspaceInvitation.list(contextSpec, {
-      filter: {
-        id: { eq: invitationId },
-        workspaceId: { eq: workspaceId }
-      }
+  const token = await readInvitationToken(event)
+  if (!token) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Bad Request',
+      message: 'An invitation token is required to accept this invitation'
     })
+  }
 
-    const invitation = invitations?.[0]
+  const accessToken = getSessionAccessToken(event)
 
-    if (!invitation) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Invitation not found'
-      })
-    }
-
-    // Check invitation is still pending
-    if (invitation.status !== 'PENDING') {
-      throw createError({
-        statusCode: 400,
-        statusMessage: `Invitation is already ${invitation.status.toLowerCase()}`
-      })
-    }
-
-    // Check expiry
-    if (invitation.expiresAt && new Date(invitation.expiresAt) < new Date()) {
-      // Mark as expired
-      await client.models.WorkspaceInvitation.update(contextSpec, {
-        id: invitationId,
-        status: 'EXPIRED'
-      })
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Invitation has expired'
-      })
-    }
-
-    // Verify the invitation email matches the current user
-    const userEmail = event.context.userAttributes?.email
-    if (invitation.email && userEmail && invitation.email !== userEmail) {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'This invitation was sent to a different email address'
-      })
-    }
-
-    // Create member record
-    const { errors: memberErrors } = await client.models.WorkspaceMember.create(contextSpec, {
+  return await withAmplifyAuth(event, (contextSpec) =>
+    invokeWorkspaceMembership<{ success: boolean }>(contextSpec, accessToken, {
+      action: 'acceptInvitation',
       workspaceId,
-      userId: user.userId,
-      email: userEmail || user.username || '',
-      name: event.context.userAttributes?.name || event.context.userAttributes?.given_name || '',
-      role: invitation.role || 'MEMBER',
-      joinedAt: new Date().toISOString()
+      invitationId,
+      token
     })
-
-    if (memberErrors) {
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'Failed to create membership'
-      })
-    }
-
-    // Update invitation status
-    await client.models.WorkspaceInvitation.update(contextSpec, {
-      id: invitationId,
-      status: 'ACCEPTED'
-    })
-
-    // Increment workspace member count
-    const { data: workspace } = await client.models.Workspace.get(contextSpec, { id: workspaceId })
-    if (workspace) {
-      await client.models.Workspace.update(contextSpec, {
-        id: workspaceId,
-        memberCount: (workspace.memberCount || 0) + 1
-      })
-    }
-
-    return { success: true }
-  })
+  )
 })

@@ -8,16 +8,18 @@ if (!import.meta.dev) {
 }
 
 const {
-  user,
+  currentUser,
   userAttributes,
   isAuthenticated,
-  isLoading,
+  loading: isLoading,
   error,
-  displayName,
-  email,
-  updateUserAttributes,
-  fetchUserAttributes
+  updateAttributes
 } = useUser()
+
+const displayName = computed(() =>
+  userAttributes.value?.name || currentUser.value?.username || ''
+)
+const email = computed(() => userAttributes.value?.email || '')
 
 // Form state
 const saving = ref(false)
@@ -52,7 +54,7 @@ const handleSubmit = async () => {
   errorMessage.value = ''
 
   try {
-    const attributes = {}
+    const attributes: Record<string, string> = {}
     
     // Only include non-empty values
     if (profileForm.displayName.trim()) {
@@ -65,18 +67,14 @@ const handleSubmit = async () => {
       attributes['family_name'] = profileForm.lastName.trim()
     }
 
-    const result = await updateUserAttributes(attributes)
-    
-    if (result.success) {
-      success.value = true
-      setTimeout(() => {
-        success.value = false
-      }, 3000)
-    } else {
-      errorMessage.value = result.error || 'Failed to update profile'
-    }
+    await updateAttributes({ userAttributes: attributes })
+
+    success.value = true
+    setTimeout(() => {
+      success.value = false
+    }, 3000)
   } catch (err) {
-    errorMessage.value = err.message || 'An error occurred while updating profile'
+    errorMessage.value = err instanceof Error ? err.message : 'An error occurred while updating profile'
   } finally {
     saving.value = false
   }
@@ -118,7 +116,7 @@ const handleReset = () => {
         <Icon name="i-lucide-alert-triangle" class="w-12 h-12 mx-auto text-red-500 mb-4" />
         <h3 class="text-lg font-medium text-red-900 mb-2">Not Authenticated</h3>
         <p class="text-red-700 mb-4">You need to be logged in to edit your profile.</p>
-        <UButton to="/auth/login" color="red">Go to Login</UButton>
+        <UButton to="/auth/login" color="error">Go to Login</UButton>
       </div>
 
       <!-- Profile Form -->
@@ -143,7 +141,7 @@ const handleReset = () => {
             </div>
           </template>
           
-          <form @submit.prevent="handleSubmit" class="space-y-6">
+          <form class="space-y-6" @submit.prevent="handleSubmit">
             <div class="space-y-4">
               <!-- Display Name -->
               <div>
@@ -157,7 +155,7 @@ const handleReset = () => {
                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your display name"
                   maxlength="50"
-                />
+                >
               </div>
 
               <!-- First Name -->
@@ -172,7 +170,7 @@ const handleReset = () => {
                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your first name"
                   maxlength="50"
-                />
+                >
               </div>
 
               <!-- Last Name -->
@@ -187,7 +185,7 @@ const handleReset = () => {
                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your last name"
                   maxlength="50"
-                />
+                >
               </div>
 
             </div>
@@ -205,10 +203,10 @@ const handleReset = () => {
 
               <UButton
                 type="button"
-                @click="handleReset"
                 :disabled="saving"
                 color="primary"
                 variant="soft"
+                @click="handleReset"
               >
                 Reset
               </UButton>

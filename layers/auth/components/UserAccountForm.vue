@@ -34,13 +34,13 @@ async function onSubmit(event: FormSubmitEvent<AccountForm>) {
     toast.add({
       title: 'Account updated',
       description: 'Your account settings have been saved.',
-      color: 'green'
+      color: 'success'
     })
   } catch (error: any) {
     toast.add({
       title: 'Update failed',
       description: error.message || 'Failed to update account settings.',
-      color: 'red'
+      color: 'error'
     })
   } finally {
     isLoading.value = false
@@ -49,7 +49,7 @@ async function onSubmit(event: FormSubmitEvent<AccountForm>) {
 </script>
 
 <template>
-  <UForm :state="state" @submit="onSubmit" class="space-y-6">
+  <UForm :state="state" class="space-y-6" @submit="onSubmit">
     <UFormField label="Email Address" name="email" required>
       <UInput
         v-model="state.email"

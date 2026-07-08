@@ -1,7 +1,5 @@
 export interface StripePortalOptions {
   flow_type?: 'subscription_update' | 'subscription_cancel' | 'payment_method_update' | 'subscription_update_confirm'
-  return_url?: string
-  configuration_id?: string
   discount_id?: string
 }
 
@@ -73,15 +71,15 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
     return currentPlanId.value === 'free' || subscription.value?.plan?.price === 0
   })
 
-  // Create Stripe Customer Portal URL (no navigation)
+  // Create Stripe Customer Portal URL (no navigation).
+  // Note: the return URL is derived server-side from runtimeConfig.public.appBaseUrl,
+  // not accepted from the client (Phase 3 Task 3.2).
   const createPortalUrl = async (options: StripePortalOptions = {}) => {
     const response = await $fetch('/api/billing/portal', {
       method: 'POST',
       body: {
         workspaceId: id.value,
         flow_type: options.flow_type || 'subscription_update',
-        return_url: options.return_url,
-        configuration_id: options.configuration_id,
         discount_id: options.discount_id
       }
     })
@@ -94,13 +92,12 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
   }
 
   // Create Stripe Customer Portal session (returns full response)
-  const createPortalSession = async (returnUrl?: string) => {
+  const createPortalSession = async () => {
     const response = await $fetch('/api/billing/portal', {
       method: 'POST',
       body: {
         workspaceId: id.value,
-        flow_type: 'subscription_update',
-        return_url: returnUrl
+        flow_type: 'subscription_update'
       }
     })
 
@@ -174,7 +171,7 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
       useToast().add({
         title: 'Portal Error',
         description: error.data?.message || error.message || 'Failed to open billing portal',
-        color: 'red'
+        color: 'error'
       })
     } finally {
       isPortalLoading.value = false
@@ -194,7 +191,7 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
       const response = await $fetch(`/api/billing/subscription?workspaceId=${id.value}`)
 
       if (response.success) {
-        subscription.value = response.data
+        subscription.value = response.data as SubscriptionData
       } else {
         throw new Error('Failed to fetch subscription data')
       }
@@ -205,8 +202,8 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
 
       useToast().add({
         title: 'Subscription Error',
-        description: subscriptionError.value,
-        color: 'red'
+        description: subscriptionError.value ?? undefined,
+        color: 'error'
       })
     } finally {
       subscriptionLoading.value = false
@@ -248,8 +245,8 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
 
       useToast().add({
         title: 'Invoices Error',
-        description: invoicesError.value,
-        color: 'red'
+        description: invoicesError.value ?? undefined,
+        color: 'error'
       })
     } finally {
       invoicesLoading.value = false
@@ -274,33 +271,26 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
     ])
   }
 
-  // Convenience methods for portal flows (existing functionality)
-  const updateSubscription = async (returnUrl?: string) => {
-    await openPortal({
-      flow_type: 'subscription_update',
-      return_url: returnUrl
-    })
+  // Convenience methods for portal flows (existing functionality).
+  // Note: the portal return URL is always derived server-side from
+  // runtimeConfig.public.appBaseUrl (Phase 3 Task 3.2) — it can no longer be
+  // overridden by the caller.
+  const updateSubscription = async () => {
+    await openPortal({ flow_type: 'subscription_update' })
   }
 
-  const cancelSubscription = async (returnUrl?: string) => {
-    await openPortal({
-      flow_type: 'subscription_cancel',
-      return_url: returnUrl
-    })
+  const cancelSubscription = async () => {
+    await openPortal({ flow_type: 'subscription_cancel' })
   }
 
-  const updatePaymentMethod = async (returnUrl?: string) => {
-    await openPortal({
-      flow_type: 'payment_method_update',
-      return_url: returnUrl
-    })
+  const updatePaymentMethod = async () => {
+    await openPortal({ flow_type: 'payment_method_update' })
   }
 
-  const confirmSubscriptionUpdate = async (discountId?: string, returnUrl?: string) => {
+  const confirmSubscriptionUpdate = async (discountId?: string) => {
     await openPortal({
       flow_type: 'subscription_update_confirm',
-      discount_id: discountId,
-      return_url: returnUrl
+      discount_id: discountId
     })
   }
 

@@ -221,7 +221,7 @@ Server-side authentication utilities for protecting API routes.
 Direct authentication validation for server API routes. Only validates authentication and throws 401 error if not authenticated.
 
 ```typescript
-import { requireAuth } from '@starter-nuxt-amplify-saas/auth/server/utils/auth'
+import { requireAuth } from '@mmshark/auth-layer/server/utils/auth'
 
 export default defineEventHandler(async (event) => {
   // Validate authentication - throws 401 if not authenticated
@@ -244,7 +244,7 @@ export default defineEventHandler(async (event) => {
 Higher-order function that wraps an event handler with authentication.
 
 ```typescript
-import { withAuth } from '@starter-nuxt-amplify-saas/auth/server/utils/auth'
+import { withAuth } from '@mmshark/auth-layer/server/utils/auth'
 
 export default withAuth(async (event) => {
   // Authentication already validated

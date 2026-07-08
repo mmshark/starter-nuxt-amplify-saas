@@ -8,7 +8,7 @@
     ".": "./nuxt.config.ts",
     "./composables/*": "./composables/*",
     "./components/*": "./components/*",
-    "./config/*": "./config/*",
+    "./config/*": "./config/*.ts",
     "./types/*": "./types/*"
   },
   "files": [
@@ -50,12 +50,23 @@
   },
   "peerDependencies": {
     "nuxt": "^4.0.0",
-    "@mmshark/amplify-layer": "^1.0.0",
-    "@mmshark/uix-layer": "^1.0.0",
-    "@mmshark/i18n-layer": "^1.0.0",
-    "@mmshark/auth-layer": "^1.0.0",
-    "@mmshark/billing-layer": "^1.0.0",
-    "@mmshark/workspaces-layer": "^1.0.0",
-    "@mmshark/entitlements-layer": "^1.0.0"
+    "@mmshark/amplify-layer": "workspace:*",
+    "@mmshark/uix-layer": "workspace:*",
+    "@mmshark/i18n-layer": "workspace:*",
+    "@mmshark/auth-layer": "workspace:*",
+    "@mmshark/billing-layer": "workspace:*",
+    "@mmshark/workspaces-layer": "workspace:*",
+    "@mmshark/entitlements-layer": "workspace:*"
+  },
+  "devDependencies": {
+    "@mmshark/amplify-layer": "workspace:*",
+    "@mmshark/uix-layer": "workspace:*",
+    "@mmshark/i18n-layer": "workspace:*",
+    "@mmshark/auth-layer": "workspace:*",
+    "@mmshark/billing-layer": "workspace:*",
+    "@mmshark/workspaces-layer": "workspace:*",
+    "@mmshark/entitlements-layer": "workspace:*",
+    "@nuxt/ui": "^4.9.0",
+    "zod": "^4.4.3"
   }
 }

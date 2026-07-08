@@ -5,6 +5,13 @@ import fs from 'fs'
 import path from 'path'
 
 // ============================================================================
+// User Management
+// ============================================================================
+
+import { TestCache } from '../utils/cache.js'
+import { Selectors } from '../utils/selectors.js'
+
+// ============================================================================
 // Test Data
 // ============================================================================
 
@@ -12,13 +19,6 @@ import path from 'path'
 export function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
-
-// ============================================================================
-// User Management
-// ============================================================================
-
-import { TestCache } from '../utils/cache.js'
-import { Selectors } from '../utils/selectors.js'
 // Removed TestDataManager dependency; inline minimal data generation below
 
 // ============================================================================
@@ -33,7 +33,9 @@ function connectToGmail() {
       host: 'imap.gmail.com',
       port: 993,
       tls: true,
-      tlsOptions: { rejectUnauthorized: false }
+      // Keep TLS certificate verification on (Gmail presents a valid cert);
+      // do NOT disable rejectUnauthorized — that would allow MITM.
+      tlsOptions: { servername: 'imap.gmail.com' }
     })
 
     imap.once('ready', () => resolve(imap))

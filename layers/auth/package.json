@@ -6,9 +6,10 @@
   "main": "./nuxt.config.ts",
   "exports": {
     ".": "./nuxt.config.ts",
-    "./composables/*": "./composables/*",
-    "./components/*": "./components/*",
-    "./utils/*": "./utils/*"
+    "./composables/*": "./composables/*.ts",
+    "./components/*": "./components/*.vue",
+    "./utils/*": "./utils/*.ts",
+    "./server/*": "./server/*.ts"
   },
   "files": [
     "nuxt.config.ts",
@@ -48,6 +49,12 @@
   },
   "peerDependencies": {
     "nuxt": "^4.0.0",
-    "@mmshark/amplify-layer": "^1.0.0"
+    "@mmshark/amplify-layer": "workspace:*",
+    "aws-amplify": "^6.0.0",
+    "@nuxt/ui": "^4.9.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@mmshark/uix-layer": "workspace:*"
   }
 }

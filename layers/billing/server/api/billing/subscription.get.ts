@@ -1,6 +1,10 @@
-import { getServerUserPoolDataClient, withAmplifyAuth } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { getServerUserPoolDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
 import { fetchAuthSession } from 'aws-amplify/auth/server'
 import Stripe from 'stripe'
+import { getFeaturesForPlan } from '@mmshark/entitlements-layer/config/features'
+import type { Plan } from '@mmshark/entitlements-layer/types/entitlements'
+
+const KNOWN_PLANS: readonly Plan[] = ['free', 'starter', 'pro', 'enterprise']
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -13,7 +17,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const stripe = new Stripe(config.stripe.secretKey, {
-    apiVersion: '2025-02-24.acacia'
+    apiVersion: '2025-08-27.basil'
   })
 
   return await withAmplifyAuth(event, async (contextSpec) => {
@@ -38,6 +42,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // userPool client: reads are authorized by the caller's workspace group
+    // claims — defense-in-depth on top of the membership check below.
     const client = getServerUserPoolDataClient()
 
     // Validate access: Check if user is a member of the workspace
@@ -127,8 +133,10 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Get plan features
-    const planFeatures = []
+    // Get plan features for the workspace's current plan (default to 'free' if unknown)
+    const planId = workspaceSubscription.planId
+    const knownPlan = (KNOWN_PLANS as readonly string[]).includes(planId) ? (planId as Plan) : 'free'
+    const planFeatures = getFeaturesForPlan(knownPlan)
 
     return {
       success: true,

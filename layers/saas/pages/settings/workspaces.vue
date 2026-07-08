@@ -34,10 +34,10 @@ onMounted(() => {
                 <p v-if="currentWorkspace.description" class="text-sm text-gray-600 mt-1">
                   {{ currentWorkspace.description }}
                 </p>
-                <UBadge v-if="currentWorkspace.isPersonal" color="gray" variant="subtle" class="mt-2">
+                <UBadge v-if="currentWorkspace.isPersonal" color="neutral" variant="subtle" class="mt-2">
                   Personal
                 </UBadge>
-                <UBadge v-if="currentRole" :color="currentRole === 'OWNER' ? 'green' : currentRole === 'ADMIN' ? 'blue' : 'gray'" variant="subtle" class="mt-2 ml-2">
+                <UBadge v-if="currentRole" :color="currentRole === 'OWNER' ? 'success' : currentRole === 'ADMIN' ? 'info' : 'neutral'" variant="subtle" class="mt-2 ml-2">
                   {{ currentRole }}
                 </UBadge>
               </div>
@@ -91,10 +91,10 @@ onMounted(() => {
               </div>
 
               <div class="flex items-center gap-2">
-                <UBadge v-if="workspace.isPersonal" color="gray" variant="subtle" size="xs">
+                <UBadge v-if="workspace.isPersonal" color="neutral" variant="subtle" size="xs">
                   Personal
                 </UBadge>
-                <UBadge color="gray" variant="subtle" size="xs">
+                <UBadge color="neutral" variant="subtle" size="xs">
                   {{ workspace.memberCount }} {{ workspace.memberCount === 1 ? 'member' : 'members' }}
                 </UBadge>
               </div>

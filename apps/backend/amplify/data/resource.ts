@@ -1,10 +1,54 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { postConfirmation } from "../auth/post-confirmation/resource";
+import { stripeWebhook } from "../functions/stripe-webhook/resource";
+import { workspaceMembership } from "../functions/workspace-membership/resource";
+
+/**
+ * TENANT AUTHORIZATION MODEL — group-per-workspace (Cognito groups)
+ * ==================================================================
+ * Every workspace is guarded by two Cognito user pool groups (see
+ * `layers/amplify/server/utils/workspaceGroups.ts`):
+ *
+ *   ws:<workspaceId>:members  → readers  (all members)
+ *   ws:<workspaceId>:admins   → writers  (OWNER + ADMIN)
+ *
+ * Each tenant record carries the authorizing group names in its
+ * `readerGroups` field (set at creation time by Lambda code only) and is
+ * authorized with a dynamic group rule:
+ *
+ *   allow.groupsDefinedIn('readerGroups').to(['read'])   // READ-ONLY
+ *
+ * CLIENTS ARE READ-ONLY. No tenant model grants create/update/delete to any
+ * client principal — not via `groupsDefinedIn`, not via `authenticated(...)`,
+ * not via owner rules. EVERY write to a tenant table goes through the
+ * privileged functions holding `allow.resource(...)` grants below
+ * (`workspace-membership`, `stripe-webhook`, `post-confirmation`), which
+ * re-verify the caller's identity and OWNER/ADMIN role themselves. This is
+ * what prevents cross-tenant takeover: a signed-in user calling AppSync
+ * directly can only READ rows of workspaces whose Cognito group appears in
+ * their token (`cognito:groups` claim) and can never set `readerGroups`/
+ * `writerGroups`, `role` or `planId`.
+ *
+ * The `writerGroups` field is retained on the records as metadata (the
+ * `ws:<id>:admins` group still drives role semantics inside the Lambdas)
+ * but it grants NO AppSync access.
+ *
+ * Group lifecycle (create/delete groups, add/remove users) is owned by the
+ * `workspace-membership` function (`amplify/functions/workspace-membership/`)
+ * and the `post-confirmation` trigger; both hold `allow.resource(...)` grants
+ * below because they must write tenant rows before/while the acting user's
+ * token contains the new group.
+ *
+ * NOTE: group changes only take effect on the user's next token refresh.
+ */
 
 /**
  * UserProfile - User-level attributes and preferences
  * Purpose: Store user-specific data like Stripe customer ID and future user preferences
  * NOT deprecated - This is the correct place for user-level data
+ *
+ * Not workspace-scoped: owner-readable only. The only writer is the
+ * post-confirmation trigger (schema-level `allow.resource(postConfirmation)`).
  */
 const userProfileModel = a.model({
   userId: a.string().required(),
@@ -29,12 +73,11 @@ const schema = a
   .schema({
     UserProfile: userProfileModel
       .authorization((allow) => [
-        allow.publicApiKey(),
         allow.ownerDefinedIn("userId").to(["read"]),
       ]),
     SubscriptionPlan: subscriptionPlanModel
       .authorization((allow) => [
-        allow.publicApiKey(), // Para mostrar planes en landing page
+        allow.publicApiKey().to(["read"]), // landing page, read-only
         allow.authenticated().to(["read"]), // Usuarios autenticados leen
         allow.groups(["admin"]).to(["create", "update", "delete"]), // Solo admins modifican
       ]),
@@ -47,14 +90,18 @@ const schema = a
       ownerId: a.string().required(),
       isPersonal: a.boolean().default(false),
       memberCount: a.integer().default(1),
+      readerGroups: a.string().array(),
+      writerGroups: a.string().array(),
       members: a.hasMany('WorkspaceMember', 'workspaceId'),
       invitations: a.hasMany('WorkspaceInvitation', 'workspaceId'),
       subscription: a.hasOne('WorkspaceSubscription', 'workspaceId'),
     })
       .authorization((allow) => [
-        allow.ownerDefinedIn('ownerId').to(['read', 'update', 'delete']),
-        allow.authenticated().to(['create']),
-        allow.publicApiKey(), // For server-side privileged access
+        // Clients: READ-ONLY. All writes go through workspace-membership.
+        allow.ownerDefinedIn('ownerId').to(['read']),
+        allow.groupsDefinedIn('readerGroups').to(['read']),
+        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
+        allow.resource(workspaceMembership), // group + record lifecycle (see function docs)
       ])
       .secondaryIndexes((index) => [
         index('slug'),
@@ -77,14 +124,34 @@ const schema = a
       billingInterval: a.enum(['month', 'year']),
       trialStart: a.datetime(),
       trialEnd: a.datetime(),
+      readerGroups: a.string().array(),
+      writerGroups: a.string().array(),
     })
       .authorization((allow) => [
-        allow.publicApiKey(), // For Stripe webhooks
-        // allow.custom(), // TODO: Implement workspace-based authorization (requires Lambda function)
+        // Clients: READ-ONLY. Only stripe-webhook / workspace-membership /
+        // post-confirmation may write subscription rows (incl. planId).
+        allow.groupsDefinedIn('readerGroups').to(['read']),
+        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
+        allow.resource(stripeWebhook), // Stripe webhook sync (sessionless Lambda, signature-authorized)
+        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
+        allow.resource(workspaceMembership), // billing bootstrap on workspace create
       ])
       .identifier(['workspaceId'])
       .secondaryIndexes((index) => [
         index('stripeCustomerId'),
+      ]),
+
+    // Dedupe table for Stripe webhook delivery: guards against reprocessing a
+    // redelivered/retried event (Task 3.3 step 3).
+    ProcessedStripeEvent: a.model({
+      eventId: a.string().required(),
+      type: a.string(),
+      processedAt: a.datetime().required(),
+    })
+      .identifier(['eventId'])
+      .authorization((allow) => [
+        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
+        allow.resource(stripeWebhook),
       ]),
 
     WorkspaceMember: a.model({
@@ -95,10 +162,16 @@ const schema = a
       name: a.string(),
       role: a.enum(['OWNER', 'ADMIN', 'MEMBER']),
       joinedAt: a.datetime().required(),
+      readerGroups: a.string().array(),
+      writerGroups: a.string().array(),
     })
       .authorization((allow) => [
+        // Clients: READ-ONLY. Membership rows (incl. `role`) are written only
+        // by workspace-membership / post-confirmation.
         allow.ownerDefinedIn('userId').to(['read']),
-        allow.publicApiKey(), // For server-side privileged access
+        allow.groupsDefinedIn('readerGroups').to(['read']),
+        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
+        allow.resource(workspaceMembership), // membership lifecycle (invite accept, role, remove)
       ])
       .secondaryIndexes((index) => [
         index('workspaceId'),
@@ -112,13 +185,22 @@ const schema = a
       role: a.enum(['OWNER', 'ADMIN', 'MEMBER']),
       invitedBy: a.string().required(),
       inviterName: a.string(),
+      inviterEmail: a.email(),
       token: a.string().required(),
       expiresAt: a.datetime().required(),
       message: a.string(),
+      status: a.enum(['PENDING', 'ACCEPTED', 'DECLINED', 'EXPIRED']),
+      readerGroups: a.string().array(),
+      writerGroups: a.string().array(),
     })
       .authorization((allow) => [
-        allow.ownerDefinedIn('invitedBy').to(['read', 'delete']),
-        allow.publicApiKey(), // For server-side privileged access
+        // Clients: READ-ONLY (workspace members can list invitations).
+        // Invitations are CREATED only by workspace-membership, which derives
+        // readerGroups/writerGroups from the workspace id — never from client
+        // input — and re-verifies the inviter's OWNER/ADMIN role.
+        allow.groupsDefinedIn('readerGroups').to(['read']),
+        // @ts-expect-error data-schema@1.26 types model-scope allow as BaseAllowModifier (omits .resource); ampx honors it — tech-debt BUG-16, move to schema scope (E02)
+        allow.resource(workspaceMembership), // create + accept/decline (invitee has no group yet)
       ])
       .secondaryIndexes((index) => [
         index('workspaceId'),
@@ -132,9 +214,9 @@ export type Schema = ClientSchema<typeof schema>;
 export const data = defineData({
   schema,
   authorizationModes: {
-    defaultAuthorizationMode: "apiKey",
+    defaultAuthorizationMode: "userPool",
     apiKeyAuthorizationMode: {
-      expiresInDays: 30,
+      expiresInDays: 365, // read-only public plans only
     },
   },
 });

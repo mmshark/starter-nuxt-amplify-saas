@@ -11,7 +11,15 @@ import type { Feature, Permission, Plan, Role } from '../types/entitlements'
 import { PLAN_FEATURES, planIncludesFeature } from '../config/features'
 import { ROLE_PERMISSIONS, roleHasPermission } from '../config/permissions'
 
-export const useEntitlements = createSharedComposable(() => {
+// NOTE: intentionally NOT wrapped in `createSharedComposable` — it memoizes
+// a single instance for the app's lifetime, which on the server (where one
+// Nuxt app instance can be reused/pooled across concurrent requests) leaks
+// one request's entitlements into another's. The composables this builds on
+// (useUser, useWorkspaces, useWorkspaceMembership) are all useState-backed,
+// so every call to useEntitlements() still reads the same per-request
+// reactive state without needing a shared instance.
+export const useEntitlements = () => {
+  // @ts-expect-error TODO(E02) BUG-15: useUser() exposes currentUser, not user — destructure yields undefined at runtime
   const { user, isAuthenticated } = useUser()
   const { currentWorkspace } = useWorkspaces()
   const { currentRole } = useWorkspaceMembership()
@@ -28,7 +36,7 @@ export const useEntitlements = createSharedComposable(() => {
     const planId = currentWorkspace.value?.subscription?.planId
 
     // Validate plan is one of our known plans
-    if (planId === 'free' || planId === 'pro' || planId === 'enterprise') {
+    if (planId === 'free' || planId === 'starter' || planId === 'pro' || planId === 'enterprise') {
       return planId as Plan
     }
 
@@ -115,8 +123,9 @@ export const useEntitlements = createSharedComposable(() => {
   const hasPlan = (minPlan: Plan): boolean => {
     const planHierarchy: Record<Plan, number> = {
       free: 1,
-      pro: 2,
-      enterprise: 3,
+      starter: 2,
+      pro: 3,
+      enterprise: 4,
     }
 
     return planHierarchy[subscriptionPlan.value] >= planHierarchy[minPlan]
@@ -130,7 +139,7 @@ export const useEntitlements = createSharedComposable(() => {
    */
   const getRequiredPlanForFeature = (feature: Feature): Plan => {
     // Find the lowest plan that includes this feature
-    const plans: Plan[] = ['free', 'pro', 'enterprise']
+    const plans: Plan[] = ['free', 'starter', 'pro', 'enterprise']
     for (const plan of plans) {
       if (planIncludesFeature(plan, feature)) {
         return plan
@@ -154,4 +163,4 @@ export const useEntitlements = createSharedComposable(() => {
     hasPlan,
     getRequiredPlanForFeature,
   }
-})
+}

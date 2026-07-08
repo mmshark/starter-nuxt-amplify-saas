@@ -30,6 +30,7 @@ logs
 # Amplify
 .amplify
 amplify_outputs*
+!amplify_outputs.stub.json
 amplifyconfiguration*
 utils/graphql
 

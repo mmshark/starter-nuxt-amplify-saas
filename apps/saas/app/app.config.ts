@@ -1,4 +1,5 @@
-import { settingsSidebar, footerNavigation, userMenuItems } from '@starter-nuxt-amplify-saas/saas/config/navigation'
+import type { NavigationMenuItem } from '@nuxt/ui'
+import { settingsSidebar, footerNavigation, userMenuItems } from '@mmshark/saas-layer/config/navigation'
 
 export default defineAppConfig({
   // SaaS layer configuration
@@ -36,7 +37,10 @@ export default defineAppConfig({
       // Header navigation (empty for now)
       header: [],
       // User menu configuration
-      userMenu: [
+      // Cast via `unknown`: the custom entries carry sentinel `type` values
+      // (`theme-selector`/`appearance-selector`) that `NavigationMenuItem` does
+      // not allow; the UserMenu component reads them at runtime. Data unchanged.
+      userMenu: ([
         // User profile items from layer
         ...userMenuItems,
         // App-specific items
@@ -89,7 +93,7 @@ export default defineAppConfig({
         icon: 'i-lucide-rocket',
         to: 'https://ui.nuxt.com/pro/purchase',
         target: '_blank'
-      }]]
+      }]] as unknown as NavigationMenuItem[][])
     },
     theme: {
       colors: {
@@ -98,4 +102,5 @@ export default defineAppConfig({
       }
     }
   }
-})
+  // saas app-config augmentation isn't loaded here; cast to the base AppConfigInput keeps the object verbatim
+} as unknown as import('nuxt/schema').AppConfigInput)

@@ -1,13 +1,14 @@
 <template>
-  <UDropdown :items="menuItems">
+  <UDropdownMenu :items="menuItems">
     <UButton
       variant="ghost"
+      color="neutral"
       class="flex items-center gap-2"
       data-testid="user-menu"
     >
       <!-- Avatar -->
       <UAvatar
-        :src="user?.attributes?.picture"
+        :src="userAttributes?.picture"
         :alt="userName"
         size="sm"
       />
@@ -18,29 +19,30 @@
       <!-- Dropdown Icon -->
       <UIcon name="i-lucide-chevron-down" class="w-4 h-4" />
     </UButton>
-  </UDropdown>
+  </UDropdownMenu>
 </template>
 
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
+
 const config = useSaasConfig()
-const { user, signOut } = useUser()
+const { currentUser, userAttributes, signOut } = useUser()
 const router = useRouter()
 
 // User display name
 const userName = computed(() =>
-  user.value?.attributes?.name ||
-  user.value?.username ||
+  userAttributes.value?.name ||
+  currentUser.value?.username ||
   'User'
 )
 
 // Build menu items from configuration + sign out action
-const menuItems = computed(() => {
-  const configItems = config.userMenu.map(group =>
+const menuItems = computed<DropdownMenuItem[][]>(() => {
+  const configItems = (config.navigation?.userMenu || []).map(group =>
     group.map(item => ({
       label: item.label,
       icon: item.icon,
-      to: item.to,
-      click: item.click
+      to: item.to
     }))
   )
 
@@ -51,7 +53,7 @@ const menuItems = computed(() => {
       {
         label: 'Sign Out',
         icon: 'i-lucide-log-out',
-        click: async () => {
+        onSelect: async () => {
           await signOut()
           router.push('/auth/login')
         }

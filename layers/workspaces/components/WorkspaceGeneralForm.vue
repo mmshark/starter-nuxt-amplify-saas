@@ -46,13 +46,13 @@ async function onSubmit(event: FormSubmitEvent<WorkspaceForm>) {
     toast.add({
       title: 'Workspace updated',
       description: 'Your workspace settings have been saved.',
-      color: 'green'
+      color: 'success'
     })
   } catch (error: any) {
     toast.add({
       title: 'Update failed',
       description: error.data?.message || error.message || 'Failed to update workspace settings.',
-      color: 'red'
+      color: 'error'
     })
   } finally {
     isLoading.value = false
@@ -61,7 +61,7 @@ async function onSubmit(event: FormSubmitEvent<WorkspaceForm>) {
 </script>
 
 <template>
-  <UForm :state="state" @submit="onSubmit" class="space-y-6">
+  <UForm :state="state" class="space-y-6" @submit="onSubmit">
     <UFormField label="Workspace Name" name="name" required>
       <UInput
         v-model="state.name"

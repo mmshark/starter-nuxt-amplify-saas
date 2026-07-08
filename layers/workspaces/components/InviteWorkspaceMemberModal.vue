@@ -6,13 +6,13 @@
           Invite Team Member
         </h3>
 
-        <form @submit.prevent="onSubmit" class="space-y-4">
+        <form class="space-y-4" @submit.prevent="onSubmit">
           <UFormField label="Email Address" name="email" required>
             <UInput v-model="form.email" type="email" placeholder="colleague@company.com" />
           </UFormField>
 
           <UFormField label="Role" name="role" required>
-            <USelect v-model="form.role" :options="roleOptions" />
+            <USelect v-model="form.role" :items="roleOptions" />
           </UFormField>
 
           <UFormField label="Message" name="message">
@@ -81,7 +81,7 @@ const onSubmit = async () => {
     toast.add({ title: 'Invitation sent successfully' })
   } catch (error) {
     console.error(error)
-    toast.add({ title: 'Failed to send invitation', color: 'red' })
+    toast.add({ title: 'Failed to send invitation', color: 'error' })
   } finally {
     loading.value = false
   }

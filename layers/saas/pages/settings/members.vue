@@ -80,7 +80,7 @@ onMounted(async () => {
                 {{ invitation.message }}
               </p>
             </div>
-            <UBadge color="yellow" variant="subtle">
+            <UBadge color="warning" variant="subtle">
               Pending
             </UBadge>
           </div>

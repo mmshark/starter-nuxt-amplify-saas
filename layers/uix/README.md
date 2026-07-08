@@ -153,7 +153,7 @@ export default defineAppConfig({
 ```typescript
 export default defineNuxtConfig({
   modules: ["@nuxt/ui-pro"],           // Nuxt UI Pro components
-  css: ["@starter-nuxt-amplify-saas/uix/assets/css/main.css"]  // Core styles
+  css: ["@mmshark/uix-layer/assets/css/main.css"]  // Core styles
 })
 ```
 
@@ -421,23 +421,11 @@ withDefaults(defineProps<Props>(), {
 
 ```vue
 <template>
-  <UDropdown>
+  <UDropdownMenu :items="themeItems">
     <UButton variant="ghost" :icon="currentThemeIcon">
       {{ currentThemeLabel }}
     </UButton>
-    
-    <template #dropdown>
-      <UDropdownItem 
-        v-for="theme in themes"
-        :key="theme.value"
-        @click="setTheme(theme.value)"
-        :class="{ 'bg-primary-50': colorMode.preference === theme.value }"
-      >
-        <UIcon :name="theme.icon" />
-        {{ theme.label }}
-      </UDropdownItem>
-    </template>
-  </UDropdown>
+  </UDropdownMenu>
 </template>
 
 <script setup>
@@ -448,6 +436,14 @@ const themes = [
   { value: 'dark', label: 'Dark', icon: 'i-lucide-moon' },
   { value: 'system', label: 'System', icon: 'i-lucide-monitor' }
 ]
+
+const themeItems = computed(() => [themes.map(theme => ({
+  label: theme.label,
+  icon: theme.icon,
+  type: 'checkbox',
+  checked: colorMode.preference === theme.value,
+  onSelect: () => setTheme(theme.value)
+}))])
 
 const currentTheme = computed(() => 
   themes.find(t => t.value === colorMode.preference) || themes[0]

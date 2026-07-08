@@ -5,7 +5,7 @@
  * Automatically validates feature access before executing handler.
  */
 
-import type { H3Event, EventHandler } from 'h3'
+import type { H3Event, EventHandler, EventHandlerRequest } from 'h3'
 import type { Feature } from '../../types/entitlements'
 import { requireFeature } from './requireFeature'
 
@@ -25,7 +25,7 @@ import { requireFeature } from './requireFeature'
  *   'advanced-analytics'
  * )
  */
-export function withFeature<T>(
+export function withFeature<T extends EventHandlerRequest>(
   handler: EventHandler<T>,
   feature: Feature
 ): EventHandler<T> {

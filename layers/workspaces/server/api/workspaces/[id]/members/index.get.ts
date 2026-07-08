@@ -1,5 +1,5 @@
-import { getServerPublicDataClient, withAmplifyPublic } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
-import type { WorkspaceMember } from '../../../../types/workspaces'
+import { getServerUserPoolDataClient, withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import type { WorkspaceMember } from '../../../../../types/workspaces'
 
 /**
  * GET /api/workspaces/[id]/members
@@ -16,8 +16,8 @@ export default defineEventHandler(async (event): Promise<WorkspaceMember[]> => {
     })
   }
 
-  return await withAmplifyPublic(async (contextSpec) => {
-    const client = getServerPublicDataClient()
+  return await withAmplifyAuth(event, async (contextSpec) => {
+    const client = getServerUserPoolDataClient()
 
     // Verify user is a member of this workspace
     const { data: membership } = await client.models.WorkspaceMember.list(contextSpec, {

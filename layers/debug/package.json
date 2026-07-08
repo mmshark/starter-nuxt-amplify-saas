@@ -38,6 +38,14 @@
     "access": "restricted"
   },
   "peerDependencies": {
-    "nuxt": "^4.0.0"
+    "nuxt": "^4.0.0",
+    "@mmshark/auth-layer": "workspace:*",
+    "@mmshark/billing-layer": "workspace:*",
+    "aws-amplify": "^6.0.0"
+  },
+  "devDependencies": {
+    "@mmshark/auth-layer": "workspace:*",
+    "@mmshark/billing-layer": "workspace:*",
+    "@starter-nuxt-amplify-saas/backend": "workspace:*"
   }
 }

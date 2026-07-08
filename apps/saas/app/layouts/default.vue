@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import type { NavigationMenuItem } from '@nuxt/ui'
+import type { NavigationMenuItem, CommandPaletteGroup, CommandPaletteItem } from '@nuxt/ui'
 
 const route = useRoute()
 const toast = useToast()
 const appConfig = useAppConfig()
+
+// `appConfig.saas` is typed as `{}` in this shell app; narrow to the sidebar
+// navigation shape we read below.
+type SaasSidebarNav = { navigation?: { sidebar?: { main?: NavigationMenuItem[][]; footer?: NavigationMenuItem[][] } } }
 
 const open = ref(false)
 
@@ -16,17 +20,18 @@ const addOnSelectToMenuItem = (item: NavigationMenuItem): NavigationMenuItem => 
 })
 
 const mainLinks = computed(() =>
-  appConfig.saas?.navigation?.sidebar?.main?.map(group =>
+  (appConfig.saas as SaasSidebarNav)?.navigation?.sidebar?.main?.map(group =>
     group.map(addOnSelectToMenuItem)
   ) as NavigationMenuItem[][] ?? [[]]
 )
 
 const footerLinks = computed(() =>
-  appConfig.saas?.navigation?.sidebar?.footer?.map(group =>
+  (appConfig.saas as SaasSidebarNav)?.navigation?.sidebar?.footer?.map(group =>
     group.map(addOnSelectToMenuItem)
   ) as NavigationMenuItem[][] ?? [[]]
 )
 
+// Narrow-cast to the command-palette group type expected by `UDashboardSearch`.
 const groups = computed(() => [{
   id: 'links',
   label: 'Go to',
@@ -41,7 +46,7 @@ const groups = computed(() => [{
     to: `https://github.com/nuxt-ui-pro/dashboard/blob/main/app/pages${route.path === '/' ? '/index' : route.path}.vue`,
     target: '_blank'
   }]
-}])
+}] as CommandPaletteGroup<CommandPaletteItem>[])
 
 onMounted(async () => {
   const cookie = useCookie('cookie-consent')

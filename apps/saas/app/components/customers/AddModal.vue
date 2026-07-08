@@ -44,7 +44,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
             label="Cancel"
             color="neutral"
             variant="subtle"
-            @click="open = false"
+            @click="() => { open = false }"
           />
           <UButton
             label="Create"

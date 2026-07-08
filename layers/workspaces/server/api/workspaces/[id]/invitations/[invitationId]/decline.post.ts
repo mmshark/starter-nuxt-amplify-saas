@@ -1,8 +1,18 @@
-import { getServerPublicDataClient, withAmplifyPublic } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { getSessionAccessToken, invokeWorkspaceMembership, readInvitationToken } from '../../../../../utils/workspaceMembership'
 
 /**
  * POST /api/workspaces/[id]/invitations/[invitationId]/decline
  * Decline a workspace invitation
+ *
+ * Delegates to the `workspace-membership` function: the declining user is
+ * not a member of the workspace, so their token cannot read or update the
+ * invitation row. The Lambda allows two distinct callers: the invitee
+ * (email match + the invitation `token`, forwarded here if the client
+ * supplied one) or a current workspace OWNER/ADMIN revoking on someone
+ * else's behalf (no token required — the Lambda re-checks their role
+ * instead). The token is optional at this layer; the Lambda decides whether
+ * it's required for the resolved caller.
  */
 export default defineEventHandler(async (event) => {
   const workspaceId = getRouterParam(event, 'id')
@@ -15,39 +25,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return await withAmplifyPublic(async (contextSpec) => {
-    const client = getServerPublicDataClient()
+  const token = await readInvitationToken(event)
+  const accessToken = getSessionAccessToken(event)
 
-    // Fetch invitation
-    const { data: invitations } = await client.models.WorkspaceInvitation.list(contextSpec, {
-      filter: {
-        id: { eq: invitationId },
-        workspaceId: { eq: workspaceId }
-      }
+  return await withAmplifyAuth(event, (contextSpec) =>
+    invokeWorkspaceMembership<{ success: boolean }>(contextSpec, accessToken, {
+      action: 'declineInvitation',
+      workspaceId,
+      invitationId,
+      token
     })
-
-    const invitation = invitations?.[0]
-
-    if (!invitation) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Invitation not found'
-      })
-    }
-
-    if (invitation.status !== 'PENDING') {
-      throw createError({
-        statusCode: 400,
-        statusMessage: `Invitation is already ${invitation.status.toLowerCase()}`
-      })
-    }
-
-    // Update invitation status to declined
-    await client.models.WorkspaceInvitation.update(contextSpec, {
-      id: invitationId,
-      status: 'DECLINED'
-    })
-
-    return { success: true }
-  })
+  )
 })

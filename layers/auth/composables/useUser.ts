@@ -1,18 +1,19 @@
-import { createSharedComposable } from '@vueuse/core'
-import * as queries from '../../amplify/utils/graphql/queries'
-import * as mutations from '../../amplify/utils/graphql/mutations'
+import type { H3Event, EventHandlerRequest } from 'h3'
+import type { SignInInput, SignUpInput, UpdateUserAttributesInput } from 'aws-amplify/auth'
 import { handleAuthError } from '../utils'
 
-// Client-only sensitive state (tokens/session never serialized to SSR payload)
-const _clientAuthSession = ref<any>(null)
-const _clientTokens = ref<any>(null)
-
-// Base state: Use useState for SSR-safe, serializable shared state
+// Base state: Use useState for SSR-safe, per-request state. Every ref here
+// (including authSession/tokens) MUST be a useState — a module-scope ref
+// would be a singleton shared across every concurrent request handled by
+// the same server process, leaking one user's session into another user's
+// SSR render. authSession/tokens additionally carry raw JWTs (incl. the
+// refresh token); they are only ever populated on the client (see
+// `fetchUser` below) so a JWT is never written into the SSR payload.
 const useUserState = () => ({
   isAuthenticated: useState<boolean>('user:isAuthenticated', () => false),
   authStep: useState<string>('user:authStep', () => 'initial'),
-  authSession: _clientAuthSession,
-  tokens: _clientTokens,
+  authSession: useState<any>('user:authSession', () => null),
+  tokens: useState<any>('user:tokens', () => null),
   currentUser: useState<any>('user:currentUser', () => null),
   userAttributes: useState<any>('user:userAttributes', () => null),
   userProfile: useState<any>('user:userProfile', () => null),
@@ -39,16 +40,6 @@ const useUserState = () => ({
  * console.log(userAttributes.value.email)
  * ```
  *
- * @example Multi-Step Auth Flow
- * ```ts
- * const { signIn, confirmOTP, authStep } = useUser()
- *
- * await signIn(credentials)
- *
- * if (authStep.value === 'challengeOTP') {
- *   await confirmOTP('123456')
- * }
- *
  * @example Basic Server Usage
  * ```ts
  * const { fetchUser, isAuthenticated, userProfile } = useUserServer()
@@ -62,19 +53,20 @@ const useUserState = () => ({
  *
  * @returns {Object} User authentication state and methods
  * @property {ComputedRef<boolean>} isAuthenticated - Whether user is authenticated
- * @property {ComputedRef<string>} authStep - Current auth step ('initial', 'challengeOTP', 'challengeTOTPSetup', 'authenticated')
+ * @property {ComputedRef<string>} authStep - Current auth step ('initial', 'authenticated', or a Cognito
+ *   `nextStep.signInStep` value if `signIn()` returned `isSignedIn: false` — MFA challenges are not
+ *   completed by this composable yet, see the note above `signIn()`)
  * @property {ComputedRef<Object|null>} userAttributes - Cognito user attributes (email, name, etc)
- * @property {ComputedRef<Object|null>} userProfile - User profile data from GraphQL
- * @property {ComputedRef<Object|null>} authSession - Current authentication session
- * @property {ComputedRef<Object|null>} tokens - JWT tokens (access, ID, refresh)
+ * @property {ComputedRef<Object|null>} userProfile - User profile data (via `/api/profile`)
+ * @property {ComputedRef<Object|null>} authSession - Current authentication session (client-only; never populated on the server)
+ * @property {ComputedRef<Object|null>} tokens - JWT tokens (client-only; never populated on the server)
  * @property {ComputedRef<Object|null>} currentUser - Current authenticated user object
  * @property {ComputedRef<boolean>} loading - Loading state for async operations
  * @property {ComputedRef<string|null>} error - Error message if operation fails
  * @method signUp - Register a new user and handle multi-step flow (client-side only)
- * @method signIn - Sign in user and handle auth challenges (client-side only)
- * @method confirmOTP - Complete OTP/TOTP challenge during sign in (client-side only)
+ * @method signIn - Sign in user (client-side only); see the MFA note above its implementation
  * @method signOut - Sign out the current user (client-side only)
- * @method updateAttributes - Update Cognito user attributes
+ * @method updateAttributes - Update Cognito user attributes (client-side only; throws on the server)
  * @method fetchUser - Fetch latest user data information (works universally on both client and server)
  */
 
@@ -122,7 +114,7 @@ const _useUser = () => {
   /**
    * Sign up a new user and handle multi-step flow
    */
-  const signUp = async (data) => {
+  const signUp = async (data: SignUpInput) => {
     if (import.meta.server) {
       throw new Error('signUp can only be called on the client side')
     }
@@ -147,9 +139,19 @@ const _useUser = () => {
   }
 
   /**
-   * Sign in user and handle auth challenges
+   * Sign in user and handle the aws-amplify v6 sign-in result shape:
+   * `{ isSignedIn, nextStep }` (there is no `result.user`/`result.challengeName`
+   * — those are aws-amplify v5, which this project does not run).
+   *
+   * MFA: future. No Cognito MFA is configured for this starter kit, so
+   * `nextStep.signInStep` values other than `DONE` (e.g.
+   * `CONFIRM_SIGN_IN_WITH_SMS_CODE`, `CONFIRM_SIGN_IN_WITH_TOTP_CODE`,
+   * `CONTINUE_SIGN_IN_WITH_MFA_SETUP`) are surfaced via `authStep` but not
+   * completed by this composable. Wiring real MFA requires: branching on
+   * `nextStep.signInStep` here, an OTP entry step in `Authenticator.vue`,
+   * and calling `confirmSignIn({ challengeResponse: code })`.
    */
-  const signIn = async (credentials) => {
+  const signIn = async (credentials: SignInInput) => {
     if (import.meta.server) {
       throw new Error('signIn can only be called on the client side')
     }
@@ -161,28 +163,19 @@ const _useUser = () => {
     userState.error.value = null
 
     try {
-      const result = await nuxtApp.$Amplify.Auth.signIn(credentials)
-      userState.currentUser.value = serializeCurrentUser(result.user)
+      const { isSignedIn, nextStep } = await nuxtApp.$Amplify.Auth.signIn(credentials)
 
-      // Handle auth challenges
-      if (result.challengeName) {
-        switch (result.challengeName) {
-          case 'SMS_MFA':
-          case 'SOFTWARE_TOKEN_MFA':
-            userState.authStep.value = 'challengeOTP'
-            break
-          case 'MFA_SETUP':
-            userState.authStep.value = 'challengeTOTPSetup'
-            break
-          default:
-            userState.authStep.value = 'authenticated'
-        }
-      } else {
+      if (isSignedIn) {
         userState.authStep.value = 'authenticated'
+        const currentUser = await nuxtApp.$Amplify.Auth.getCurrentUser()
+        userState.currentUser.value = serializeCurrentUser(currentUser)
         await fetchUser()
+      } else {
+        // MFA: future — see note above. Not handled today.
+        userState.authStep.value = nextStep?.signInStep || 'initial'
       }
 
-      return result
+      return { isSignedIn, nextStep }
     } catch (err) {
       console.error('Error signing in:', err)
       userState.error.value = handleAuthError(err)
@@ -192,98 +185,17 @@ const _useUser = () => {
     }
   }
 
-  /**
-   * Confirm OTP/TOTP challenge during multi-factor authentication
-   *
-   * This method is called after `signIn()` when the user is required to complete
-   * an MFA challenge. It handles both SMS-based OTP and app-based TOTP (e.g., Google Authenticator).
-   *
-   * MFA Flow:
-   * 1. User calls signIn(email, password)
-   * 2. Cognito detects MFA is enabled for user
-   * 3. authStep becomes 'challengeOTP' (for SMS_MFA or SOFTWARE_TOKEN_MFA)
-   * 4. User enters code from SMS or authenticator app
-   * 5. User calls confirmOTP(code) to complete authentication
-   * 6. On success, authStep becomes 'authenticated' and user is fully signed in
-   *
-   * Supported MFA Methods:
-   * - SMS_MFA: One-time code sent via SMS
-   * - SOFTWARE_TOKEN_MFA: Time-based code from authenticator apps (Google Authenticator, Authy, etc.)
-   *
-   * @param {string} code - 6-digit OTP code from SMS or TOTP authenticator app
-   * @returns {Promise<Object>} Cognito sign-in result with user details
-   * @throws {Error} If code is invalid or expired
-   *
-   * @example Basic MFA Flow
-   * ```typescript
-   * const { signIn, confirmOTP, authStep, error } = useUser()
-   *
-   * // Step 1: Sign in with credentials
-   * await signIn({ email: 'user@example.com', password: 'password123' })
-   *
-   * // Step 2: Check if MFA is required
-   * if (authStep.value === 'challengeOTP') {
-   *   // Step 3: Prompt user for OTP code
-   *   const otpCode = prompt('Enter your 6-digit code')
-   *
-   *   // Step 4: Complete MFA challenge
-   *   try {
-   *     await confirmOTP(otpCode)
-   *     console.log('MFA authentication successful!')
-   *   } catch (err) {
-   *     console.error('Invalid OTP code:', error.value)
-   *   }
-   * }
-   * ```
-   *
-   * @example Vue Component Usage
-   * ```vue
-   * <script setup>
-   * const { signIn, confirmOTP, authStep, loading, error } = useUser()
-   * const otpCode = ref('')
-   *
-   * const handleSignIn = async () => {
-   *   await signIn(credentials.value)
-   * }
-   *
-   * const handleOTPSubmit = async () => {
-   *   await confirmOTP(otpCode.value)
-   * }
-   * </script>
-   *
-   * <template>
-   *   <form v-if="authStep === 'challengeOTP'" @submit.prevent="handleOTPSubmit">
-   *     <input v-model="otpCode" placeholder="Enter 6-digit code" maxlength="6" />
-   *     <button type="submit" :disabled="loading">Verify Code</button>
-   *     <p v-if="error" class="error">{{ error }}</p>
-   *   </form>
-   * </template>
-   * ```
-   */
-  const confirmOTP = async (code) => {
-    if (import.meta.server) {
-      throw new Error('confirmOTP can only be called on the client side')
-    }
-
-    // Capture useNuxtApp before async operations
-    const nuxtApp = useNuxtApp()
-
-    userState.loading.value = true
-    userState.error.value = null
-
-    try {
-      const result = await nuxtApp.$Amplify.Auth.confirmSignIn(code)
-      userState.authStep.value = 'authenticated'
-      await fetchUser()
-      return result
-    } catch (err) {
-      console.error('Error confirming OTP:', err)
-      userState.error.value = handleAuthError(err)
-      throw err
-    } finally {
-      userState.loading.value = false
-    }
-  }
+  // MFA: future. The previous `confirmOTP` here was written against the
+  // aws-amplify v5 sign-in shape (`result.challengeName`,
+  // `confirmSignIn(code: string)`), neither of which exists in v6 — it was
+  // unreachable dead code (nothing in `signIn` ever set `authStep` to a
+  // value it checked for, and no component called it). No Cognito MFA is
+  // configured for this starter kit to build/verify a real v6 flow against,
+  // so it has been removed rather than left in a broken, unreachable state.
+  // To add MFA: branch on `nextStep.signInStep` in `signIn()` above
+  // (`CONFIRM_SIGN_IN_WITH_SMS_CODE` / `CONFIRM_SIGN_IN_WITH_TOTP_CODE` /
+  // `CONTINUE_SIGN_IN_WITH_MFA_SETUP`), add an OTP step to
+  // `Authenticator.vue`, and call `confirmSignIn({ challengeResponse: code })`.
 
   /**
    * Reset password - send reset code to email
@@ -376,7 +288,7 @@ const _useUser = () => {
   /**
    * Update Cognito user attributes
    */
-  const updateAttributes = async (attributes) => {
+  const updateAttributes = async (attributes: UpdateUserAttributesInput) => {
     // Capture useNuxtApp before async operations
     const nuxtApp = useNuxtApp()
 
@@ -384,13 +296,16 @@ const _useUser = () => {
     userState.error.value = null
 
     try {
-      if (import.meta.client) {
-        await nuxtApp.$Amplify.Auth.updateUserAttributes(attributes)
-        await fetchUser()
-      }
       if (import.meta.server) {
-        console.log('TODO: update attributes on server')
+        // Cognito attribute updates require a client-side Amplify Auth call
+        // (there is no server-side equivalent wired here). Fail loudly
+        // instead of the previous `console.log('TODO...')`, which silently
+        // reported success without doing anything.
+        throw new Error('updateAttributes() is not supported on the server; call it from client-side code')
       }
+
+      await nuxtApp.$Amplify.Auth.updateUserAttributes(attributes)
+      await fetchUser()
     } catch (err) {
       console.error('Error updating attributes:', err)
       userState.error.value = handleAuthError(err)
@@ -401,57 +316,60 @@ const _useUser = () => {
   }
 
   /**
-   * Fetch user profile data from GraphQL
+   * Fetch user profile data via the server-side `/api/profile` route.
+   *
+   * Fetches through Nitro (not a direct GraphQL call from the client)
+   * because `UserProfile` is owner-*read*-only in the data schema and the
+   * previous implementation imported `../../amplify/utils/graphql/queries`,
+   * a module that does not exist in this layer.
    */
-  const fetchUserProfile = async (event?: H3Event<EventHandlerRequest>, nuxtApp?: ReturnType<typeof useNuxtApp>) => {
+  const fetchUserProfile = async (event?: H3Event<EventHandlerRequest>) => {
     if (!userState.isAuthenticated.value || !userState.userAttributes.value?.sub) {
       return
     }
 
     try {
-      const userId = userState.userAttributes.value.sub
-      const app = nuxtApp || useNuxtApp()
-
-      const result = await app.$Amplify.GraphQL.client.graphql({
-        query: queries.getUserProfile,
-        variables: { userId: userId }
+      // On the server, forward the incoming request's cookies so the Nitro
+      // route can authenticate the call; on the client, cookies are sent
+      // automatically by the browser.
+      const requestEvent = event || (import.meta.server ? useRequestEvent() : undefined)
+      const result = await $fetch<{ profile: any }>('/api/profile', {
+        headers: requestEvent?.headers
       })
-      userState.userProfile.value = result.data?.getUserProfile || null
+      userState.userProfile.value = result?.profile || null
     } catch (err) {
-      console.error('Error fetching user data:', err)
+      console.error('Error fetching user profile:', err)
       userState.userProfile.value = null
     }
   }
 
   /**
-   * Update user profile data via GraphQL
+   * Update user profile data via the server-side `PUT /api/profile` route.
+   *
+   * `UserProfile`'s only owner-writable path is through a privileged
+   * server route (the model itself is owner-read-only; see
+   * `apps/backend/amplify/data/resource.ts`), so this can never be a direct
+   * client-side GraphQL mutation. See `layers/auth/server/api/profile.put.ts`
+   * for the current state of that write path (today it fails closed — there
+   * is no user-editable field on `UserProfile` yet).
    */
   const updateUserProfile = async (profileData: any) => {
     if (!userState.isAuthenticated.value || !userState.userAttributes.value?.sub) {
       throw new Error('User not authenticated')
     }
 
-    // Capture useNuxtApp before any async operations
-    const nuxtApp = useNuxtApp()
-
     userState.loading.value = true
     userState.error.value = null
 
     try {
-      const userId = userState.userAttributes.value.sub
-
-      const result = await nuxtApp.$Amplify.GraphQL.client.graphql({
-        query: mutations.updateUserProfile,
-        variables: {
-          input: {
-            id: userId,
-            ...profileData
-          }
-        }
+      const result = await $fetch<{ profile: any }>('/api/profile', {
+        method: 'PUT',
+        body: profileData
       })
-      userState.userProfile.value = result.data?.updateUserProfile || null
+      userState.userProfile.value = result?.profile || null
+      return result
     } catch (err) {
-      console.error('Error updating user data:', err)
+      console.error('Error updating user profile:', err)
       userState.error.value = handleAuthError(err)
       throw err
     } finally {
@@ -472,12 +390,20 @@ const _useUser = () => {
     try {
       // Get current auth session
       const authSession = await nuxtApp.$Amplify.Auth.fetchAuthSession()
-      userState.authSession.value = serializeAuthSession(authSession)
       userState.isAuthenticated.value = authSession.tokens !== undefined
 
-      if (userState.isAuthenticated.value) {
-        userState.tokens.value = serializeTokens(authSession.tokens)
+      // authSession/tokens carry raw JWTs (incl. the refresh token). Never
+      // populate them on the server — useState is serialized into the SSR
+      // payload (window.__NUXT__), so doing so would ship the current
+      // request's tokens to the browser's page source unnecessarily. They
+      // are only meaningful/cached client-side (e.g. for Authorization
+      // headers in ad hoc client requests).
+      if (import.meta.client) {
+        userState.authSession.value = serializeAuthSession(authSession)
+        userState.tokens.value = userState.isAuthenticated.value ? serializeTokens(authSession.tokens) : null
+      }
 
+      if (userState.isAuthenticated.value) {
         // Get current user
         const currentUser = await nuxtApp.$Amplify.Auth.getCurrentUser()
         userState.currentUser.value = serializeCurrentUser(currentUser)
@@ -486,16 +412,18 @@ const _useUser = () => {
         const userAttributes = await nuxtApp.$Amplify.Auth.fetchUserAttributes()
         userState.userAttributes.value = userAttributes
 
-        // Get user data from GraphQL - pass nuxtApp to avoid re-calling useNuxtApp()
-        await fetchUserProfile(event, nuxtApp)
+        // Get profile data from our own API (not a direct GraphQL call)
+        await fetchUserProfile(event)
+      } else {
+        userState.currentUser.value = null
+        userState.userAttributes.value = null
+        userState.userProfile.value = null
       }
 
       // Return data for server-side usage if needed
       if (import.meta.server) {
         return {
           isAuthenticated: userState.isAuthenticated.value,
-          authSession: userState.authSession.value,
-          tokens: userState.tokens.value,
           currentUser: userState.currentUser.value,
           userAttributes: userState.userAttributes.value,
           userProfile: userState.userProfile.value
@@ -515,7 +443,6 @@ const _useUser = () => {
     // Methods
     signUp,
     signIn,
-    confirmOTP,
     signOut,
     resetPassword,
     confirmResetPassword,
@@ -526,7 +453,15 @@ const _useUser = () => {
   }
 }
 
-export const useUser = createSharedComposable(_useUser)
+// NOTE: intentionally NOT wrapped in `createSharedComposable`. That wrapper
+// memoizes a single instance for the lifetime of the Nuxt app instance —
+// on the server, one Nuxt app instance can be reused/pooled across
+// concurrent requests, which would leak one request's user state into
+// another's. Every call to `useUser()` returns the same underlying
+// `useState` refs (useState already dedupes by key), so there is no loss of
+// reactivity/sharing on the client; this only removes the server-side
+// cross-request leak risk.
+export const useUser = _useUser
 
 export const useUserServer = () => {
   if (import.meta.client) {

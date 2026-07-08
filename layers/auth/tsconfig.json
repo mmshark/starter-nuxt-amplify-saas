@@ -1,18 +1,10 @@
 {
-  // https://nuxt.com/docs/guide/concepts/typescript
+  // Nuxt generates a layer's .nuxt/tsconfig.*.json only when that layer is
+  // prepared; layers have no postinstall `nuxt prepare`, so these files never
+  // exist on a clean checkout and referencing them breaks `nuxt build` /
+  // `nuxt generate` (tsconfck ENOENT — audit BUG-10). The consuming app's
+  // generated tsconfig already type-checks every layer file, so the layer needs
+  // no project references of its own.
   "files": [],
-  "references": [
-    {
-      "path": "./.nuxt/tsconfig.app.json"
-    },
-    {
-      "path": "./.nuxt/tsconfig.server.json"
-    },
-    {
-      "path": "./.nuxt/tsconfig.shared.json"
-    },
-    {
-      "path": "./.nuxt/tsconfig.node.json"
-    }
-  ]
+  "references": []
 }

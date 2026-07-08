@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { BillingPlan } from '~/types'
-
 definePageMeta({
   layout: false
 })
@@ -11,22 +9,22 @@ if (!import.meta.dev) {
 
 // Composables
 const {
-  user,
+  currentUser,
   userAttributes,
   isAuthenticated,
   authStep,
-  isLoading,
+  loading: isLoading,
   error,
-  displayName,
-  email,
-  getSessionInfo
+  authSession
 } = useUser()
+
+const displayName = computed(() =>
+  userAttributes.value?.name || currentUser.value?.username || ''
+)
+const email = computed(() => userAttributes.value?.email || '')
 
 const {
   subscription,
-  currentPlan,
-  isActive,
-  status,
   isLoading: billingLoading,
   error: billingError,
   fetchSubscription,
@@ -36,12 +34,31 @@ const {
   clearError: clearBillingError
 } = useBilling()
 
+const currentPlan = computed(() => subscription.value?.plan)
+const status = computed(() => subscription.value?.subscription?.status)
+const isActive = computed(() => status.value === 'active')
+
 const appConfig = useAppConfig()
 const runtimeConfig = useRuntimeConfig()
 
+// Types for this debug page's local state
+interface DebugBillingPlan {
+  id: string
+  name: string
+  price: number
+  interval: string
+  stripePriceId?: string
+}
+
+interface BillingActionResponse {
+  success?: boolean
+  error?: string
+}
+
+type BillingAction = 'checkout' | 'portal' | 'subscription' | 'cancel'
+
 // Local state
-const sessionInfo = ref(null)
-const billingResponse = ref(null)
+const billingResponse = ref<BillingActionResponse | null>(null)
 const selectedPlan = ref('pro')
 const loadingStates = ref({
   checkout: false,
@@ -50,15 +67,12 @@ const loadingStates = ref({
   cancel: false
 })
 
-// Load session info on mount
-onMounted(async () => {
-  if (isAuthenticated.value) {
-    sessionInfo.value = await getSessionInfo()
-  }
-})
-
 // Computed properties
-const availablePlans = computed(() => appConfig.billing?.plans || [])
+// TODO(E02): BUG-08 — `appConfig.billing` has no `plans` key; this reads a dead
+// config path that always resolves to []. Cast preserves the current behavior.
+const availablePlans = computed(() =>
+  (appConfig.billing as { plans?: DebugBillingPlan[] } | undefined)?.plans || []
+)
 
 const planOptions = computed(() => 
   availablePlans.value.map(plan => ({
@@ -70,8 +84,8 @@ const planOptions = computed(() =>
 
 const systemInfo = computed(() => ({
   environment: {
-    isDev: process.dev,
-    runtime: process.client ? 'client' : 'server'
+    isDev: import.meta.dev,
+    runtime: import.meta.client ? 'client' : 'server'
   },
   composables: getComposablesStatus(),
   config: {
@@ -81,7 +95,7 @@ const systemInfo = computed(() => ({
 }))
 
 // Helper function to execute billing operations
-const executeBillingAction = async (action: string, fn: () => Promise<any>) => {
+const executeBillingAction = async (action: BillingAction, fn: () => Promise<any>) => {
   clearBillingError()
   billingResponse.value = null
   loadingStates.value[action] = true
@@ -116,15 +130,21 @@ const testCheckout = () => executeBillingAction('checkout', async () => {
     }
   }
 
+  // TODO(E02): the debug page passes success/cancel URLs, but createCheckoutSession's
+  // signature is (priceId, planId?, billingInterval?). The URLs land in the wrong
+  // params (planId/billingInterval) — a real defect. Cast preserves the current call.
   return createCheckoutSession(
     plan.stripePriceId,
     `${window.location.origin}/debug?checkout=success`,
-    `${window.location.origin}/debug?checkout=canceled`
+    `${window.location.origin}/debug?checkout=canceled` as unknown as 'monthly' | 'yearly'
   )
 })
 
-const testPortal = () => executeBillingAction('portal', () => 
-  createPortalSession(`${window.location.origin}/debug`)
+// TODO(E02): createPortalSession() takes no args — the portal return URL is now
+// derived server-side and can't be overridden by the caller. The passed URL was
+// ignored at runtime, so dropping it is behavior-preserving.
+const testPortal = () => executeBillingAction('portal', () =>
+  createPortalSession()
 )
 
 const fetchSubscriptionData = () => executeBillingAction('subscription', fetchSubscription)
@@ -147,6 +167,9 @@ function getComposablesStatus(): string[] {
     if (typeof useBilling === 'function') composables.push('useBilling')
   } catch {}
   try {
+    // TODO(E02): `useStripe` composable is not implemented; referencing it throws
+    // at runtime (caught below), so it is never listed. Kept behavior-identical.
+    // @ts-expect-error useStripe is intentionally undefined until E02 adds it
     if (typeof useStripe === 'function') composables.push('useStripe')  
   } catch {}
   return composables
@@ -174,7 +197,7 @@ function getComposablesStatus(): string[] {
       <!-- Error Alert -->
       <UAlert 
         v-if="error" 
-        color="red" 
+        color="error" 
         variant="soft" 
         :title="error"
         icon="i-lucide-alert-circle"
@@ -272,14 +295,14 @@ function getComposablesStatus(): string[] {
             </div>
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium text-gray-600">User ID:</span>
-              <span class="text-sm font-medium">{{ user?.userId || 'N/A' }}</span>
+              <span class="text-sm font-medium">{{ currentUser?.userId || 'N/A' }}</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium text-gray-600">Username:</span>
-              <span class="text-sm font-medium">{{ user?.username || 'N/A' }}</span>
+              <span class="text-sm font-medium">{{ currentUser?.username || 'N/A' }}</span>
             </div>
           </div>
-          
+
           <!-- Profile JSON -->
           <UAccordion :items="[{
             label: 'View Profile Data (JSON)',
@@ -288,7 +311,7 @@ function getComposablesStatus(): string[] {
             <template #content>
               <div class="bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto">
                 <pre class="text-xs">{{ JSON.stringify({
-                  user,
+                  currentUser,
                   userAttributes,
                   displayName,
                   email
@@ -340,7 +363,7 @@ function getComposablesStatus(): string[] {
                   isLoading,
                   error,
                   environment: systemInfo.environment,
-                  sessionInfo,
+                  authSession,
                   lastFetched: new Date().toISOString()
                 }, null, 2) }}</pre>
               </div>
@@ -371,9 +394,17 @@ function getComposablesStatus(): string[] {
               <span class="text-sm font-medium text-gray-600">Stripe Public Key:</span>
               <span class="text-sm font-medium font-mono">{{ runtimeConfig.public?.stripe?.publishableKey?.substring(0, 20) || 'Not set' }}...</span>
             </div>
+            <!--
+              NOTE: the Stripe secret key must never be rendered, not even
+              truncated. `runtimeConfig.stripe` is a private (server-only)
+              key, but this page is rendered with SSR, so any expression
+              reading it here would leak the substring into the HTML
+              response sent to the browser. Only report whether it is
+              configured, never its value.
+            -->
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium text-gray-600">Stripe Secret Key:</span>
-              <span class="text-sm font-medium font-mono">{{ runtimeConfig.stripe?.secretKey?.substring(0, 12) || 'Not set' }}...</span>
+              <span class="text-sm font-medium font-mono">{{ runtimeConfig.stripe?.secretKey ? 'Configured' : 'Not set' }}</span>
             </div>
           </div>
 
@@ -391,7 +422,7 @@ function getComposablesStatus(): string[] {
                 />
               </div>
               <div class="text-xs text-gray-500">
-                Total plans: {{ availablePlans.length }} | With Price IDs: {{ availablePlans.filter(p => p.stripePriceId).length }} | Selected: {{ selectedPlan }}
+                Total plans: {{ availablePlans.length }} | With Price IDs: {{ availablePlans.filter((p: DebugBillingPlan) => p.stripePriceId).length }} | Selected: {{ selectedPlan }}
               </div>
               
               <div v-if="availablePlans.length === 0" class="text-sm text-amber-600">
@@ -405,58 +436,58 @@ function getComposablesStatus(): string[] {
             <div class="flex items-center justify-between">
               <h4 class="text-sm font-semibold text-gray-700">Stripe API Test</h4>
               <UButton
-                @click="clearResponses"
-                color="gray"
+                color="neutral"
                 variant="ghost"
                 size="sm"
                 icon="i-lucide-x"
                 :disabled="!billingResponse && !billingError"
+                @click="clearResponses"
               >
                 Clear
               </UButton>
             </div>
             <div class="flex flex-wrap gap-3">
               <UButton
-                @click="testCheckout"
                 :loading="loadingStates.checkout"
                 :disabled="availablePlans.length === 0"
                 color="primary"
                 variant="solid"
                 size="sm"
                 icon="i-lucide-shopping-cart"
+                @click="testCheckout"
               >
                 Test Checkout
               </UButton>
               
               <UButton
-                @click="testPortal"
                 :loading="loadingStates.portal"
                 color="primary"
                 variant="solid"
                 size="sm"
                 icon="i-lucide-settings"
+                @click="testPortal"
               >
                 Test Portal
               </UButton>
               
               <UButton
-                @click="fetchSubscriptionData"
                 :loading="loadingStates.subscription"
                 color="primary"
                 variant="solid"
                 size="sm"
                 icon="i-lucide-refresh-cw"
+                @click="fetchSubscriptionData"
               >
                 Get Subscription
               </UButton>
               
               <UButton
-                @click="testCancel"
                 :loading="loadingStates.cancel"
-                color="red"
+                color="error"
                 variant="solid"
                 size="sm"
                 icon="i-lucide-x-circle"
+                @click="testCancel"
               >
                 Test Cancel
               </UButton>
@@ -466,12 +497,12 @@ function getComposablesStatus(): string[] {
           <!-- Billing Error -->
           <UAlert
             v-if="billingError"
-            color="red"
+            color="error"
             variant="soft"
             icon="i-lucide-alert-circle"
             title="Billing Error"
             :description="billingError"
-            :close-button="{ icon: 'i-lucide-x', color: 'gray', variant: 'link', padded: false }"
+            :close-button="{ icon: 'i-lucide-x', color: 'neutral', variant: 'link', padded: false }"
             @close="clearBillingError"
           />
 
@@ -480,7 +511,7 @@ function getComposablesStatus(): string[] {
             <div class="flex items-center justify-between">
               <h4 class="text-sm font-semibold text-gray-700">API Response</h4>
               <UBadge 
-                :color="billingResponse.success ? 'green' : 'red'"
+                :color="billingResponse.success ? 'success' : 'error'"
                 variant="soft"
               >
                 {{ billingResponse.success ? 'Success' : 'Failed' }}
@@ -502,7 +533,7 @@ function getComposablesStatus(): string[] {
                   // App Configuration Plans
                   appPlans: {
                     totalPlans: availablePlans.length,
-                    plansWithPriceIds: availablePlans.filter(p => p.stripePriceId).length,
+                    plansWithPriceIds: availablePlans.filter((p: DebugBillingPlan) => p.stripePriceId).length,
                     allPlans: availablePlans,
                     selectOptions: planOptions,
                     selectedPlan: selectedPlan

@@ -6,8 +6,9 @@
   "main": "./nuxt.config.ts",
   "exports": {
     ".": "./nuxt.config.ts",
-    "./utils/*": "./utils/*",
-    "./types/*": "./types/*"
+    "./utils/*": "./utils/*.ts",
+    "./types/*": "./types/*.ts",
+    "./server/*": "./server/*.ts"
   },
   "files": [
     "nuxt.config.ts",
@@ -42,6 +43,13 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",
     "access": "restricted"
+  },
+  "dependencies": {
+    "@aws-sdk/client-lambda": "^3.700.0"
+  },
+  "devDependencies": {
+    "@aws-amplify/api-graphql": "^4.8.8",
+    "@starter-nuxt-amplify-saas/backend": "workspace:*"
   },
   "peerDependencies": {
     "nuxt": "^4.0.0",

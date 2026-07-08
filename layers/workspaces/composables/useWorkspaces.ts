@@ -13,7 +13,7 @@ export const useWorkspaces = () => {
   )
 
   const personalWorkspace = computed(() =>
-    workspaces.value.find(w => w.isPersonal && w.ownerId === user.value?.id) || null
+    workspaces.value.find(w => w.isPersonal && w.ownerId === user.value?.userId) || null
   )
 
   const loadWorkspaces = async () => {
@@ -21,14 +21,14 @@ export const useWorkspaces = () => {
 
     loading.value = true
     try {
-      const result = await $fetch<Workspace[]>('/api/workspaces')
-      workspaces.value = result
+      const result = await $fetch<{ workspaces: Workspace[]; nextToken: string | null }>('/api/workspaces')
+      workspaces.value = result.workspaces
 
       // Auto-select workspace if none selected
       if (!currentWorkspaceId.value && workspaces.value.length > 0) {
         // Prefer personal workspace, otherwise first available
         const personal = workspaces.value.find(w => w.isPersonal)
-        currentWorkspaceId.value = personal ? personal.id : workspaces.value[0].id
+        currentWorkspaceId.value = personal ? personal.id : workspaces.value[0]!.id
       }
     } catch (error) {
       console.error('Failed to load workspaces:', error)
@@ -44,6 +44,20 @@ export const useWorkspaces = () => {
         method: 'POST',
         body: input
       })
+
+      // Workspace access is enforced through Cognito groups
+      // (ws:<id>:members / ws:<id>:admins) that only appear in the user's
+      // tokens after a refresh — force one so the new workspace is
+      // immediately readable/writable.
+      if (import.meta.client) {
+        try {
+          const { fetchAuthSession } = await import('aws-amplify/auth')
+          await fetchAuthSession({ forceRefresh: true })
+        } catch (refreshError) {
+          console.warn('Could not refresh session after workspace creation:', refreshError)
+        }
+      }
+
       workspaces.value.push(newWorkspace)
       currentWorkspaceId.value = newWorkspace.id
       return newWorkspace

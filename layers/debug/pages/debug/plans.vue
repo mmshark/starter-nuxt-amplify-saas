@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { generateClient } from 'aws-amplify/data'
-import type { Schema } from '@starter-nuxt-amplify-saas/backend/amplify/data/resource'
+import type { Schema } from '@starter-nuxt-amplify-saas/backend/schema'
 definePageMeta({
   layout: false
 })
@@ -10,7 +10,7 @@ if (!import.meta.dev) {
 }
 
 // State
-const plans = ref([])
+const plans = ref<Schema['SubscriptionPlan']['type'][]>([])
 const loading = ref(false)
 const error = ref('')
 
@@ -32,7 +32,7 @@ const fetchPlans = async () => {
     plans.value = data || []
   } catch (err) {
     console.error('Error fetching plans:', err)
-    error.value = err.message || 'Unknown error occurred'
+    error.value = err instanceof Error ? err.message : 'Unknown error occurred'
   } finally {
     loading.value = false
   }
@@ -58,11 +58,11 @@ const formatPrice = (price: number, currency: string = 'USD') => {
 
 // Format plan status
 const getPlanStatus = (plan: any) => {
-  if (plan.isActive === false) return { color: 'red', label: 'Inactive' }
-  if (plan.planId === 'free' || plan.id === 'free') return { color: 'gray', label: 'Free Plan' }
-  if (plan.stripeMonthlyPriceId && plan.stripeYearlyPriceId) return { color: 'green', label: 'Complete' }
-  if (plan.stripeMonthlyPriceId || plan.stripeYearlyPriceId) return { color: 'yellow', label: 'Partial' }
-  return { color: 'red', label: 'No Pricing' }
+  if (plan.isActive === false) return { color: 'error', label: 'Inactive' }
+  if (plan.planId === 'free' || plan.id === 'free') return { color: 'neutral', label: 'Free Plan' }
+  if (plan.stripeMonthlyPriceId && plan.stripeYearlyPriceId) return { color: 'success', label: 'Complete' }
+  if (plan.stripeMonthlyPriceId || plan.stripeYearlyPriceId) return { color: 'warning', label: 'Partial' }
+  return { color: 'error', label: 'No Pricing' }
 }
 </script>
 
@@ -95,7 +95,7 @@ const getPlanStatus = (plan: any) => {
       <!-- Error State -->
       <UAlert
         v-if="error && !loading"
-        color="red"
+        color="error"
         variant="soft"
         :title="error"
         icon="i-lucide-alert-circle"
@@ -110,11 +110,11 @@ const getPlanStatus = (plan: any) => {
               <h3 class="font-semibold">Plans Summary</h3>
             </div>
             <UButton
-              @click="fetchPlans"
               size="sm"
               variant="soft"
               icon="i-lucide-refresh-cw"
               :loading="loading"
+              @click="fetchPlans"
             >
               Refresh
             </UButton>
@@ -135,7 +135,7 @@ const getPlanStatus = (plan: any) => {
             <div class="text-sm text-red-800">Inactive Plans</div>
           </div>
           <div class="text-center p-4 bg-purple-50 rounded-lg">
-            <div class="text-2xl font-bold text-purple-600">{{ plans.filter(p => p.planId === 'free').length }}</div>
+            <div class="text-2xl font-bold text-purple-600">{{ plans.filter((p: Schema['SubscriptionPlan']['type']) => p.planId === 'free').length }}</div>
             <div class="text-sm text-purple-800">Free Plans</div>
           </div>
         </div>
@@ -174,7 +174,7 @@ const getPlanStatus = (plan: any) => {
                 </UBadge>
                 <UBadge
                   v-if="!plan.isActive"
-                  color="red"
+                  color="error"
                   variant="soft"
                 >
                   Inactive
@@ -231,7 +231,8 @@ const getPlanStatus = (plan: any) => {
             </div>
 
             <!-- Raw Data -->
-            <UAccordion :items="[{
+            <UAccordion
+:items="[{
               label: `View Raw Data for ${plan.name}`,
               icon: 'i-lucide-code-2'
             }]">
@@ -271,12 +272,12 @@ const getPlanStatus = (plan: any) => {
 
         <div class="flex flex-wrap gap-3">
           <UButton
-            @click="fetchPlans"
             :loading="loading"
             color="primary"
             variant="solid"
             size="sm"
             icon="i-lucide-refresh-cw"
+            @click="fetchPlans"
           >
             Refresh Plans
           </UButton>
@@ -284,7 +285,7 @@ const getPlanStatus = (plan: any) => {
           <UButton
             to="/api/billing/plans"
             target="_blank"
-            color="gray"
+            color="neutral"
             variant="solid"
             size="sm"
             icon="i-lucide-external-link"
@@ -293,11 +294,11 @@ const getPlanStatus = (plan: any) => {
           </UButton>
 
           <UButton
-            @click="console.log('Plans data:', plans)"
-            color="gray"
+            color="neutral"
             variant="soft"
             size="sm"
             icon="i-lucide-bug"
+            @click="console.log('Plans data:', plans)"
           >
             Log to Console
           </UButton>

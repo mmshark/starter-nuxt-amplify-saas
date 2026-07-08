@@ -1,11 +1,17 @@
-import { getServerPublicDataClient, withAmplifyPublic } from '@starter-nuxt-amplify-saas/amplify/server/utils/amplify'
+import { withAmplifyAuth } from '@mmshark/amplify-layer/server/utils/amplify'
+import { getSessionAccessToken, invokeWorkspaceMembership } from '../../../utils/workspaceMembership'
 
 /**
  * DELETE /api/workspaces/[id]
- * Delete a workspace (OWNER only) with cascade delete of members
+ * Delete a workspace (OWNER only) with cascade delete of members,
+ * invitations, the subscription row and the workspace's Cognito groups.
+ *
+ * Delegates to the `workspace-membership` function (Cognito group deletion
+ * needs admin permissions the server does not hold); the Lambda re-checks
+ * that the verified caller is the workspace owner and that the workspace is
+ * not personal.
  */
 export default defineEventHandler(async (event) => {
-  const user = event.context.user
   const workspaceId = getRouterParam(event, 'id')
 
   if (!workspaceId) {
@@ -15,60 +21,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return await withAmplifyPublic(async (contextSpec) => {
-    const client = getServerPublicDataClient()
+  const accessToken = getSessionAccessToken(event)
 
-    // Verify workspace exists
-    const { data: workspace } = await client.models.Workspace.get(contextSpec, { id: workspaceId })
-
-    if (!workspace) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: 'Workspace not found'
-      })
-    }
-
-    // Only workspace owner can delete
-    if (workspace.ownerId !== user.userId) {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'Only the workspace owner can delete this workspace'
-      })
-    }
-
-    // Prevent deleting personal workspace
-    if (workspace.isPersonal) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Personal workspaces cannot be deleted'
-      })
-    }
-
-    // Cascade delete: remove all members first
-    const { data: members } = await client.models.WorkspaceMember.list(contextSpec, {
-      filter: { workspaceId: { eq: workspaceId } }
+  return await withAmplifyAuth(event, (contextSpec) =>
+    invokeWorkspaceMembership<{ success: boolean }>(contextSpec, accessToken, {
+      action: 'deleteWorkspace',
+      workspaceId
     })
-
-    if (members && members.length > 0) {
-      await Promise.all(
-        members.map(member =>
-          client.models.WorkspaceMember.delete(contextSpec, {
-            id: member.id
-          })
-        )
-      )
-    }
-
-    // Delete the workspace
-    const { errors } = await client.models.Workspace.delete(contextSpec, { id: workspaceId })
-
-    if (errors) {
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'Failed to delete workspace'
-      })
-    }
-
-    return { success: true }
-  })
+  )
 })

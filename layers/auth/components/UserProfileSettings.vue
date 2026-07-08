@@ -45,12 +45,19 @@ const formFields = [
   }
 ]
 
-// Form state - reactive to current user attributes
-const profileForm = computed(() => ({
+// Form state - a reactive copy synced from userAttributes via watch (a
+// computed()-backed v-model is read-only and can't accept input events).
+const profileForm = reactive({
   firstName: userAttributes.value?.given_name || '',
   lastName: userAttributes.value?.family_name || '',
   email: userAttributes.value?.email || ''
-}))
+})
+
+watch(userAttributes, (attrs) => {
+  profileForm.firstName = attrs?.given_name || ''
+  profileForm.lastName = attrs?.family_name || ''
+  profileForm.email = attrs?.email || ''
+}, { immediate: true })
 
 // Handle form submission
 async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
@@ -70,23 +77,24 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
       toast.add({
         title: 'No changes',
         description: 'No changes were made to your profile',
-        color: 'blue'
+        color: 'info'
       })
       return
     }
 
-    await updateAttributes(attributes)
+    await updateAttributes({ userAttributes: attributes })
 
     toast.add({
       title: 'Success',
       description: 'Your profile has been updated successfully',
-      color: 'green'
+      color: 'success'
     })
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
     toast.add({
       title: 'Error',
-      description: error.message || 'Failed to update profile',
-      color: 'red'
+      description: message || 'Failed to update profile',
+      color: 'error'
     })
   }
 }
