@@ -8,12 +8,14 @@
     ".": "./nuxt.config.ts",
     "./composables/*": "./composables/*.ts",
     "./components/*": "./components/*.vue",
+    "./constants/*": "./constants/*.ts",
     "./types/*": "./types/*.ts"
   },
   "files": [
     "nuxt.config.ts",
     "components",
     "composables",
+    "constants",
     "server",
     "types",
     "README.md"

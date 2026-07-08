@@ -1,12 +1,22 @@
 import type { CreateWorkspaceInput, Workspace } from '../types/workspaces'
+import { CURRENT_WORKSPACE_COOKIE } from '../constants/workspaces'
 
 export const useWorkspaces = () => {
   const { currentUser: user } = useUser()
 
   const workspaces = useState<Workspace[]>('workspaces', () => [])
-  const workspaceCookie = useCookie('current-workspace-id')
+  const workspaceCookie = useCookie(CURRENT_WORKSPACE_COOKIE)
   const currentWorkspaceId = useState<string | null>('currentWorkspaceId', () => workspaceCookie.value || null)
   const loading = useState<boolean>('workspaces-loading', () => false)
+
+  // Single selection path: persist to both the SSR-shared state and the
+  // cookie the server reads back. Every place that changes the active
+  // workspace must go through here, otherwise the server-side entitlements
+  // fallback (getWorkspaceContext) sees a stale/absent cookie (BUG-01).
+  const setCurrentWorkspace = (id: string) => {
+    currentWorkspaceId.value = id
+    workspaceCookie.value = id
+  }
 
   const currentWorkspace = computed(() =>
     workspaces.value.find(w => w.id === currentWorkspaceId.value) || null
@@ -28,7 +38,7 @@ export const useWorkspaces = () => {
       if (!currentWorkspaceId.value && workspaces.value.length > 0) {
         // Prefer personal workspace, otherwise first available
         const personal = workspaces.value.find(w => w.isPersonal)
-        currentWorkspaceId.value = personal ? personal.id : workspaces.value[0]!.id
+        setCurrentWorkspace(personal ? personal.id : workspaces.value[0]!.id)
       }
     } catch (error) {
       console.error('Failed to load workspaces:', error)
@@ -59,7 +69,7 @@ export const useWorkspaces = () => {
       }
 
       workspaces.value.push(newWorkspace)
-      currentWorkspaceId.value = newWorkspace.id
+      setCurrentWorkspace(newWorkspace.id)
       return newWorkspace
     } catch (error) {
       console.error('Failed to create workspace:', error)
@@ -72,9 +82,7 @@ export const useWorkspaces = () => {
   const switchWorkspace = (workspaceId: string) => {
     const workspace = workspaces.value.find(w => w.id === workspaceId)
     if (workspace) {
-      currentWorkspaceId.value = workspaceId
-      const workspaceCookie = useCookie('current-workspace-id')
-      workspaceCookie.value = workspaceId
+      setCurrentWorkspace(workspaceId)
     }
   }
 

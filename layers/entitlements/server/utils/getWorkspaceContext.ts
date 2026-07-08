@@ -8,6 +8,7 @@
 import type { H3Event } from 'h3'
 import type { Plan, Role } from '../../types/entitlements'
 import type { Workspace, WorkspaceMember, WorkspaceRole } from '@mmshark/workspaces-layer/types/workspaces'
+import { CURRENT_WORKSPACE_COOKIE } from '@mmshark/workspaces-layer/constants/workspaces'
 import { requireAuth } from '@mmshark/auth-layer/server/utils/auth'
 import { withAmplifyAuth, getServerUserPoolDataClient } from '@mmshark/amplify-layer/server/utils/amplify'
 
@@ -38,7 +39,7 @@ const KNOWN_PLANS: readonly Plan[] = ['free', 'starter', 'pro', 'enterprise']
  *
  * @param event - H3 event from API route
  * @param workspaceIdOverride - explicit workspace id to evaluate instead of
- *   the `currentWorkspaceId` cookie. Callers that act on a caller-supplied
+ *   the `current-workspace-id` cookie. Callers that act on a caller-supplied
  *   `workspaceId` (e.g. billing checkout/portal) MUST pass it here so the
  *   permission check targets the workspace actually being acted on, not
  *   whichever workspace the UI happens to have "selected" in a cookie.
@@ -48,7 +49,7 @@ const KNOWN_PLANS: readonly Plan[] = ['free', 'starter', 'pro', 'enterprise']
 export async function getWorkspaceContext(event: H3Event, workspaceIdOverride?: string): Promise<WorkspaceContext> {
   const user = await requireAuth(event)
 
-  const currentWorkspaceId = workspaceIdOverride || getCookie(event, 'currentWorkspaceId')
+  const currentWorkspaceId = workspaceIdOverride || getCookie(event, CURRENT_WORKSPACE_COOKIE)
 
   // If no workspace is targeted, there is nothing to grant a plan/role for.
   if (!currentWorkspaceId) {
@@ -73,7 +74,7 @@ export async function getWorkspaceContext(event: H3Event, workspaceIdOverride?: 
       const memberRecord = members?.[0]
 
       // Never grant a workspace's plan/role to a caller who isn't an actual
-      // member of it. `currentWorkspaceId` (cookie or caller-supplied) is
+      // member of it. `current-workspace-id` (cookie or caller-supplied) is
       // client-controlled and proves nothing on its own — membership must
       // be verified server-side against the real WorkspaceMember table.
       if (!memberRecord) {

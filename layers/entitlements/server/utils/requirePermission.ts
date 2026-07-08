@@ -16,7 +16,7 @@ import { getWorkspaceRole } from './getWorkspaceContext'
  * @param event - H3 event from API route
  * @param permission - Required permission identifier
  * @param workspaceId - explicit workspace id to check the role against,
- *   instead of the `currentWorkspaceId` cookie. Pass this whenever the
+ *   instead of the `current-workspace-id` cookie. Pass this whenever the
  *   route operates on a caller-supplied `workspaceId` (e.g. billing
  *   checkout/portal) — otherwise the permission check would be evaluated
  *   against whatever workspace the UI happens to have "selected" in a

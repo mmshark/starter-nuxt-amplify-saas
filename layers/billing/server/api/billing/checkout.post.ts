@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
   // Authorize: only a caller whose role grants `manage-billing` (OWNER only,
   // see layers/entitlements/config/permissions.ts) may start a checkout for
   // this workspace. `workspaceId` comes from the request body, not the
-  // `currentWorkspaceId` cookie, so it's passed explicitly — the permission
+  // `current-workspace-id` cookie, so it's passed explicitly — the permission
   // check must target the workspace actually being billed.
   await requirePermission(event, 'manage-billing', workspaceId)
 
