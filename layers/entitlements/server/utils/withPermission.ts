@@ -5,7 +5,7 @@
  * Automatically validates permission before executing handler.
  */
 
-import type { H3Event, EventHandler } from 'h3'
+import type { H3Event, EventHandler, EventHandlerRequest } from 'h3'
 import type { Permission } from '../../types/entitlements'
 import { requirePermission } from './requirePermission'
 
@@ -25,7 +25,7 @@ import { requirePermission } from './requirePermission'
  *   'manage-users'
  * )
  */
-export function withPermission<T>(
+export function withPermission<T extends EventHandlerRequest>(
   handler: EventHandler<T>,
   permission: Permission
 ): EventHandler<T> {

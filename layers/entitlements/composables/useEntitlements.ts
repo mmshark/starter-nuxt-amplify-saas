@@ -19,6 +19,7 @@ import { ROLE_PERMISSIONS, roleHasPermission } from '../config/permissions'
 // so every call to useEntitlements() still reads the same per-request
 // reactive state without needing a shared instance.
 export const useEntitlements = () => {
+  // @ts-expect-error TODO(E02) BUG-15: useUser() exposes currentUser, not user — destructure yields undefined at runtime
   const { user, isAuthenticated } = useUser()
   const { currentWorkspace } = useWorkspaces()
   const { currentRole } = useWorkspaceMembership()

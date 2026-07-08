@@ -30,10 +30,10 @@ const hasAccess = computed(() => {
 
   if (props.requireAll) {
     // User must have ALL specified permissions
-    return permissions.every(p => hasPermission(p))
+    return permissions.every((p: Permission) => hasPermission(p))
   } else {
     // User must have AT LEAST ONE specified permission
-    return permissions.some(p => hasPermission(p))
+    return permissions.some((p: Permission) => hasPermission(p))
   }
 })
 </script>
