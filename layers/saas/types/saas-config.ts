@@ -39,10 +39,6 @@ declare module 'nuxt/schema' {
         multiWorkspace?: boolean
       }
       layouts?: {
-        dashboard?: {
-          sidebarCollapsible?: boolean
-          sidebarDefaultCollapsed?: boolean
-        }
         auth?: {
           showBranding?: boolean
           showFooter?: boolean

@@ -73,7 +73,7 @@ Every documented capability either works or is explicitly marked future.
 |---|---|---|---|---|
 | E01 | [20260708-green-ci](../epic/20260708-green-ci/) | spec, plan, tasks | M | **done** (2026-07-08) |
 | E02 | [20260708-fix-broken-wiring](../epic/20260708-fix-broken-wiring/) | spec, plan, tasks | M | **done** (2026-07-08) |
-| E03 | [20260708-template-cleanup](../epic/20260708-template-cleanup/) | spec, plan, tasks | M | specified |
+| E03 | [20260708-template-cleanup](../epic/20260708-template-cleanup/) | spec, plan, tasks | M | **done** (2026-07-09) |
 
 ### E01 — green-ci
 Make CI executable and green on `master`: generate/stub `amplify_outputs.json` in CI (or decouple the
@@ -96,6 +96,13 @@ pages (`customers`, `inbox`, home charts with `Math.random()`), `i.pravatar.cc`/
 external avatars, decorative cookie-consent banner, duplicated shell (`layers/saas` vs `apps/saas` —
 pick one, delete the other), and kill documentation drift at the source (uix README documents Nuxt UI
 Pro APIs; amplify README claims logger adoption that doesn't exist).
+
+**Done 2026-07-09** — AC1–AC10 verified (greps/finds), production build + typecheck (0 errors) +
+lint (0 errors) + unit tests (10/10) green, and AC4/AC7/AC8 confirmed by a live authenticated
+shell smoke against the sandbox. Follow-up: AC11's Playwright `e2e:auth`/`e2e:billing` were not run
+— blocked on pre-existing environment gaps (the `ampx sandbox seed` harness fails with "Auth
+UserPool not configured", plus Gmail app-password and app-side `STRIPE_SECRET_KEY`), all outside
+this frontend epic's scope; the shell behavior those specs assert is covered by the manual smoke.
 
 ---
 

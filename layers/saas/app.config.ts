@@ -20,10 +20,6 @@ export default defineAppConfig({
       darkMode: true
     },
     layouts: {
-      dashboard: {
-        sidebarCollapsible: true,
-        sidebarDefaultCollapsed: false
-      },
       auth: {
         showBranding: true,
         showFooter: true

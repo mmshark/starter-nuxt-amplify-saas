@@ -1,16 +1,17 @@
 # SaaS Meta-Layer
 
-Complete SaaS application shell with layouts, pages, and extensible navigation system.
+Complete SaaS application shell — the single dashboard layout, the user menu,
+auth/dashboard pages, and an extensible navigation system. This meta-layer
+composes all the feature layers into a ready-to-extend product shell.
 
 ## Features
 
-- Complete application shell (AppHeader, AppSidebar, layouts)
-- **Extensible navigation system** - Add custom menu items from your app
-- Authentication pages (login, signup)
-- Dashboard home page
-- Configuration via app.config.ts
-- Responsive design
-- Dark mode support
+- Single dashboard shell (`layouts/default.vue`, built on `@nuxt/ui`'s `UDashboard*` primitives)
+- **Extensible navigation system** — add custom menu items from your app at build time
+- Authentication pages (login, signup) via the `auth` layout
+- Dashboard home page (welcome + workspace/plan/member cards)
+- Configuration via the app's app config (`saas` key), typed by `useSaasConfig()`
+- Responsive design + dark mode support
 
 ## Usage
 
@@ -20,52 +21,55 @@ Complete SaaS application shell with layouts, pages, and extensible navigation s
 // apps/saas/nuxt.config.ts
 export default defineNuxtConfig({
   extends: [
-    '@starter-nuxt-amplify-saas/saas'
+    '@mmshark/saas-layer'
   ]
 })
 ```
 
 ## Navigation Composition System
 
-The SaaS layer provides **pre-composed navigation items** that can be imported and used at build time in `app.config.ts`.
+The SaaS layer provides **pre-composed navigation items** that can be imported
+and used at build time in the app's `app.config.ts`.
 
 ### Layer Provides
 
 The layer exports navigation constants from `config/navigation.ts`:
 
-**`settingsSidebar`** - Complete Settings menu with subitems:
-- General, Workspaces, Members, Security, Billing, Test
+**`settingsSidebar`** — Settings menu with subitems:
+- General, Members, Billing, Workspaces
 
-**`userMenuItems`** - User dropdown menu items:
-- Profile, Account, Billing
+**`profileSidebar`** — Profile settings menu with subitems:
+- Profile, Account, Security, Notifications
 
-**`footerNavigation`** - Footer navigation items:
-- Feedback, Help & Support
+**`userMenuItems`** — User dropdown groups (derived from `profileSidebar`).
 
 ### App Composes the Menu
 
-Import and compose navigation items in your `app.config.ts`:
+Import and compose navigation items in your `app.config.ts` under the `saas`
+key. The dashboard layout reads `saas.navigation.sidebar.main` (grouped) and
+`saas.navigation.userMenu`:
 
 ```typescript
 // apps/saas/app/app.config.ts
-import { settingsSidebar, footerNavigation } from '@starter-nuxt-amplify-saas/saas/config/navigation'
+import { settingsSidebar, userMenuItems } from '@mmshark/saas-layer/config/navigation'
 
 export default defineAppConfig({
-  dashboard: {
+  saas: {
     navigation: {
-      main: [[{
-        label: 'Home',
-        icon: 'i-lucide-house',
-        to: '/'
-      }, {
-        label: 'Inbox',
-        icon: 'i-lucide-inbox',
-        to: '/inbox',
-        badge: '4'
+      sidebar: {
+        main: [[{
+          label: 'Home',
+          icon: 'i-lucide-house',
+          to: '/'
+        },
+        settingsSidebar  // Imported from the layer
+        ]]
       },
-      settingsSidebar  // Imported from layer
-      ],
-      footerNavigation  // Imported from layer
+      userMenu: [
+        ...userMenuItems,
+        // App-specific dynamic groups (resolved in UserMenu.vue):
+        [{ label: 'Theme', type: 'theme-selector' },
+         { label: 'Appearance', type: 'appearance-selector' }]
       ]
     }
   }
@@ -74,21 +78,20 @@ export default defineAppConfig({
 
 ### Benefits
 
-- ✅ **Build-time composition** - No runtime overhead
-- ✅ **Type safety** - Full TypeScript support
-- ✅ **Single source of truth** - Settings menu defined once in the layer
-- ✅ **Easy to extend** - Apps can add their own items alongside layer items
+- ✅ **Build-time composition** — no runtime overhead
+- ✅ **Type safety** — full TypeScript support (see `types/saas-config.ts`)
+- ✅ **Single source of truth** — the Settings menu is defined once in the layer
+- ✅ **Easy to extend** — apps add their own items alongside layer items
 
 ### Navigation Item Structure
 
 ```typescript
 {
   label: string           // Display text
-  icon?: string          // Lucide icon (e.g., 'i-lucide-home')
+  icon?: string          // Lucide icon (e.g., 'i-lucide-house')
   to?: string            // Route path
   badge?: string         // Optional badge
   children?: MenuItem[]  // Nested items
-  click?: () => void     // Click handler
   type?: 'trigger'       // For expandable menus
   defaultOpen?: boolean  // Open by default
   exact?: boolean        // Exact route match
@@ -97,16 +100,20 @@ export default defineAppConfig({
 
 ## Components
 
-- `AppHeader` - Top navigation bar with workspace switcher and user menu
-- `AppSidebar` - Side navigation (uses `useSaasNavigation()`)
-- `UserMenu` - User dropdown menu
-- `WorkspaceSwitcher` - Workspace selection dropdown
+- `UserMenu` — user dropdown (avatar with local initials, config-driven groups,
+  theme/appearance selectors, log out). Carries `data-testid="user-menu"`.
+
+> The workspace switcher (`WorkspaceSwitcher`) rendered in the shell header
+> comes from the `workspaces` layer, not this one; the dashboard search and
+> sidebar primitives come from `@nuxt/ui` (via the `uix` layer).
 
 ## Layouts
 
-- `dashboard` - Authenticated dashboard layout
-- `auth` - Public authentication layout
-- `onboarding` - First-time user setup layout
+- `default` — authenticated dashboard shell (`UDashboardGroup` + sidebar +
+  search + user menu). The default layout for every page.
+- `auth` — public authentication layout (login/signup).
+- `onboarding` — **unused**; a placeholder for the future onboarding flow
+  (owned by roadmap epic E15). Not wired to any page today.
 
 ## Other Configuration
 
@@ -129,8 +136,8 @@ saas: {
 saas: {
   features: {
     multiWorkspace: true,
-    workspaceSwitcher: true,
-    onboarding: false,
+    workspaceSwitcher: true,  // gates WorkspaceSwitcher in the shell header
+    onboarding: true,         // reserved for E15; no runtime effect yet
     darkMode: true
   }
 }
@@ -142,8 +149,8 @@ saas: {
 saas: {
   theme: {
     colors: {
-      primary: 'indigo',
-      neutral: 'zinc'
+      primary: 'blue',
+      neutral: 'slate'
     }
   }
 }
@@ -154,13 +161,19 @@ saas: {
 ```
 Layer: saas
 ├── Composables
-│   ├── useSaasNavigation() - Extensible navigation
-│   └── useSaasConfig() - Configuration access
+│   └── useSaasConfig() - Typed configuration access (appConfig.saas)
 ├── Components
-│   ├── AppHeader, AppSidebar, UserMenu
-│   └── WorkspaceSwitcher
+│   └── UserMenu
+├── Config
+│   └── navigation.ts - settingsSidebar / profileSidebar / userMenuItems
+├── Pages
+│   ├── index.vue - dashboard home (welcome)
+│   ├── settings*, profile* - settings/profile pages (UDashboardPanel-based)
+│   └── auth/* - login / signup
 └── Layouts
-    ├── dashboard, auth, onboarding
+    ├── default - dashboard shell
+    ├── auth - authentication
+    └── onboarding - unused (E15)
 ```
 
 ## Dependencies

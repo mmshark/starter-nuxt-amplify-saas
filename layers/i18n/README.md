@@ -1,6 +1,6 @@
 # I18n Layer
 
-Internationalization (i18n) foundation layer for Nuxt 3 applications. This layer provides base i18n configuration, common translations, and formatting utilities for multi-language support.
+Internationalization (i18n) foundation layer for Nuxt 4 applications. This layer provides base i18n configuration, common translations, and formatting utilities for multi-language support.
 
 ## Table of Contents
 

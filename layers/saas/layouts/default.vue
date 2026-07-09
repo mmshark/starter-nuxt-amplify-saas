@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import type { NavigationMenuItem, CommandPaletteGroup, CommandPaletteItem } from '@nuxt/ui'
 
-const route = useRoute()
-const toast = useToast()
 const appConfig = useAppConfig()
+const saasConfig = useSaasConfig()
 
-// `appConfig.saas` is typed as `{}` in this shell app; narrow to the sidebar
-// navigation shape we read below.
+// `appConfig.saas` is loosely typed here; narrow to the sidebar navigation
+// shape we read below.
 type SaasSidebarNav = { navigation?: { sidebar?: { main?: NavigationMenuItem[][]; footer?: NavigationMenuItem[][] } } }
 
 const open = ref(false)
@@ -36,42 +35,7 @@ const groups = computed(() => [{
   id: 'links',
   label: 'Go to',
   items: [...mainLinks.value.flat(), ...footerLinks.value.flat()]
-}, {
-  id: 'code',
-  label: 'Code',
-  items: [{
-    id: 'source',
-    label: 'View page source',
-    icon: 'i-simple-icons-github',
-    to: `https://github.com/nuxt-ui-pro/dashboard/blob/main/app/pages${route.path === '/' ? '/index' : route.path}.vue`,
-    target: '_blank'
-  }]
 }] as CommandPaletteGroup<CommandPaletteItem>[])
-
-onMounted(async () => {
-  const cookie = useCookie('cookie-consent')
-  if (cookie.value === 'accepted') {
-    return
-  }
-
-  toast.add({
-    title: 'We use first-party cookies to enhance your experience on our website.',
-    duration: 0,
-    close: false,
-    actions: [{
-      label: 'Accept',
-      color: 'neutral',
-      variant: 'outline',
-      onClick: () => {
-        cookie.value = 'accepted'
-      }
-    }, {
-      label: 'Opt out',
-      color: 'neutral',
-      variant: 'ghost'
-    }]
-  })
-})
 </script>
 
 <template>
@@ -85,7 +49,7 @@ onMounted(async () => {
       :ui="{ footer: 'lg:border-t lg:border-default' }"
     >
       <template #header="{ collapsed }">
-        <WorkspaceSwitcher :collapsed="collapsed" />
+        <WorkspaceSwitcher v-if="saasConfig.features?.workspaceSwitcher" :collapsed="collapsed" />
       </template>
 
       <template #default="{ collapsed }">
@@ -116,7 +80,5 @@ onMounted(async () => {
     <UDashboardSearch :groups="groups" />
 
     <slot />
-
-    <NotificationsSlideover />
   </UDashboardGroup>
 </template>

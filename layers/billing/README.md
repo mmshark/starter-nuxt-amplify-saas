@@ -1,6 +1,6 @@
 # Billing Layer
 
-A simplified Stripe billing integration layer for Nuxt 3 applications using a portal-first approach. This layer provides essential subscription management functionality with maximum delegation to Stripe's Customer Portal for complex billing operations.
+A simplified Stripe billing integration layer for Nuxt 4 applications using a portal-first approach. This layer provides essential subscription management functionality with maximum delegation to Stripe's Customer Portal for complex billing operations.
 
 ## Table of Contents
 
@@ -14,7 +14,7 @@ A simplified Stripe billing integration layer for Nuxt 3 applications using a po
 
 ## Overview
 
-The Billing layer integrates Stripe with Nuxt 3, providing:
+The Billing layer integrates Stripe with Nuxt 4, providing:
 
 - 🎫 **Portal-First Approach** - Stripe Customer Portal handles all subscription management
 - 📋 **Basic Subscription Tracking** - Read subscription status and plan details from user profile
