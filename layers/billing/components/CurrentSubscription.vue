@@ -124,7 +124,7 @@ const billing = useBilling()
 const effectiveSubscription = computed<Subscription | null>(() => {
   if (props.subscription) return props.subscription
   const s = billing.subscription.value
-  if (!s) return null
+  if (!s || !s.subscription) return null
   return {
     plan: s.plan,
     status: s.subscription.status,
