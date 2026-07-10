@@ -46,6 +46,9 @@
         <!-- Billing information integrated from footer -->
         <div class="text-sm text-gray-600 dark:text-gray-400 mt-3">
           <p v-if="effectiveSubscription && effectiveSubscription.plan.price > 0">Next billing: {{ formatDate(effectiveSubscription.currentPeriodEnd) }}</p>
+          <p v-if="trialDaysLeft !== null" class="text-blue-600 dark:text-blue-400 mt-1">
+            Trial — {{ trialDaysLeft }} {{ trialDaysLeft === 1 ? 'day' : 'days' }} left, converts on {{ formatDate(effectiveSubscription?.trialEnd ?? '') }}
+          </p>
           <p v-if="effectiveSubscription?.cancelAtPeriodEnd" class="text-amber-600 dark:text-amber-400 mt-1">
             ⚠️ Subscription will cancel at the end of the current period
           </p>
@@ -92,6 +95,7 @@ interface Subscription {
   status: string
   currentPeriodEnd: string
   cancelAtPeriodEnd: boolean
+  trialEnd?: string | null
 }
 
 interface Props {
@@ -125,8 +129,18 @@ const effectiveSubscription = computed<Subscription | null>(() => {
     plan: s.plan,
     status: s.subscription.status,
     currentPeriodEnd: s.subscription.currentPeriodEnd,
-    cancelAtPeriodEnd: s.subscription.cancelAtPeriodEnd
+    cancelAtPeriodEnd: s.subscription.cancelAtPeriodEnd,
+    trialEnd: s.subscription.trialEnd
   }
+})
+
+// Remaining trial days (E05 G5): only while trialing with a future trialEnd.
+const trialDaysLeft = computed<number | null>(() => {
+  const sub = effectiveSubscription.value
+  if (!sub || sub.status !== 'trialing' || !sub.trialEnd) return null
+  const remainingMs = new Date(sub.trialEnd).getTime() - Date.now()
+  if (remainingMs <= 0) return null
+  return Math.ceil(remainingMs / (1000 * 60 * 60 * 24))
 })
 
 // Local per-action loading to avoid animating other buttons

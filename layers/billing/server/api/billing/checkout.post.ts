@@ -100,6 +100,21 @@ export default defineEventHandler(async (event) => {
       contextSpec,
       { workspaceId }
     )
+
+    // Guard against a second subscription (E05 G6): a workspace that already has
+    // an active/trialing/past_due Stripe subscription changes plans through the
+    // Customer Portal (proration handled by Stripe), never a fresh checkout.
+    const ACTIVE_SUBSCRIPTION_STATUSES = ['active', 'trialing', 'past_due']
+    if (
+      workspaceSubscription?.stripeSubscriptionId &&
+      ACTIVE_SUBSCRIPTION_STATUSES.includes(workspaceSubscription.status ?? '')
+    ) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Workspace already has a subscription — use the billing portal to change plans'
+      })
+    }
+
     let stripeCustomerId = workspaceSubscription?.stripeCustomerId
     if (!stripeCustomerId) {
       const accessToken = session.tokens?.accessToken?.toString()
@@ -131,7 +146,13 @@ export default defineEventHandler(async (event) => {
       subscription_data: {
         // The webhook resolves the workspace from this metadata (Task 3.3) —
         // it never has a Cognito session to look the workspace up any other way.
-        metadata: { workspaceId }
+        metadata: { workspaceId },
+        // Basic trial support (E05 G5): metadata-driven only — the plan's
+        // trial_period_days (from Stripe product metadata → SubscriptionPlan)
+        // starts a trial with no immediate charge. Plans without it are unchanged.
+        ...(plan.trialPeriodDays && plan.trialPeriodDays > 0
+          ? { trial_period_days: plan.trialPeriodDays }
+          : {})
       },
       metadata: {
         userId,
@@ -140,9 +161,8 @@ export default defineEventHandler(async (event) => {
         workspaceId
       },
       success_url: `${baseUrl}/settings/billing?session_id={CHECKOUT_SESSION_ID}`,
-      // Phase 0: no /pricing page exists yet; return to plan management. E05
-      // re-points this at the real /pricing page once it's built.
-      cancel_url: `${baseUrl}/settings/billing?checkout=canceled`,
+      // Return to the in-app plans page on cancel (E05 G2) — a real route now.
+      cancel_url: `${baseUrl}/settings/billing/plans`,
       allow_promotion_codes: true,
       billing_address_collection: 'required',
       customer_update: {
