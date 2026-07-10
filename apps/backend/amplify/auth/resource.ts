@@ -20,6 +20,11 @@ export const auth = defineAuth({
   loginWith: {
     email: true
   },
+  // Platform-operator group. `SubscriptionPlan` writes are restricted to this
+  // group (see `amplify/data/resource.ts`), so the plans seeder authenticates
+  // as an `admin`-group user. Workspace tenancy uses dynamic `ws:<id>:*` groups
+  // (created by the post-confirmation / workspace-membership Lambdas), not this.
+  groups: ['admin'],
   userAttributes: {
     'profilePicture': {
       mutable: true,

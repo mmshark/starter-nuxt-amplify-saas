@@ -44,6 +44,7 @@
           "currency": "usd",
           "monthly_price": "2900",
           "yearly_price": "31000",
+          "trial_period_days": "14",
           "features": "Unlimited projects|Up to 10 team members|100 GB storage|Priority support|Advanced analytics"
         }
       }

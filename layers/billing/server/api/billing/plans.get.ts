@@ -23,6 +23,8 @@ export default defineEventHandler(async (event) => {
         stripeMonthlyPriceId: plan.stripeMonthlyPriceId,
         stripeYearlyPriceId: plan.stripeYearlyPriceId,
         stripeProductId: plan.stripeProductId,
+        features: (plan.features ?? []).filter((f): f is string => !!f),
+        trialPeriodDays: plan.trialPeriodDays ?? null,
         yearlySavings: Math.max(0, Math.round(((plan.monthlyPrice * 12) - plan.yearlyPrice) * 100) / 100)
       }))
 

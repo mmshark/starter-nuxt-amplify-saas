@@ -66,6 +66,8 @@ const subscriptionPlanModel = a.model({
   stripeYearlyPriceId: a.string(),
   stripeProductId: a.string().required(),
   isActive: a.boolean().required().default(true),
+  features: a.string().array(),
+  trialPeriodDays: a.integer(),
   workspaceSubscriptions: a.hasMany('WorkspaceSubscription', 'planId'),
 }).identifier(['planId'])
 
