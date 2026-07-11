@@ -13,7 +13,7 @@ Mandatory pattern for all composables in `layers/*/composables/` and `apps/*/app
 | 3 | Secrets (JWTs, refresh tokens) MUST NOT be written into `useState` on the server — `useState` is serialized into the SSR payload (`window.__NUXT__`). Populate token state only under `import.meta.client`. | `useUser.ts:393-402` |
 | 4 | Actions that only work in the browser (Amplify Auth `signIn`/`signUp`/`signOut`/`updateAttributes`) MUST throw early on the server (`if (import.meta.server) throw ...`) instead of silently no-oping. | `useUser.ts:116-118, 297-303` |
 | 5 | Capture `useNuxtApp()` (and other context-dependent composables) **before** the first `await` — Nuxt context is lost across async boundaries. | `useUser.ts:120-121` |
-| 6 | `createSharedComposable` is allowed **only** for client-only, non-serializable side effects (DOM/keyboard listeners, WebSockets) that must not be hydrated. | `apps/saas/app/composables/useDashboard.ts` |
+| 6 | `createSharedComposable` is allowed **only** for client-only, non-serializable side effects (DOM/keyboard listeners, WebSockets) that must not be hydrated. | No current production usage; review required when introduced |
 | 7 | Per-resource fetched collections MAY use keyed `useAsyncData` instead of `useState` — it caches, hydrates, and dedupes server→client fetches. | `layers/workspaces/composables/useWorkspaceMembers.ts:5-29` |
 
 ## Pattern 1 — Resource composable (shared state / data fetching)
@@ -77,25 +77,20 @@ State keys are namespaced `<feature>:<key>` (`user:*`); when state is scoped to 
 
 ## Pattern 2 — Browser-only side effects (`createSharedComposable`)
 
-Only for non-hydrated, client-only concerns. The repo's single real usage — `apps/saas/app/composables/useDashboard.ts`, verbatim (condensed):
+Only for non-hydrated, client-only concerns. Example shape (the former dashboard shortcut consumer
+was removed by E03):
 
 ```typescript
 import { createSharedComposable } from '@vueuse/core'
 
-const _useDashboard = () => {
-  const router = useRouter()
-  const isNotificationsSlideoverOpen = ref(false)
-
-  defineShortcuts({
-    'g-h': () => router.push('/'),
-    'n': () => isNotificationsSlideoverOpen.value = !isNotificationsSlideoverOpen.value
-  })
-
-  return { isNotificationsSlideoverOpen }
+const _useClientObserver = () => {
+  if (import.meta.server) throw new Error('Client-only observer')
+  const target = shallowRef<Element | null>(null)
+  // register and dispose a DOM observer here
+  return { target }
 }
 
-// Shared so keyboard shortcuts register once, not per consumer
-export const useDashboard = createSharedComposable(_useDashboard)
+export const useClientObserver = createSharedComposable(_useClientObserver)
 ```
 
 Note: `createSharedComposable` must be imported explicitly — `@vueuse/core` is not auto-imported in this repo.
@@ -115,5 +110,6 @@ Note: `createSharedComposable` must be imported explicitly — `@vueuse/core` is
 The pattern is implemented, not aspirational. Verified against code (2026-07-08):
 
 - Compliant: `useUser` (`layers/auth/composables/useUser.ts`), `useWorkspaces` (`layers/workspaces/composables/useWorkspaces.ts`), `useBilling` (`layers/billing/composables/useBilling.ts`), `useEntitlements` (`layers/entitlements/composables/useEntitlements.ts` — pure `computed` over `useState`-backed composables), `useWorkspaceMembers` (keyed `useAsyncData`, Rule 7).
-- Only `createSharedComposable` usage is `apps/saas/app/composables/useDashboard.ts` (client UI shell — legitimate under Rule 6).
+- There is currently no production `createSharedComposable` usage; E03 removed the dashboard
+  shortcut composable with the template notification surface.
 - Known deviations: `useWorkspaces` state keys are not namespaced (`'workspaces'`, `'currentWorkspaceId'` instead of `workspaces:*`); `useEntitlements.ts:22` destructures `user` from `useUser()`, which returns `currentUser` — `user` is always `undefined` (latent bug, currently masked because the entitlements UI gating is unconsumed; see the entitlements audit).

@@ -37,12 +37,12 @@ export default defuFn(cfg0, cfg1, inlineConfig)          // inlineConfig = Nuxt 
 
 | Role | File |
 |---|---|
-| Layer config module | `layers/saas/config/navigation.ts` — exports `settingsSidebar`, `profileSidebar`, `userMenuItems`, `footerNavigation` |
+| Layer config module | `layers/saas/config/navigation.ts` — exports `settingsSidebar`, `profileSidebar`, `userMenuItems` |
 | Layer defaults | `layers/saas/app.config.ts` — `brand`, `features`, `layouts`, `theme`; `navigation: {}` on purpose |
 | App composition | `apps/saas/app/app.config.ts` |
 | Type augmentation | `layers/saas/types/saas-config.ts` |
 | Typed accessor | `layers/saas/composables/useSaasConfig.ts` |
-| Consumers | `apps/saas/app/layouts/default.vue` (sidebar), `apps/saas/app/components/UserMenu.vue` (user menu), `layers/saas/components/AppHeader.vue` (brand/features) |
+| Consumers | `layers/saas/layouts/default.vue`, `layers/saas/components/UserMenu.vue`, auth/layout components |
 
 ### Layer config module
 
@@ -92,7 +92,7 @@ export default defineAppConfig({
 
 ```typescript
 // apps/saas/app/app.config.ts (condensed)
-import { settingsSidebar, footerNavigation, userMenuItems } from '@mmshark/saas-layer/config/navigation'
+import { settingsSidebar, userMenuItems } from '@mmshark/saas-layer/config/navigation'
 
 export default defineAppConfig({
   saas: {
@@ -105,7 +105,7 @@ export default defineAppConfig({
           { label: 'Customers', icon: 'i-lucide-users', to: '/customers' },
           settingsSidebar            // imported from the layer
         ]],
-        footer: [footerNavigation]   // imported from the layer (one group)
+        footer: []
       },
       header: [],
       userMenu: [
@@ -156,7 +156,7 @@ export function useSaasConfig(): SaasConfig {
 ### Component consumption
 
 ```typescript
-// apps/saas/app/layouts/default.vue (excerpt) — sidebar from composed config
+// layers/saas/layouts/default.vue (excerpt) — sidebar from composed config
 const mainLinks = computed(() =>
   appConfig.saas?.navigation?.sidebar?.main?.map(group =>
     group.map(addOnSelectToMenuItem)
@@ -165,7 +165,7 @@ const mainLinks = computed(() =>
 ```
 
 ```typescript
-// apps/saas/app/components/UserMenu.vue (excerpt) — marker types swapped at runtime
+// layers/saas/components/UserMenu.vue (excerpt) — marker types swapped at runtime
 const menuConfig = appConfig.saas?.navigation?.userMenu || []
 // per item:
 if (item.type === 'theme-selector') return themeSelector           // live color picker
@@ -185,12 +185,15 @@ The app-level `UserMenu.vue` overrides the layer's `layers/saas/components/UserM
 
 > **Correction vs. the pre-migration doc**: the old doc claimed runtime writes to app config "won't work, config is read-only". In fact Nuxt app config is reactive and writable at runtime — the shipped theme selector relies on it — but it is not persistence, so the anti-pattern stands for state management.
 
-## Current status / known drift (verified 2026-07-08)
+## Current status / planned contract
 
-- `layers/saas/layouts/dashboard.vue` reads `appConfig.saas?.navigation?.sidebarExtra` — a key defined in **no** app.config and absent from `layers/saas/types/saas-config.ts`, so it is always empty; the layout also hardcodes `settingsSidebar`. The shipped app never renders this layout (`apps/saas/app/pages/index.vue` overrides `layers/saas/pages/index.vue`, and the app uses `apps/saas/app/layouts/default.vue`). Legacy path: either define `sidebarExtra` or migrate the layout to `navigation.sidebar.main`.
-- `saas.theme.colors` is declared in both app.config files and the types but consumed nowhere. Actual theming goes through Nuxt UI's `appConfig.ui.colors` namespace.
-- `saas.features.onboarding` and `saas.features.multiWorkspace` have no consumers; only `workspaceSwitcher` and `darkMode` are read (`layers/saas/components/AppHeader.vue`).
-- `layers/debug/pages/debug/index.vue` reads `appConfig.billing?.plans`, which no app.config defines (billing plans now come from Stripe), so the debug plan selector is always empty.
+- E03 consolidated the runtime shell into `layers/saas`; references to an app-local parallel shell are historical.
+- `saas.theme.colors`, `saas.features.onboarding` and `saas.features.multiWorkspace` remain decorative
+  keys. E27 will remove them or project real product facts to their actual consumers.
+- E26 introduces a framework-neutral root `saas.config.ts` for stable product facts. This does not
+  replace app config: presentation objects and all navigation arrays remain app-config concerns.
+- `layers/debug/pages/debug/index.vue` must read billing plans from the public plans API, never an
+  `appConfig.billing.plans` key; any remaining fallback is debug-only debt.
 
 ## References
 

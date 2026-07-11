@@ -83,38 +83,29 @@ quality 3/5.
 | Catalogs, types, composable, components, middlewares, server utils, 4 API endpoints | Implemented | All files listed above exist under `layers/entitlements/` |
 | Server-side enforcement where consumed | Implemented | `requirePermission('manage-billing')` guards `layers/billing/server/api/billing/checkout.post.ts` and `portal.post.ts` (explicit `workspaceId` path); membership verified against `WorkspaceMember`; fails closed to `free`/`user` |
 | UI gating consumed by the app (F1–F4) | **Missing** | No page/component in `apps/saas/` or `layers/saas/` uses `FeatureGate`, `PermissionGuard`, `UpgradePrompt` or the `feature`/`permission`/`requirePlan` middlewares — the entire client gating surface has zero consumers |
-| Client/SSR plan resolution (F1, F7) | **Broken** | `useWorkspaces` / `GET /api/workspaces` never hydrate `workspace.subscription`, so `useEntitlements().subscriptionPlan` always resolves `'free'` on client/SSR regardless of the real subscription |
-| Middleware/prompt redirect targets (F3) | **Broken** | `middleware/feature.ts:33` and `middleware/requirePlan.ts:32` redirect to `/upgrade` (no such page); `middleware/permission.ts:32` to `/dashboard` (dashboard lives at `/`); `UpgradePrompt.vue:34` navigates to `/billing` (billing page is `/settings/billing`) |
-| Cookie-based server plan/role resolution (F6 path) | **Broken** | Client persists the active workspace in cookie `current-workspace-id` (`layers/workspaces/composables/useWorkspaces.ts:7,76`) but `getWorkspaceContext.ts:51` reads `currentWorkspaceId` → the cookie path (and thus all `/api/entitlements/*` endpoints) silently resolves `free`/`user`. Only the explicit-`workspaceId` path (billing) works |
+| Client/SSR plan resolution (F1, F7) | Implemented | `useWorkspaces` hydrates each workspace subscription and `useEntitlements().subscriptionPlan` derives the active workspace plan |
+| Middleware/prompt redirect targets (F3) | Implemented stopgap | Denials target real routes (`/settings/billing` for upgrades, `/` for permissions); E06 will use `/settings/billing/plans` consistently while adopting the gates |
+| Cookie-based server plan/role resolution (F6 path) | Implemented | Client and server share the `current-workspace-id` cookie contract; callers may also pass an explicit workspace ID |
 | Role-gated UI in product | Partial, **outside the layer** | Ad-hoc checks via `useWorkspaceMembership().isAdminOrOwner` in `layers/saas/pages/settings/index.vue:7` and `layers/saas/pages/settings/workspaces.vue:47` instead of `hasPermission`/`PermissionGuard` |
 | Feature flags (runtime, targeting, A/B) | **Missing** | No flag model, no provider integration, no admin UI anywhere in the repo; the `enabled` field on `FEATURES` entries is dead code — nothing reads it, so `enabled: false` would not block anything |
 | Tests | Minimal | One unit test: `layers/entitlements/server/utils/__tests__/requirePermission.test.ts` (covers the authorization guard billing depends on). No entitlements e2e specs in `apps/saas/tests/e2e/` |
 
 ## Open issues & risks
 
-1. **Silent UX regression trap**: because client plan always resolves `free`, wiring `FeatureGate`
-   or the middlewares without first fixing subscription hydration would lock paid features for every
-   user, including paying ones. Fix order matters: hydration (E02) before wiring (E06).
-2. **Cookie name mismatch** (`current-workspace-id` vs `currentWorkspaceId`) breaks every
-   cookie-resolved server check; currently masked because the only server consumers (billing
-   checkout/portal) pass `workspaceId` explicitly. Any new consumer relying on the cookie path
-   inherits the bug.
-3. **Broken navigation targets** (`/upgrade`, `/dashboard`, `/billing`) — same defect class as
-   billing's checkout `cancel_url` → `/pricing` (also nonexistent). The `/upgrade` destination must
-   be created or the redirects retargeted (E02/E06).
-4. **Narrow enforcement coverage**: only 2 API routes use the server guards; other sensitive routes
+1. **Narrow enforcement coverage**: only billing routes currently use the entitlements server guards;
+   other sensitive routes
    rely on their own layer-level auth, not on entitlements permissions.
-5. **Misleading `enabled` catalog field**: reads as a kill switch but is never consulted; wire it or
+2. **Misleading `enabled` catalog field**: reads as a kill switch but is never consulted; wire it or
    remove it (E06).
-6. **Divergent ad-hoc role gating** in settings pages will drift from the catalog; replace with
+3. **Divergent ad-hoc role gating** in settings pages will drift from the catalog; replace with
    layer primitives when wiring (E06).
-7. **Entitlements already sold, not delivered**: `audit-logs` and `priority-support` appear in paid
+4. **Entitlements already sold, not delivered**: `audit-logs` and `priority-support` appear in paid
    plan catalogs but have no backing product capability (roadmap E12, E20).
 
 ## Related
 
-- [Roadmap](../prd/roadmap.md) — E02 *fix-broken-wiring* (hydration, cookie, redirect targets),
-  E05 *pricing-upgrade-flow* (upgrade destination), E06 *entitlements-wiring* (consume the layer),
+- [Roadmap](../prd/roadmap.md) — completed E02/E05 fixed hydration and the real plans destination;
+  E27 projects the catalog and E06 consumes the layer primitives,
   E12 *security-hardening* (audit-log MVP), E20 *support-feedback* (priority support),
   E22 *feature-flags* (runtime flags).
 - Sibling PRDs: [billing](../prd/billing.md) (subscription source of truth, checkout/portal guards),

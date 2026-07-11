@@ -37,14 +37,16 @@
 
 ## [Repository Structure & Operations](repository-structure.md)
 **Context:** Contributors and agents need one place for context, one command interface, and clear infra boundaries in a pnpm monorepo of Nuxt apps + layers.
-**Decision:** AGENTS.md is the context SSOT (all other files are one-line pointers); root package.json scripts are the primary commands with taskfile.yaml as a precondition/composition helper; IaC is Amplify Gen2 colocated in apps/backend/amplify/ plus per-app amplify.yml, with no separate infra tree; docs go in .context/.
+**Decision:** AGENTS.md is the contributor/agent SSOT; `taskfile.yaml` is the single operational
+contract over package scripts; Amplify Gen2 IaC is colocated in `apps/backend/amplify/` plus per-app
+`amplify.yml`; documentation lives only in `.context/`.
 **Applies to:** All contributions — repo layout, new layers/apps, commands, infra placement, and documentation location.
 
 ---
 
 ## [App Config Composition](app-config-composition.md)
 **Context:** Layers must ship default configuration that apps can customize without editing layer code, but Nuxt merges app.config files with defu, which concatenates arrays — layer-supplied array defaults would be unremovable.
-**Decision:** Layers export menu/array config as typed modules (layers/saas/config/*.ts) and keep only object/primitive defaults in their app.config.ts; apps import and compose those modules in apps/saas/app/app.config.ts; components read exclusively from useAppConfig()/useSaasConfig().
+**Decision:** Layers export menu/array config as typed modules (`layers/saas/config/*.ts`) and keep only object/primitive defaults in layer app config; apps explicitly compose arrays in `apps/saas/app/app.config.ts`; runtime components read exclusively from `useAppConfig()`/`useSaasConfig()`.
 **Applies to:** Every layer and app that defines or consumes app.config configuration.
 
 ---
@@ -52,7 +54,7 @@
 ## [Navigation Configuration](navigation-config.md)
 **Context:** Navigation menus (sidebar, header, user menu, footer) need layer-provided defaults that apps can extend without duplication.
 **Decision:** Three-layer build-time composition — static exports in layers/saas/config/navigation.ts, explicit import+spread in the app's app.config.ts, and runtime components reading only useAppConfig().saas.navigation.
-**Applies to:** Any menu change in layers/saas or apps/saas; note two divergent UserMenu.vue shells currently require dual edits (see [tech-debt](../architecture/tech-debt.md)).
+**Applies to:** Any menu change in `layers/saas` or `apps/saas`; E03 consolidated the shell, so there is one runtime `UserMenu`.
 
 ---
 

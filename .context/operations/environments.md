@@ -10,7 +10,7 @@ There are two kinds of environments:
 
 | Environment | Backend | How it's created |
 |---|---|---|
-| **Sandbox** (per developer) | Ephemeral Amplify Gen2 stack in your own AWS account (`ampx sandbox`) | `pnpm backend:sandbox:init` |
+| **Sandbox** (per developer) | Amplify Gen2 cloud stack in your own AWS account (`ampx sandbox`) | `task sandbox:start` |
 | **Deployed branch** (prod/staging) | Amplify Hosting apps built from Git | See [deployment.md](deployment.md) |
 
 The Nuxt apps connect to whichever backend generated the `amplify_outputs.json` they were built against.
@@ -22,25 +22,25 @@ The Nuxt apps connect to whichever backend generated the `amplify_outputs.json` 
 | Node.js | ≥ 20.19 | Nuxt 4 requirement. Amplify Console builds must override to Node 22 (see [deployment.md](deployment.md)) |
 | pnpm | 10.13.1 | Pinned via `packageManager` in `package.json`; run `corepack enable` |
 | AWS CLI | any recent | Credentials with Amplify/Cognito/DynamoDB/AppSync/Lambda permissions; verify with `aws sts get-caller-identity` |
-| Stripe CLI | any recent | Only needed for billing work (`pnpm billing:stripe:login`) |
+| Stripe CLI | any recent | Only needed for billing work (`task billing:stripe:login`) |
 
 Optional per-project AWS config: use `AWS_PROFILE`/`AWS_REGION` (env vars or a root `.env.local`).
 
 ## Sandbox lifecycle
 
-All commands run from the repo root (they are thin wrappers over `apps/backend/package.json` scripts).
+All commands run from the repo root through the Taskfile contract.
 
 | Step | Command | What it does |
 |---|---|---|
-| 1. Install | `corepack enable && pnpm install` | Workspace install |
-| 2. Init | `pnpm backend:sandbox:init` | `ampx sandbox` — deploys Cognito, DynamoDB, AppSync, and the 3 Lambdas to your AWS account; writes `apps/backend/amplify_outputs.json`. Long-running watch process |
-| 3. Secrets | `export STRIPE_SECRET_KEY=sk_test_... STRIPE_WEBHOOK_SECRET=whsec_...` then `pnpm backend:sandbox:secrets` | Sets both values as **Amplify sandbox secrets** (`ampx sandbox secret set`). Use a placeholder for `STRIPE_WEBHOOK_SECRET` on first run; update it after webhook wiring (below) |
-| 4. Outputs | `pnpm amplify:sandbox:generate-outputs` | Regenerates `amplify_outputs.json` for the frontends |
-| 5. Codegen | `pnpm amplify:sandbox:generate-graphql-client-code` | Generates GraphQL client types/operations |
-| 6. Seed Stripe | `pnpm billing:sandbox:stripe:seed` | Applies the fixture `apps/backend/amplify/seed/data/stripe.json` (Products/Prices) to your Stripe test account |
-| 7. Seed data | `pnpm backend:sandbox:seed` (or `:seed:plans` / `:seed:users`) | `ampx sandbox seed` — `seed:plans` syncs `SubscriptionPlan` rows **from** Stripe (Stripe is the source of truth; there is no local plans JSON); `seed:users` creates test users |
-| 8. Dev server | `pnpm saas:dev` / `pnpm landing:dev` | SaaS on `http://localhost:3000` (auto-falls back to 3001), landing on 3001 |
-| 9. Teardown | `pnpm backend:sandbox:delete` | Deletes the sandbox stack |
+| 1. Install | `task setup` | Prepares `.env` if absent and installs the workspace |
+| 2. Init | `task sandbox:start` | Deploys and watches Cognito, DynamoDB, AppSync and Lambdas |
+| 3. Secrets | export Stripe test secrets, then `task sandbox:secrets` | Pushes Amplify sandbox secrets |
+| 4. Outputs/codegen | `task sandbox:generate` | Regenerates outputs and GraphQL client code |
+| 5. Seed Stripe | `task billing:stripe:seed` | Applies the Stripe test fixture |
+| 6. Seed data | `task sandbox:seed` | Syncs plans from Stripe and provisions test users/workspaces/subscriptions |
+| 7. Listener | `task billing:stripe:listen` | Forwards Stripe test events to the Lambda Function URL |
+| 8. Dev server | `task dev:saas` / `task dev:landing` | Starts the selected Nuxt app |
+| 9. Teardown | `task sandbox:stop` | Deletes the sandbox stack |
 
 Steps 4–5 are required before the first frontend build and after any backend schema change ("Amplify not configured" / GraphQL type errors mean you skipped them).
 
@@ -49,7 +49,7 @@ Steps 4–5 are required before the first frontend build and after any backend s
 The webhook endpoint is **not** a Nuxt/Nitro route — it is the `stripe-webhook` Lambda's public Function URL, exposed as `custom.stripeWebhookUrl` in `apps/backend/amplify_outputs.json`.
 
 ```bash
-STRIPE_WEBHOOK_URL=<custom.stripeWebhookUrl> pnpm billing:stripe:listen
+STRIPE_WEBHOOK_URL=<custom.stripeWebhookUrl> task billing:stripe:listen
 ```
 
 The Stripe CLI prints its signing secret (`whsec_...`) on startup — set that as `STRIPE_WEBHOOK_SECRET` (re-run step 3) so locally-forwarded events verify. For persistent testing, register the URL in the Stripe dashboard instead (see [deployment.md](deployment.md) for the event list).
@@ -76,16 +76,18 @@ Create `apps/saas/.env` by copying `layers/billing/.env.example`. Never commit `
 | `AWS_BRANCH` / `AWS_APP_ID` | `pnpm amplify:generate-outputs`, `deploy` | Deployed-branch variants of the generate/deploy commands |
 | `GMAIL_APP_PASSWORD` | `apps/saas` Playwright e2e | IMAP email-verification helper; e2e also needs a live sandbox |
 
-## Taskfile wrappers
+## Taskfile contract
 
-`taskfile.yaml` (repo root) provides optional [Task](https://taskfile.dev) wrappers: `amplify.sandbox.init|delete|secrets|generate|seed`, `amplify.saas.dev`, and `clean.*` tasks (remove `.nuxt`, `.output`, `amplify_outputs*`, generated GraphQL, `node_modules`, …). All `amplify.*` tasks precondition on `AWS_PROFILE` and `SANDBOX_STACK_NAME` being set. They add nothing beyond the pnpm scripts plus the env checks.
+`taskfile.yaml` is the required operational interface. Run `task --list` for the current task set;
+package scripts are implementation details or ad-hoc diagnostic slices.
 
 ## `amplify_outputs.json`
 
-- Gitignored; generated by sandbox init / `generate-outputs`.
-- `layers/amplify/plugins/01.amplify.client.ts`, `01.amplify.server.ts`, and `layers/amplify/server/utils/amplify.ts` import it **statically**. On a clean checkout without a deployed backend, `typecheck` and `build` fail (verified: 341 TS errors, including `TS2307 Cannot find module '../amplify_outputs.json'`). There is no stub/mock mechanism — you must run the sandbox first.
+- Real outputs are gitignored and generated by sandbox init / `task sandbox:generate`.
+- Frontend integration imports outputs statically. E01 added `task sandbox:outputs:stub` and a
+  committed stub for offline CI; live development/deployment must generate real outputs.
 
 ## Current status / known issues (audit-verified)
 
 - **E2E needs live infra**: the Playwright suite requires a running sandbox, real Cognito sign-up, a Stripe test account, and Gmail IMAP credentials; it is not runnable in default CI.
-- **Clean-checkout builds fail** without `amplify_outputs.json` (see above) — this is also why CI is currently red by design (see [deployment.md](deployment.md) and the roadmap's Phase 0 `E01 — green-ci` epic in [../prd/roadmap.md](../prd/roadmap.md)).
+- **Offline CI is green** via stub outputs; this does not validate live AWS credentials or resources.

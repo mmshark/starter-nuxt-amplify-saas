@@ -209,26 +209,27 @@ Step by step:
 5. **Tenant visibility = Cognito group membership** (`ws:<id>:members`), with the JWT-staleness caveats listed above; Nitro routes fail closed on stale claims.
 6. **Stripe is the source of truth for plans** (rows synced via seed script); subscription state is synced only by the webhook Lambda (idempotent via `ProcessedStripeEvent`).
 7. **Stripe redirect/return URLs come from configuration** (`APP_BASE_URL`), never from attacker-controllable `Host`/`X-Forwarded-*` headers.
-8. **Frontends couple to the backend only through `amplify_outputs.json`** — generated, gitignored, statically imported by `layers/amplify`. Corollary: no frontend builds (or CI typecheck) without generated outputs.
+8. **Frontends couple to the backend through `amplify_outputs.json`** — live outputs are generated
+   and gitignored; offline CI provisions a committed-compatible stub through
+   `task sandbox:outputs:stub`.
 9. **Layer boundaries**: reusable code lives in layers, instance config in apps; server routes are namespaced `layers/<layer>/server/api/<layer>/…` and use the `withAmplifyAuth`/`withAmplifyPublic` wrappers (see [../patterns/api-server.md](../patterns/api-server.md), [../patterns/layers.md](../patterns/layers.md), [../patterns/composables.md](../patterns/composables.md)).
 10. **`debug` layer is dev-only** — every page guards with `if (!import.meta.dev) throw createError(404)`; it is nonetheless composed into production builds (runtime guard only).
 
 ## Current status / known gaps
 
-Architecture-level gaps confirmed by the 2026-07-08 audit — do not assume these exist because older docs claim them. Sequencing to fix them lives in [../prd/roadmap.md](../prd/roadmap.md) (Phase 0/1).
+Architecture-level gaps originally confirmed by the 2026-07-08 audit and reconciled after completed
+E01–E03/E05. Sequencing lives in the [Now/Next/Later roadmap](../prd/roadmap.md).
 
 | Gap | Reality |
 |---|---|
 | File storage | **No S3/storage resource exists** in `apps/backend/amplify/backend.ts`. `$Amplify.Storage` plumbing in `layers/amplify` is a stub — any `uploadData`/`getUrl` call fails at runtime |
-| Logging | `createLogger` (`layers/amplify/utils/logger.ts`) exists but has **zero call sites**; server code uses ad hoc `console.*`. AGENTS.md overstates its adoption |
+| Logging | `createLogger` exists but has zero production consumers; docs now mark it unadopted and E10 decides adopt-or-delete |
 | App-level security hardening | No security headers (CSP/HSTS), no CSRF tokens (SameSite=Lax cookies only), no rate limiting on Nitro, AppSync, or the webhook Function URL |
 | Session storage | Cognito tokens (incl. refresh token) in non-HttpOnly cookies — XSS would exfiltrate the session (Amplify JS SSR adapter pattern) |
-| Workspace-context cookie mismatch | Client persists `current-workspace-id` but `layers/entitlements/server/utils/getWorkspaceContext.ts` reads `currentWorkspaceId` — the cookie fallback never matches, so entitlements without an explicit `workspaceId` resolve to `free`/`user` (fail-closed, but breaks plan gating) |
-| Entitlements wiring | Server enforcement is real (`requirePermission` in billing routes); the client-side gating components/middleware have **no consumers**, and client plan state always resolves `free` (subscription never hydrated into `useWorkspaces`) |
+| Entitlements wiring | Cookie/hydration defects are fixed and server enforcement is real; client gating components/middleware still have no product consumers |
 | Invitations end-to-end | Backend + routes exist, but **no email is ever sent** (no email provider in the repo) and no acceptance page consumes the accept/decline endpoints |
-| Unauthenticated mock endpoints | `apps/saas/server/api/{customers,mails,notifications}.ts` are template leftovers serving mock data with no auth |
 | i18n | Module + locale files registered, but zero `$t()`/`useI18n()` consumers — all UI strings hardcoded English |
-| Landing | `apps/landing` has no pages (default `NuxtWelcome`); the public-pricing API key grant is currently unused |
+| Landing | `apps/landing` has no pages (default `NuxtWelcome`); the public plans API is verified by E05 but not yet consumed by landing |
 | Realtime | No AppSync subscriptions/`observeQuery` usage anywhere; the exposed browser GraphQL client is unused |
 
 ## Related documents

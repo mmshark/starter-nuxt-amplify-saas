@@ -12,8 +12,12 @@ For the full architecture and layer catalog, see the root
 [`README.md`](../../README.md) and [`AGENTS.md`](../../AGENTS.md); for the
 sandbox lifecycle in detail see [environments.md](environments.md) and for
 production deploys see [deployment.md](deployment.md). If you spot a
-discrepancy between this guide and them, the actual scripts in
-`package.json`/`apps/*/package.json` are the source of truth.
+discrepancy between this guide and them, `task --list`, AGENTS.md and the actual code are the source
+of truth.
+
+> **Current limitation:** initialization is manual today. E26 defines `saas.config.ts`, E27 adopts
+> its projections and E28 will add the documented `task init` workflow. Do not claim that command
+> exists until E28 is complete.
 
 ## 1. Rebranding the package scope
 
@@ -80,21 +84,19 @@ typecheck`.
 
 - **Instance-specific (edit freely per project):**
   - `apps/saas/app/app.config.ts` — brand (name/logo/description/favicon),
-    sidebar/header/footer navigation, and user-menu items for *this*
+    sidebar/header navigation and user-menu items for *this*
     deployment of the dashboard. It imports shared navigation building
-    blocks (`settingsSidebar`, `footerNavigation`, `userMenuItems`) from
+    blocks (`settingsSidebar`, `userMenuItems`) from
     `@mmshark/saas-layer/config/navigation` and composes them with
     app-specific items — this is the intended customization point, not
     something to fork.
-  - `layers/saas/app.config.ts` — the meta-layer's *defaults* for brand,
+  - `layers/saas/app.config.ts` — the meta-layer's reusable defaults. Treat this as layer-owned;
+    override it from the app rather than editing it for each instance. It currently contains brand,
     theme colors (`primary`/`neutral`), feature toggles
     (`multiWorkspace`, `workspaceSwitcher`, `onboarding`, `darkMode`), and
     layout options (sidebar collapsibility, auth-page branding/footer).
     Nuxt merges app-level `app.config.ts` over layer-level ones, so you
-    normally override these in `apps/saas/app/app.config.ts` rather than
-    editing the layer default directly — but if you're maintaining your own
-    fork rather than composing published layers, changing the layer default
-    here is also reasonable. **Caveat (audit-verified):** of the four
+    normally override these in `apps/saas/app/app.config.ts`. **Caveat (verified):** of the four
     feature toggles, only `workspaceSwitcher` and `darkMode` are actually
     read by code (`layers/saas/components/AppHeader.vue`); `multiWorkspace`
     and `onboarding` currently have no consumers — flipping them changes
@@ -126,7 +128,7 @@ see [environments.md](environments.md). Summary:
 
 1. **Install tooling and dependencies**
    ```bash
-   corepack enable && pnpm install
+   task setup
    ```
    Requires Node.js ≥20.19 and pnpm 10.13.1 (pinned via `packageManager` in
    the root `package.json`). Node 22 is recommended — see "Current status"
