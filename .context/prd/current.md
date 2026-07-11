@@ -24,7 +24,7 @@ Deliberate architectural commitments (see the [productization roadmap](../roadma
 - **Teams/solo developers bootstrapping a multi-tenant B2B SaaS on AWS** who want auth,
   tenancy, and billing pre-wired instead of assembled from scratch.
 - **Adopters of the template**: extend `apps/saas` (dashboard) and `apps/landing` (marketing).
-  Active E26 introduces the canonical validated `saas.config.ts`; planned E27 migrates runtime
+  Completed E26 introduced the canonical validated `saas.config.ts`; planned E27 migrates runtime
   consumers away from duplicated catalogs and E28 automates initialization.
 - **Layer consumers**: each layer is a workspace package (`@mmshark/<layer>-layer`) reusable
   in other Nuxt 4 projects.
