@@ -1,6 +1,6 @@
 # Epic E05 — Pricing & upgrade flow
 
-> **Status**: Active · **Created**: 2026-07-08 · **Source**: new (facts verified against code; supersedes the `/pricing` upgrade-flow claims in `doc/prd/billing.md`)
+> **Status**: Done · **Created**: 2026-07-08 · **Completed**: 2026-07-11 · **Source**: new
 
 **Objective** ([roadmap](../../prd/roadmap.md) Phase 1, E05): a free workspace can become a paying one, self-service, from inside the app. This is the starter's revenue path; today it is broken end-to-end.
 
@@ -114,3 +114,11 @@ pnpm saas:dev
 - **Webhook latency vs. success page**: the success redirect can arrive before the webhook writes `WorkspaceSubscription`; without the polling/refresh handling the user sees a stale "Free" plan and loses trust. Mitigation: explicit "activating your subscription…" state with bounded polling (criterion 2).
 - **Schema change**: adding `features`/`trialPeriodDays` to `SubscriptionPlan` requires a sandbox schema deploy and a re-run of `backend:sandbox:seed:plans`; document this in the plan so stale sandboxes don't render empty cards.
 - **Stripe-hosted UI drift**: the Playwright checkout helper fills Stripe's hosted page; Stripe UI changes can break selectors (`apps/saas/tests/e2e/utils/selectors.js`). Keep the API-level assertions (webhook result, 409 guard) independent of the hosted-page automation.
+
+## Final verification (2026-07-11)
+
+- Seeded the four-plan catalog and six test users against a fresh Amplify sandbox.
+- Verified the unauthenticated plans endpoint and monthly/yearly Pro prices (`$29` / `$310`) with the 14-day trial metadata.
+- Upgraded the free owner `test+free2@ontopix.ai` through Stripe test-mode Checkout using the `4242` test card.
+- Confirmed the signed webhook returned `200`, the app returned to `/settings/billing`, and the UI showed `Pro`, `TRIALING`, 14 days remaining, Visa `4242`, and a zero-value trial invoice without re-login.
+- Added unit coverage and a live-sandbox Playwright upgrade-flow spec. The hosted Checkout spec retains the documented sandbox and Stripe-listener prerequisites.

@@ -8,6 +8,8 @@ interface InputPlan {
   name: string
   description?: string
   price: number
+  monthlyPrice?: number
+  yearlyPrice?: number
   interval: 'monthly' | 'yearly'
   currency?: string
   features?: string[]
@@ -70,8 +72,10 @@ const fetchPublicPlans = async () => {
       id: p.id,
       name: p.name,
       description: p.description,
-      price: props.interval === 'yearly' ? p.yearlyPrice : p.monthlyPrice,
-      interval: props.interval,
+      price: p.monthlyPrice,
+      monthlyPrice: p.monthlyPrice,
+      yearlyPrice: p.yearlyPrice,
+      interval: 'monthly',
       currency: p.currency,
       features: Array.isArray(p.features) ? p.features : [],
       trialPeriodDays: p.trialPeriodDays ?? null,
@@ -92,8 +96,12 @@ onMounted(() => {
 })
 
 const effectivePlans = computed<InputPlan[]>(() => {
-  if (props.plans) return props.plans
-  return autonomousPlans.value || []
+  const plans: InputPlan[] = props.plans || autonomousPlans.value || []
+  return plans.map(plan => ({
+    ...plan,
+    price: getPlanPrice(plan, props.interval) ?? 0,
+    interval: props.interval
+  }))
 })
 
 // Helpers
@@ -122,6 +130,7 @@ const uiPlans = computed<any[]>(() => {
       highlight: isSelected,
       button: {
         label: isSelected ? 'Current Plan' : (props.ctaLabel || 'Choose plan'),
+        'aria-label': `${isSelected ? 'Current plan' : (props.ctaLabel || 'Choose plan')}: ${plan.name}`,
         size: 'lg',
         block: true,
         loading: inFlightPlanId.value === plan.id,

@@ -66,9 +66,12 @@ backend.workspaceMembership.addEnvironment(
 //  - stripeWebhookUrl: the public Function URL to register as the webhook
 //    endpoint in the Stripe dashboard.
 //  - workspaceMembershipFunctionName: the function the workspace routes invoke.
+//  - postConfirmationFunctionName: lets the sandbox seeder run the same
+//    canonical provisioning path for sandbox users created through Cognito's AdminCreateUser API.
 backend.addOutput({
   custom: {
     stripeWebhookUrl: stripeWebhookUrl.url,
     workspaceMembershipFunctionName: backend.workspaceMembership.resources.lambda.functionName,
+    postConfirmationFunctionName: backend.postConfirmation.resources.lambda.functionName,
   },
 });

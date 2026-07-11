@@ -37,7 +37,7 @@ in the [roadmap state table](roadmap.md#current-state-at-a-glance-audit-2026-07-
 |---|---|
 | Authentication | Cognito email+password (sign-up, verify, sign-in, reset) works end-to-end; MFA, social login, and authenticated password change do not exist. |
 | Multi-tenant workspaces | Group-per-workspace isolation and Lambda-mediated writes are solid; the invitation flow is unusable end-to-end (no email delivery, no acceptance page). |
-| Billing (Stripe) | Checkout/portal/webhook backend is solid; the free→paid upgrade path is broken (pricing components are mounted on no page; checkout `cancel_url` targets a nonexistent `/pricing`). |
+| Billing (Stripe) | Workspace-scoped Checkout/Portal/webhook flow is operational: seeded public plans, owner-only free→paid Checkout, monthly/yearly pricing, metadata-driven trials, webhook synchronization and portal-backed paid-plan management. |
 | Entitlements / RBAC | Server-side enforcement is real; UI gating (FeatureGate, middlewares) is unconsumed infrastructure, and the client plan always resolves `free` (subscription never hydrated + cookie-name mismatch). |
 | i18n | en/es infrastructure is configured but nothing consumes it — all UI strings are hardcoded English, no language switcher. |
 | UI kit / theming | `@nuxt/ui` v4 + Tailwind v4 theme tokens work; two divergent dashboard shells coexist (`layers/saas` vs `apps/saas`) plus Nuxt UI template residue (mock-fed pages). |

@@ -120,7 +120,7 @@ paid → manage account* with no dead ends, entirely self-service.
 | Epic | Slug | Docs | Effort | Status |
 |---|---|---|---|---|
 | E04 | [20260708-transactional-email](../epic/20260708-transactional-email/) | spec, plan | M | specified |
-| E05 | [20260708-pricing-upgrade-flow](../epic/20260708-pricing-upgrade-flow/) | spec, plan | M | specified |
+| E05 | [20260708-pricing-upgrade-flow](../epic/20260708-pricing-upgrade-flow/) | spec, plan | M | done (2026-07-11) |
 | E06 | entitlements-wiring | — (defined here) | S | defined |
 | E07 | account-management | — (defined here) | M | defined |
 | E08 | workspace-lifecycle | — (defined here) | M | defined |

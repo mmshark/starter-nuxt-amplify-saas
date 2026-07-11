@@ -294,6 +294,9 @@ export class AuthHelpers {
           const errorElement = this.page.locator(selector)
           if (await errorElement.isVisible({ timeout: 1000 })) {
             const errorText = await errorElement.textContent()
+            // `[role=alert]` is also used by Nuxt UI success notifications.
+            // Never turn a successful sign-in toast into a false failure.
+            if (/success|logged in successfully/i.test(errorText || '')) continue
             console.log(`Login error detected: ${errorText}`)
 
             // If we expect an error, just return without throwing

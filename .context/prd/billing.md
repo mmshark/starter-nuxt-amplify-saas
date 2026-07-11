@@ -86,12 +86,12 @@ Audit (2026-07): implementation 3/5, quality 4/5. Backend is solid; the revenue-
 | Webhook Lambda: signature check, dedupe, order guard, status whitelist, revert-to-free, trial field sync | ✅ Implemented | `apps/backend/amplify/functions/stripe-webhook/handler.ts` |
 | Workspace billing bootstrap (idempotent Stripe customer + `WorkspaceSubscription` on workspace create) | ✅ Implemented | `layers/billing/server/utils/ensureWorkspaceBilling.ts` |
 | Plan catalog sync from Stripe (fixtures + seeder) | ✅ Implemented | `apps/backend/amplify/seed/seeders/plans.ts`, `apps/backend/amplify/seed/data/stripe.json` |
-| Billing settings page (subscription, payment method, invoices) | ✅ Implemented | `layers/saas/pages/settings/billing.vue` |
-| **Free→paid upgrade flow** | ❌ **Broken end-to-end** | Pricing components are not mounted on any page in `apps/saas` or `apps/landing`; no `/pricing` route exists (checkout `cancel_url` → `${baseUrl}/pricing` → 404); "Change Plan" on `CurrentSubscription` opens the portal, which cannot start a *first* subscription for a free workspace |
+| Billing settings and plans pages | ✅ Implemented | `layers/saas/pages/settings/billing/index.vue`, `layers/saas/pages/settings/billing/plans.vue` |
+| **Free→paid upgrade flow** | ✅ **Verified end-to-end** | Owner-only Upgrade CTA → real Stripe Checkout; cancel returns to the plans page; success polling reflects the signature-verified webhook result without re-login |
 | Taxes | ❌ Missing | No `automatic_tax` in `checkout.sessions.create` (no Stripe Tax) |
-| Trials | ⚠️ Data-level only | `trialStart`/`trialEnd` synced by webhook; no `trial_period_days` at checkout, no remaining-days UI |
+| Trials | ✅ Implemented | `trial_period_days` flows from Stripe product metadata through `SubscriptionPlan` into Checkout; the subscription card shows remaining trial days |
 | Dunning | ❌ Missing | `invoice.payment_failed` is only logged in the webhook; no emails/notifications/recovery UX |
-| Tests | ⚠️ Partial | Unit: `layers/billing/composables/__tests__/formatPrice.test.ts` and the authorization guard in `layers/entitlements/server/utils/__tests__/requirePermission.test.ts`. E2E: Playwright billing spec (4 tests: plans API + billing settings page) at `apps/saas/tests/e2e/specs/layers/billing/plans.spec.js`, plus `apps/saas/tests/e2e/specs/flows/new-user-journey.spec.js` (active, `flows` Playwright project), which exercises the Customer Portal (payment-method add, plan change to `pro`) and webhook-driven subscription sync (`waitForSubscriptionSync`). Caveat: the journey's plan-change step relies on the portal starting a *first* subscription for a free workspace — which the broken upgrade flow above says does not work — so treat that spec as aspirational until E05. No E2E for the Checkout-session flow |
+| Tests | ✅ E05 covered | Unit coverage for interval pricing and portal-managed statuses; Playwright upgrade-flow coverage drives seeded plans, interval switching, hosted Checkout and webhook-backed Pro/trial visibility. The full E2E requires a live sandbox and Stripe listener. |
 
 Dropped from the source PRD (never implemented, removed from spec): Nitro `POST /api/billing/webhook` route, `requireSubscription()`/`withSubscription()` server utilities (no such code exists — server-side gating is `requirePermission` from the entitlements layer), Zod request validation (validation is manual), and the `SubscriptionPlan.features`/`limits` fields (feature limits belong to the entitlements layer).
 
@@ -100,11 +100,10 @@ Dropped from the source PRD (never implemented, removed from spec): Nitro `POST 
 1. **Webhook dedupe is not transactional**: the `ProcessedStripeEvent` record is created *after* processing; a crash between the `WorkspaceSubscription` upsert and the dedupe write can reprocess an event (partially mitigated by the order guard; acknowledged in `handler.ts` comments).
 2. **Order guard mixes clock domains**: it compares Stripe `event.created` against DynamoDB `updatedAt`. A legitimate event created just before a local write can be misclassified as stale and dropped.
 3. **Rollback vs Stripe idempotency**: in `layers/billing/server/utils/ensureWorkspaceBilling.ts` (rollback block, ~lines 61–99) a failed `WorkspaceSubscription` write deletes the just-created Stripe customer; the comment assumes a retry with `idempotencyKey: workspaceId` creates a fresh customer, but Stripe replays cached idempotent responses (~24h), so a prompt retry can receive the id of the deleted customer.
-4. **Checkout `cancel_url` 404s** until a `/pricing` route exists (see Current status).
-5. **Layer README drift**: `layers/billing/README.md` still documents a Nitro `webhook.post.ts` route, `billing-plans.json` plan config and user-profile-based subscriptions — none of which exist in this workspace-scoped, portal-first implementation.
+4. **Layer README drift**: `layers/billing/README.md` must remain aligned with the standalone Function URL webhook and Stripe-owned plan catalog.
 
 ## Related
 
-- [Roadmap](../prd/roadmap.md) — gaps are covered by **E05 pricing-upgrade-flow** (mount pricing components, `/pricing` route, first-subscription checkout, `cancel_url` fix, trial support), **E09 landing-site** (public pricing from the `SubscriptionPlan` read), **E17 background-jobs** (`ProcessedStripeEvent` purge/TTL, Stripe reconciliation sync), **E04 transactional-email** (prerequisite for dunning emails).
+- [Roadmap](../prd/roadmap.md) — **E05 pricing-upgrade-flow** is complete; **E09 landing-site** consumes the public pricing API, **E17 background-jobs** owns reconciliation/cleanup, and **E04 transactional-email** is the prerequisite for dunning emails.
 - Sibling PRDs: [entitlements](./entitlements.md) (feature gating and `manage-billing` permission), [workspaces](./workspaces.md) (workspace lifecycle that provisions billing), [auth](./auth.md).
 - Layer reference: `layers/billing/README.md` (note: partially stale, see Open issues #5).

@@ -1,6 +1,6 @@
 # Epic E05 — Pricing & upgrade flow: implementation plan
 
-> **Status**: Active · **Created**: 2026-07-08 · **Source**: new (derived from [spec.md](./spec.md))
+> **Status**: Done · **Created**: 2026-07-08 · **Completed**: 2026-07-11 · **Source**: new (derived from [spec.md](./spec.md))
 
 Phases are dependency-ordered; each ends with a verifiable state. Gap ids (G1–G6) refer to [spec.md](./spec.md) § Current status.
 
