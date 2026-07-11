@@ -13,4 +13,4 @@ epic: 20260711-saas-config-contract
 - [x] Add tests for valid parsing and all acceptance-criterion failures.
 - [x] Document the three-tier boundary: product facts / app presentation / environment secrets.
 - [x] Add the package to the Taskfile type-check gate and run `task ci:all`.
-- [ ] Mark E26 done only after the contract PR is merged.
+- [x] Mark E26 completed after the contract PR is merged and verified.

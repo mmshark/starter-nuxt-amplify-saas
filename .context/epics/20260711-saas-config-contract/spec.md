@@ -2,7 +2,7 @@
 id: 20260711-saas-config-contract
 title: E26 — SaaS configuration contract
 type: feat
-status: active
+status: completed
 created: 2026-07-11
 roadmap: 20260711-saas-boilerplate-productization
 phase: product-configuration-contract
