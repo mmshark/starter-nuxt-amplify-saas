@@ -12,7 +12,7 @@ Consuming these layers from GitHub Packages is **not currently viable end-to-end
   ```bash
   npm view @mmshark/saas-layer --registry=https://npm.pkg.github.com
   ```
-- **The amplify layer cannot work as a published package out of the box.** `layers/amplify/plugins/01.amplify.client.ts`, `01.amplify.server.ts`, and `layers/amplify/server/utils/amplify.ts` statically import `../amplify_outputs.json` — a file that is gitignored *and* excluded from the package `files` list (`layers/amplify/package.json`). A consumer would have to place their own `amplify_outputs.json` inside `node_modules/@mmshark/amplify-layer/` after every install. Since every feature layer and the saas meta-layer depends on the amplify layer, this blocks the whole composition until the layer is decoupled from the static import (tracked in [../prd/roadmap.md](../prd/roadmap.md)).
+- **The amplify layer cannot work as a published package out of the box.** `layers/amplify/plugins/01.amplify.client.ts`, `01.amplify.server.ts`, and `layers/amplify/server/utils/amplify.ts` statically import `../amplify_outputs.json` — a file that is gitignored *and* excluded from the package `files` list (`layers/amplify/package.json`). A consumer would have to place their own `amplify_outputs.json` inside `node_modules/@mmshark/amplify-layer/` after every install. Since every feature layer and the saas meta-layer depends on the amplify layer, this blocks the whole composition until the layer is decoupled from the static import (tracked in [../roadmaps/20260711-saas-boilerplate-productization.md](../roadmaps/20260711-saas-boilerplate-productization.md)).
 
 Until both are resolved, the practical way to reuse these layers is to **fork the monorepo** (see [make-it-yours.md](make-it-yours.md)). The rest of this guide documents the intended published-consumption workflow.
 
@@ -426,7 +426,7 @@ jobs:
         run: pnpm build
 ```
 
-Note: a build of any app composing the amplify layer also needs `amplify_outputs.json` generated in CI (this repo's own CI does not yet solve this — see the `green-ci` epic in [../prd/roadmap.md](../prd/roadmap.md)).
+Note: a build of any app composing the amplify layer also needs `amplify_outputs.json` generated in CI (this repo's own CI does not yet solve this — see the `green-ci` epic in [../roadmaps/20260711-saas-boilerplate-productization.md](../roadmaps/20260711-saas-boilerplate-productization.md)).
 
 ### Environment Variables
 

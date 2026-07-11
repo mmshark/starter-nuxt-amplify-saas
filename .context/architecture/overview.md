@@ -218,7 +218,7 @@ Step by step:
 ## Current status / known gaps
 
 Architecture-level gaps originally confirmed by the 2026-07-08 audit and reconciled after completed
-E01–E03/E05. Sequencing lives in the [Now/Next/Later roadmap](../prd/roadmap.md).
+E01–E03/E05. Sequencing lives in the [Now/Next/Later roadmap](../roadmaps/20260711-saas-boilerplate-productization.md).
 
 | Gap | Reality |
 |---|---|
@@ -234,7 +234,7 @@ E01–E03/E05. Sequencing lives in the [Now/Next/Later roadmap](../prd/roadmap.m
 
 ## Related documents
 
-- [../prd/roadmap.md](../prd/roadmap.md) — phased plan to close the gaps above
+- [../roadmaps/20260711-saas-boilerplate-productization.md](../roadmaps/20260711-saas-boilerplate-productization.md) — phased plan to close the gaps above
 - [../patterns/layers.md](../patterns/layers.md), [../patterns/api-server.md](../patterns/api-server.md), [../patterns/composables.md](../patterns/composables.md), [../patterns/error-handling.md](../patterns/error-handling.md) — mandatory implementation patterns
 - `AGENTS.md` (repo root) — contributor/agent operating guide (tech stack, commands, workflows)
 - `apps/backend/amplify/data/resource.ts` — the authoritative, heavily commented security model source

@@ -193,7 +193,7 @@ see [environments.md](environments.md). Summary:
    Note: `apps/landing` is currently an empty shell — it has no pages of
    its own and renders Nuxt's default `NuxtWelcome` component. The
    marketing site is unbuilt (see the roadmap in
-   [../prd/roadmap.md](../prd/roadmap.md)).
+   [../roadmaps/20260711-saas-boilerplate-productization.md](../roadmaps/20260711-saas-boilerplate-productization.md)).
 
 8. **Rebrand instance config** — update `apps/saas/app/app.config.ts`
    (brand name/logo/description/favicon, navigation) and, if you're

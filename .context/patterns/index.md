@@ -62,3 +62,11 @@ contract over package scripts; Amplify Gen2 IaC is colocated in `apps/backend/am
 **Context:** Documentation drift made doc/ unreliable — it described capabilities that were never implemented.
 **Decision:** .context/ is the single source of truth per org pattern ADR-0010; documents must never claim unimplemented capabilities (see [ADR-003](../architecture/decisions/ADR-003-context-directory-migration.md)).
 **Applies to:** This repo — all documentation lives in .context/, and every capability claim must be verified against code before it is written.
+
+---
+
+## Roadmap and Epic Planning
+
+**Context:** Medium-term direction must connect product intent to atomic pull requests without becoming a second project-management system.
+**Decision:** Follow the Ontopix [Roadmap and Epic Planning](https://docs.ontopix.dev/engineering/patterns/organizational/roadmap-and-epic-planning) contract: dated IDs, YAML metadata, shared lifecycle, phases inside roadmaps and one independently deliverable change per epic.
+**Applies to:** All files under `.context/roadmaps/` and `.context/epics/`, plus their branches and pull requests.

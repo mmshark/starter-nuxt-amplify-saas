@@ -104,7 +104,7 @@ Backed by the 2026-07-08 feature audit (areas `api`, `storage`, `realtime-update
 
 ## Related
 
-- [roadmap.md](./roadmap.md) — epics covering the gaps: **E01** green-ci (outputs import / CI), **E07** account-management (adds the missing storage resource + avatar upload), **E10** observability (adopt `createLogger` everywhere or delete it), **E14** notifications + **E23** realtime (`useRealtime`, live delivery).
+- [roadmap.md](../roadmaps/20260711-saas-boilerplate-productization.md) — epics covering the gaps: **E01** green-ci (outputs import / CI), **E07** account-management (adds the missing storage resource + avatar upload), **E10** observability (adopt `createLogger` everywhere or delete it), **E14** notifications + **E23** realtime (`useRealtime`, live delivery).
 - [../patterns/api-server.md](../patterns/api-server.md) — how Nitro routes consume `withAmplifyAuth`/`withAmplifyPublic` and the data clients.
 - [../patterns/error-handling.md](../patterns/error-handling.md) — error contract the routes built on these utilities must follow.
 - `layers/amplify/README.md` — layer-local usage docs (currently carries the drift listed in Open issues #1 and #3).

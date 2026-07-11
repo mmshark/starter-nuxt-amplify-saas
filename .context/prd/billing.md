@@ -104,6 +104,6 @@ Dropped from the source PRD (never implemented, removed from spec): Nitro `POST 
 
 ## Related
 
-- [Roadmap](../prd/roadmap.md) — **E05 pricing-upgrade-flow** is complete; **E09 landing-site** consumes the public pricing API, **E17 background-jobs** owns reconciliation/cleanup, and **E04 transactional-email** is the prerequisite for dunning emails.
+- [Roadmap](../roadmaps/20260711-saas-boilerplate-productization.md) — **E05 pricing-upgrade-flow** is complete; **E09 landing-site** consumes the public pricing API, **E17 background-jobs** owns reconciliation/cleanup, and **E04 transactional-email** is the prerequisite for dunning emails.
 - Sibling PRDs: [entitlements](./entitlements.md) (feature gating and `manage-billing` permission), [workspaces](./workspaces.md) (workspace lifecycle that provisions billing), [auth](./auth.md).
 - Layer reference: `layers/billing/README.md` (note: partially stale, see Open issues #5).

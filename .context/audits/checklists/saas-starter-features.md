@@ -10,7 +10,7 @@ Reusable checklist of the concrete capabilities a top-tier SaaS starter is expec
 |---|---|
 | `PASS` | Capability verified **in code** (cite `file:line` evidence). Docs alone never justify a PASS. |
 | `FAIL` | Absent, broken, or hollow — includes "infrastructure exists but nothing consumes it", "UI exists but handler does nothing", and "docs-only". |
-| `EXCEPTION` | Deliberately out of scope for the product stage. Must cite a decision or roadmap entry ([../../prd/roadmap.md](../../prd/roadmap.md)). |
+| `EXCEPTION` | Deliberately out of scope for the product stage. Must cite a decision or roadmap entry ([../../roadmaps/20260711-saas-boilerplate-productization.md](../../roadmaps/20260711-saas-boilerplate-productization.md)). |
 
 ## Cross-cutting checks
 
@@ -293,7 +293,7 @@ Apply to **every** area in addition to its items (recurring failure modes from p
 
 1. **Scope**: audit one area (a "domain") or run a full 26-area sweep. Use the area keys above (`auth`, `billing`, …) as domain names.
 2. **Verify against code, not docs.** For each item, locate the implementation with grep/read and record `file:line` evidence. A capability described only in a README/PRD, an exported utility with no call sites, or a UI control with no handler is a `FAIL` (see the cross-cutting checks).
-3. **Assign a verdict per item**: `PASS`, `FAIL`, or `EXCEPTION`. An `EXCEPTION` requires a written justification and a link to the decision or roadmap entry that defers it ([../../prd/roadmap.md](../../prd/roadmap.md)).
+3. **Assign a verdict per item**: `PASS`, `FAIL`, or `EXCEPTION`. An `EXCEPTION` requires a written justification and a link to the decision or roadmap entry that defers it ([../../roadmaps/20260711-saas-boilerplate-productization.md](../../roadmaps/20260711-saas-boilerplate-productization.md)).
 4. **Write the report** to `../reports/<domain>-<YYYY-MM-DD>.md` (e.g. `../reports/auth-2026-07-08.md`; use `saas-starter-features-<date>.md` for a full sweep). Each report should contain:
    - the standard header block (`Status: Active`, creation date, source = this checklist);
    - a verdict table: `| ID | Item | Verdict | Evidence (file:line) / Justification |`;

@@ -6,7 +6,7 @@
 
 Documentation lived in `doc/` (adr, prd, plan, analysis, guides, archive) and suffered severe
 **documentation drift**: documents claimed capabilities the code does not have. The 2026-07-08
-verified feature audit (the ground truth behind [../../prd/roadmap.md](../../prd/roadmap.md))
+verified feature audit (the ground truth behind [../../roadmaps/20260711-saas-boilerplate-productization.md](../../roadmaps/20260711-saas-boilerplate-productization.md))
 found, among others: gap analyses grading most layers "~95% complete / A+" while core flows
 (invitations, free→paid upgrade, i18n consumption, storage) are broken or absent; READMEs and
 PRDs describing components and composables that were never written; plans referencing removed
@@ -25,13 +25,14 @@ On **2026-07-08**, `doc/` was migrated to **`.context/`**, following the Ontopix
 
    ```text
    .context/
-     prd/            # product requirements + roadmap.md (queue of record)
+     prd/            # product requirements
+     roadmaps/       # YYYYMMDD-<slug>.md outcome roadmaps with phases
      architecture/   # overview, tech-debt, decisions/ (ADRs, this file)
      patterns/       # one normative pattern per file
      operations/     # runbooks (setup, deploy, layer publishing)
      audits/         # checklists/ + dated reports/
      changelogs/     # notable outcome records
-     epic/           # YYYYMMDD-<slug>/ work units (spec, plan, tasks)
+     epics/          # YYYYMMDD-<slug>/ atomic deliveries (spec, plan, optional support docs)
    ```
 
 3. **Every document carries a header**: `Status (Active|Future|Historical) · Created · Source`,
@@ -40,7 +41,7 @@ On **2026-07-08**, `doc/` was migrated to **`.context/`**, following the Ontopix
    (code + the audited feature report), never by copying claims forward. Unimplemented
    requirements must be stated as such in a "Current status" section. A document that claims
    a capability the code lacks is a bug (see the maintenance rules in
-   [../../prd/roadmap.md](../../prd/roadmap.md)).
+   [../../roadmaps/20260711-saas-boilerplate-productization.md](../../roadmaps/20260711-saas-boilerplate-productization.md)).
 
 ### What was migrated (rewritten, with source attribution)
 
@@ -51,7 +52,7 @@ On **2026-07-08**, `doc/` was migrated to **`.context/`**, following the Ontopix
 | `doc/adr/saas.md` | [ADR-001](./ADR-001-nuxt-ui-dashboard-shell.md) |
 | `doc/adr/saas-layer.md` | [ADR-002](./ADR-002-saas-meta-layer.md) |
 | `doc/guides/*`, operational content | `operations/` |
-| Planning content still relevant | `prd/roadmap.md` phases/epics + `epic/YYYYMMDD-<slug>/` dirs |
+| Planning content still relevant | `roadmaps/YYYYMMDD-<slug>.md` phases + `epics/YYYYMMDD-<slug>/` deliveries |
 
 ### What was discarded, and why
 
@@ -61,9 +62,9 @@ old path (`git log --follow -- 'doc/...'`); no `doc/archive/`-style graveyard is
 
 | Discarded | Reason |
 |---|---|
-| `doc/analysis/gap-analysis-code-vs-prd.md` | Claimed "~95% Complete" per layer with A+ grades (e.g. i18n "~100%" while zero UI strings use i18n; storage "configuration exists" while no storage resource exists). Directly contradicted by code; superseded by the audited feature report that grounds `prd/roadmap.md`. |
+| `doc/analysis/gap-analysis-code-vs-prd.md` | Claimed "~95% Complete" per layer with A+ grades (e.g. i18n "~100%" while zero UI strings use i18n; storage "configuration exists" while no storage resource exists). Directly contradicted by code; superseded by the audited feature report that grounds the current productization roadmap. |
 | `doc/analysis/gap-analysis-code-vs-adr.md` | Claimed "98% overall architecture compliance" and listed "Nuxt UI Pro ✅"; the repo uses MIT @nuxt/ui v4 (ADR-001). Same drift failure mode. |
-| `doc/plan/<layer>.md` (amplify, auth, billing, entitlements, i18n, saas, saas-layer, uix, workspaces) | Greenfield week-by-week build plans, long since executed or stale (some still say "Install @nuxt/ui-pro", "Create tRPC procedures"). Sequencing is now owned solely by `prd/roadmap.md`. |
+| `doc/plan/<layer>.md` (amplify, auth, billing, entitlements, i18n, saas, saas-layer, uix, workspaces) | Greenfield week-by-week build plans, long since executed or stale (some still say "Install @nuxt/ui-pro", "Create tRPC procedures"). Sequencing is now owned solely by `.context/roadmaps/`. |
 | `doc/archive/plan/trpc.md`, `doc/archive/prd/trpc.md` (and the archived tRPC pattern) | tRPC was removed from the product; REST via Nitro routes is the standard ([../../patterns/api-server.md](../../patterns/api-server.md)). |
 | `doc/archive/plan/global.md` | Point-in-time snapshot dated 2024-11-24 ("55-60% complete"); historical only. |
 | `doc/archive/plan/notifications.md` | Archived greenfield phase plan for the unbuilt notifications layer (Notification model, `notify.ts`, `NotificationBell`/`NotificationList`, SES email channel, preference UI). Scope is fully owned by [`prd/notifications.md`](../../prd/notifications.md) (whose Source is `doc/archive/prd/notifications.md`) and roadmap epics E14/E04. |

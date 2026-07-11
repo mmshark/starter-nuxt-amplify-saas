@@ -7,9 +7,9 @@
 A **SaaS starter kit**: a pnpm monorepo that composes Nuxt 4 (TypeScript, SSR) frontend apps
 from reusable **Nuxt Layers**, backed by an **AWS Amplify Gen2** backend (Cognito auth,
 DynamoDB/AppSync data, privileged Lambdas) and **Stripe** for billing (portal-first).
-UI is `@nuxt/ui` v4 (MIT) + Tailwind v4. Node ≥ 20.19, pnpm via corepack, strict TypeScript.
+UI is `@nuxt/ui` v4 (MIT) + Tailwind v4. Node ≥ 22, pnpm via corepack, strict TypeScript.
 
-Deliberate architectural commitments (see [roadmap.md](roadmap.md) "Out of scope"):
+Deliberate architectural commitments (see the [productization roadmap](../roadmaps/20260711-saas-boilerplate-productization.md)):
 
 - **Amplify-native**: no self-hosting or non-AWS portability goal.
 - **REST via Nitro `server/api`** with `withAmplifyAuth`/`withAmplifyPublic` wrappers; tRPC was removed.
@@ -24,15 +24,15 @@ Deliberate architectural commitments (see [roadmap.md](roadmap.md) "Out of scope
 - **Teams/solo developers bootstrapping a multi-tenant B2B SaaS on AWS** who want auth,
   tenancy, and billing pre-wired instead of assembled from scratch.
 - **Adopters of the template**: extend `apps/saas` (dashboard) and `apps/landing` (marketing).
-  Today product facts are split across app config and domain catalogs; roadmap E26–E28 establishes
-  the canonical `saas.config.ts` contract, adapters and initializer.
+  Product facts are currently split across app config and domain catalogs; active E26 and planned
+  E27–E28 establish the canonical `saas.config.ts` contract, adapters and initializer.
 - **Layer consumers**: each layer is a workspace package (`@mmshark/<layer>-layer`) reusable
   in other Nuxt 4 projects.
 
 ## Feature pillars and current maturity
 
 Originally verified by the 2026-07-08 feature audit and reconciled after completed E01–E03/E05.
-The audit remains historical evidence; the [roadmap](roadmap.md) owns current sequencing.
+The audit remains historical evidence; the [roadmap](../roadmaps/20260711-saas-boilerplate-productization.md) owns current sequencing.
 
 | Pillar | One-line current maturity |
 |---|---|
@@ -49,7 +49,7 @@ The audit remains historical evidence; the [roadmap](roadmap.md) owns current se
 flow are operational. The next constraint is productization: configuration is duplicated across
 frontend/backend/catalog files, while invitations, account management, i18n and client entitlement
 gating still need their end-to-end product loops completed. See the Now/Next/Later
-[roadmap](roadmap.md).
+[roadmap](../roadmaps/20260711-saas-boilerplate-productization.md).
 
 ## Applications (3)
 
@@ -81,7 +81,7 @@ Per-domain PRDs in this directory:
 
 | Document | Domain |
 |---|---|
-| [roadmap.md](roadmap.md) | Master roadmap: phases, epics, audited current state. Queue of record. |
+| [SaaS boilerplate productization](../roadmaps/20260711-saas-boilerplate-productization.md) | Active outcome roadmap, phases and atomic deliveries. |
 | [amplify.md](amplify.md) | Amplify layer — Nuxt/AWS backend integration. |
 | [auth.md](auth.md) | Authentication (Cognito). |
 | [billing.md](billing.md) | Stripe billing and subscriptions. |

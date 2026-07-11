@@ -73,7 +73,7 @@ The target boundary is roadmap E26–E28:
 
 ## Related
 
-- [Roadmap](roadmap.md)
+- [Roadmap](../roadmaps/20260711-saas-boilerplate-productization.md)
 - [App-config composition](../patterns/app-config-composition.md)
 - [Navigation composition](../patterns/navigation-config.md)
 - [SaaS app PRD](saas-app.md)

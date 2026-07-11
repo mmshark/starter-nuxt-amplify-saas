@@ -149,8 +149,11 @@ Operational guides: [deployment](.context/operations/deployment.md), [environmen
 #### Audits (.context/audits/)
 Verified audit checklists (`checklists/`) and reports (`reports/`) validating code against documentation claims — e.g. [saas-starter-features-2026-07-08.md](.context/audits/reports/saas-starter-features-2026-07-08.md).
 
-#### Planning (.context/prd/roadmap.md + .context/epic/)
-[roadmap.md](.context/prd/roadmap.md) is the single source of truth for development sequencing; each epic's spec/design/plan/tasks live in `.context/epic/<id>/`.
+#### Planning (`.context/roadmaps/` + `.context/epics/`)
+
+Roadmaps live at `.context/roadmaps/YYYYMMDD-<slug>.md`; atomic deliveries live at
+`.context/epics/YYYYMMDD-<slug>/`. Follow the Ontopix Roadmap and Epic Planning lifecycle and
+metadata contract registered in `.context/patterns/index.md`.
 
 ### Compliance Requirements
 
@@ -406,7 +409,7 @@ pnpm saas:dev
 - **Code Patterns**: `.context/patterns/*.md` - Mandatory implementation patterns (index: `.context/patterns/index.md`)
 - **Operations Guides**: `.context/operations/*.md` - Deployment, environments, debugging, customization
 - **Audit Reports**: `.context/audits/` - Code vs specification validation (checklists + reports)
-- **Planning**: `.context/prd/roadmap.md` + `.context/epic/*/` - Roadmap and epic specs/plans/tasks
+- **Planning**: `.context/roadmaps/*` + `.context/epics/*/` - Outcome roadmaps and atomic delivery contracts
 
 ### External Documentation & Resources
 

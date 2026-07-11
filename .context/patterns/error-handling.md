@@ -79,7 +79,7 @@ if (code === 'VALIDATION_ERROR') {
 1. **Always `createError`** in server handlers, middleware, and server utils. Never throw raw `Error` from an API route.
 2. **Zod validation must not leak `ZodError`.** Use `readValidatedBody`/`safeParse` and rethrow as 400 + `data.code: 'VALIDATION_ERROR'` (+ `data.issues`). A raw `schema.parse()` produces a generic 500 on invalid input, breaking this contract.
 3. **Sanitize 500s.** Nuxt strips stack traces in production by default; keep it that way in custom error handling, and keep 500 `message`s generic.
-4. **Log 500-level errors server-side** (`console.error`) for observability — e.g. `layers/billing/server/api/billing/plans.get.ts` logs, then rethrows via `createError({ statusCode: error.statusCode || 500, ... })`. Centralized error capture is roadmap work (epic E10 in [../prd/roadmap.md](../prd/roadmap.md)).
+4. **Log 500-level errors server-side** (`console.error`) for observability — e.g. `layers/billing/server/api/billing/plans.get.ts` logs, then rethrows via `createError({ statusCode: error.statusCode || 500, ... })`. Centralized error capture is roadmap work (epic E10 in [../roadmaps/20260711-saas-boilerplate-productization.md](../roadmaps/20260711-saas-boilerplate-productization.md)).
 5. **`message` is user-facing.** Write it so the client can display it verbatim (except 500s).
 6. **Re-throw H3Errors unchanged** when wrapping (`if (error instanceof H3Error) throw error`) so status codes survive catch-all blocks — see `layers/workspaces/server/middleware/auth.ts`.
 

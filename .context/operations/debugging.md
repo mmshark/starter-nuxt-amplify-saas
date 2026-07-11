@@ -2,7 +2,7 @@
 
 > **Status**: Active · **Created**: 2026-07-08 · **Source**: AGENTS.md (Troubleshooting), layers/debug/README.md, audit digest 2026-07 (observability, dx)
 
-How to diagnose problems in local development, what the dev-only debug pages actually show, where logs end up today, and what the e2e suite needs to run. Known-broken items link to the remediation epics in [../prd/roadmap.md](../prd/roadmap.md).
+How to diagnose problems in local development, what the dev-only debug pages actually show, where logs end up today, and what the e2e suite needs to run. Known-broken items link to the remediation epics in [../roadmaps/20260711-saas-boilerplate-productization.md](../roadmaps/20260711-saas-boilerplate-productization.md).
 
 ## Troubleshooting table
 

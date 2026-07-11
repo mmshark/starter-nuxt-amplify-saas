@@ -1,6 +1,6 @@
 # 2026-07-08 — E02 fix-broken-wiring: make what exists true
 
-> **Status**: Historical · **Created**: 2026-07-08 · **Source**: epic [20260708-fix-broken-wiring](../epic/20260708-fix-broken-wiring/); branch `fix/remediation-2026-07-07` commits `307c70c..17c0c2f`
+> **Status**: Historical · **Created**: 2026-07-08 · **Source**: epic [20260708-fix-broken-wiring](../epics/20260708-fix-broken-wiring/); branch `fix/remediation-2026-07-07` commits `307c70c..17c0c2f`
 
 Epic E02 fixed the "invisible correctness" tier — places where two correct-looking
 pieces of code failed to connect, or where UI pretended to do something it didn't.

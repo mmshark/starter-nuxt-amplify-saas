@@ -19,7 +19,7 @@ All 26 verifications completed with **high confidence**.
 **Reading notes**
 - References to `doc/…` point to the **legacy documentation tree**, cited here as evidence of documentation
   drift; replacement docs live under `.context/`.
-- This report is the evidence base cited by the [roadmap](../../prd/roadmap.md) and the
+- This report is the evidence base cited by the [roadmap](../../roadmaps/20260711-saas-boilerplate-productization.md) and the
   [tech-debt ledger](../../architecture/tech-debt.md). It does not repeat their content.
 
 ## Summary
