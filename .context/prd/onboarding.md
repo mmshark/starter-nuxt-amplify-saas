@@ -10,7 +10,7 @@ A configuration-driven, multi-step onboarding engine that activates new users af
 
 **Out of scope**: the internal logic of complex steps (e.g. the workspace-creation form belongs to the workspaces layer; onboarding only wraps it as a step), marketing/landing pages.
 
-**None of the wizard is implemented today** — see [Current status](#current-status). This PRD is the target spec for roadmap epic [E15 — onboarding](../prd/roadmap.md).
+**None of the wizard is implemented today** — see [Current status](#current-status). This PRD is the target spec for roadmap epic [E15 — onboarding](../roadmaps/20260711-saas-boilerplate-productization.md).
 
 ## Requirements
 
@@ -115,6 +115,6 @@ Audit (2026-07): implementation 2/5, quality 2/5, effort M–L, priority medium.
 
 ## Related
 
-- [Roadmap](../prd/roadmap.md) — Next epic E15 owns the wizard, persistence and middleware; the feature remains explicitly future until its acceptance criteria pass.
+- [Roadmap](../roadmaps/20260711-saas-boilerplate-productization.md) — Next epic E15 owns the wizard, persistence and middleware; the feature remains explicitly future until its acceptance criteria pass.
 - Sibling PRDs: auth and workspaces PRDs are not yet migrated to `.context/prd/`; legacy versions live at `doc/prd/auth.md` and `doc/prd/workspaces.md` (contain drift — verify before relying on them).
 - Patterns: [layers](../patterns/layers.md) (the planned `layers/onboarding/` follows the standard layer structure), [composables](../patterns/composables.md) (`useOnboarding()` conventions), [api-server](../patterns/api-server.md) (if persistence goes through a server route).

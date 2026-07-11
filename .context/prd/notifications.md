@@ -95,7 +95,7 @@ Delivery is polling-based initially; live push via AppSync `observeQuery` is def
 
 ## Related
 
-- [../prd/roadmap.md](../prd/roadmap.md) — Next E14 owns this PRD; Later E23/E21 add realtime delivery and lifecycle marketing; E10/E12 provide observability/security foundations.
+- [../roadmaps/20260711-saas-boilerplate-productization.md](../roadmaps/20260711-saas-boilerplate-productization.md) — Next E14 owns this PRD; Later E23/E21 add realtime delivery and lifecycle marketing; E10/E12 provide observability/security foundations.
 - [../patterns/api-server.md](../patterns/api-server.md) — pattern the authenticated notification endpoints must follow.
 - [../patterns/error-handling.md](../patterns/error-handling.md) — the toast feedback pattern that is the only working notification mechanism today.
 - [../patterns/composables.md](../patterns/composables.md) — conventions for the future `useNotifications()`.

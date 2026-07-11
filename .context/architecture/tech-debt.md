@@ -4,7 +4,7 @@
 
 Every item below was verified against the code on 2026-07-08 (file/line citations checked). Items are
 grouped by tier; within a tier, order is roughly by impact. The **Epic** column maps each item to the
-epic in [../prd/roadmap.md](../prd/roadmap.md) that resolves it, or `unassigned` when no epic covers
+epic in [../roadmaps/20260711-saas-boilerplate-productization.md](../roadmaps/20260711-saas-boilerplate-productization.md) that resolves it, or `unassigned` when no epic covers
 it yet — unassigned items need either a fix on sight or a roadmap decision.
 
 Maintenance: when an item is fixed, delete its row (git history is the archive). When an audit or

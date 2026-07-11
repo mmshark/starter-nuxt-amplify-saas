@@ -64,7 +64,7 @@ entitlements and i18n. E26 defines the contract, E27 migrates consumers, and E28
 
 ## Related
 
-- [Roadmap](roadmap.md)
+- [Roadmap](../roadmaps/20260711-saas-boilerplate-productization.md)
 - [Product definition](current.md)
 - [SaaS layer](saas-layer.md)
 - [Architecture overview](../architecture/overview.md)

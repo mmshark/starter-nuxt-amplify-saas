@@ -104,7 +104,7 @@ quality 3/5.
 
 ## Related
 
-- [Roadmap](../prd/roadmap.md) — completed E02/E05 fixed hydration and the real plans destination;
+- [Roadmap](../roadmaps/20260711-saas-boilerplate-productization.md) — completed E02/E05 fixed hydration and the real plans destination;
   E27 projects the catalog and E06 consumes the layer primitives,
   E12 *security-hardening* (audit-log MVP), E20 *support-feedback* (priority support),
   E22 *feature-flags* (runtime flags).

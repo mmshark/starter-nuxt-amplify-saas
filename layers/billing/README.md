@@ -83,4 +83,4 @@ After deploying or redeploying the backend:
    local Stripe listener.
 
 The full E05 sandbox runbook and verified result live in
-`.context/epic/20260708-pricing-upgrade-flow/spec.md`.
+`.context/epics/20260708-pricing-upgrade-flow/spec.md`.

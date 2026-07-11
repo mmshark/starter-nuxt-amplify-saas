@@ -99,7 +99,7 @@ Audit 2026-07-08, sections `auth` (impl 3/5, quality 4/5) and `profile` (impl 2/
 
 ## Related
 
-- [Roadmap](../prd/roadmap.md) — completed E02 neutralized the ghost controls; Next epics E04, E07 and E12 own branded emails, account management and security hardening.
+- [Roadmap](../roadmaps/20260711-saas-boilerplate-productization.md) — completed E02 neutralized the ghost controls; Next epics E04, E07 and E12 own branded emails, account management and security hardening.
 - Layer API reference: `layers/auth/README.md`.
 - Backend auth resource: `apps/backend/amplify/auth/resource.ts`; provisioning trigger: `apps/backend/amplify/auth/post-confirmation/handler.ts`.
 - Superseded source: `doc/prd/auth.md` (contains the drift corrected here).

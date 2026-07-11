@@ -129,7 +129,7 @@ solid; the gaps are product-facing last-mile flows.
 
 ## Related
 
-- [Roadmap](./roadmap.md) — gaps are covered by **E02** (cookie fix), **E03** (avatar/template
+- [Roadmap](../roadmaps/20260711-saas-boilerplate-productization.md) — gaps are covered by **E02** (cookie fix), **E03** (avatar/template
   cleanup), **E04 transactional-email** (invitation email + acceptance page + revocation UI),
   **E08 workspace-lifecycle** (ownership transfer, deletion UI, invitee pending view), **E06**
   (entitlements wiring for limits).

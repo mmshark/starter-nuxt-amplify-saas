@@ -43,6 +43,6 @@ this reconciled PRD and the E03 changelog/spec.
 
 ## Related
 
-- [Roadmap](roadmap.md)
+- [Roadmap](../roadmaps/20260711-saas-boilerplate-productization.md)
 - [SaaS layer PRD](saas-layer.md)
 - [ADR-001](../architecture/decisions/ADR-001-nuxt-ui-dashboard-shell.md)

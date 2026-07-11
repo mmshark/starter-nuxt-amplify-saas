@@ -101,18 +101,21 @@ Agent-facing documentation lives in `.context/`, per the org-level `repository-c
 
 | Directory | Content |
 |---|---|
-| `prd/` | Product definition + [roadmap](../prd/roadmap.md) (single roadmap, phased) |
+| `prd/` | Product definitions, requirements and prioritization rationale |
+| `roadmaps/YYYYMMDD-<slug>.md` | Medium-term outcomes, phases and epic sequencing |
 | `architecture/` | System overview, tech debt, `decisions/` (ADRs) |
 | `patterns/` | `index.md` registry + one file per mandatory code pattern (this file) |
 | `operations/` | Runbooks / operational guides |
 | `audits/` | `checklists/`, `reports/` (e.g. the 2026-07-08 feature audit) |
 | `changelogs/` | Notable outcomes per finished epic |
-| `epic/YYYYMMDD-<slug>/` | Per-epic `spec.md` + `plan.md` (+ `tasks.md`) for current-phase epics |
+| `epics/YYYYMMDD-<slug>/` | Atomic delivery `spec.md` + `plan.md`, with optional `design.md`, `tasks.md` and `handoff.md` |
 
 Rules:
 
 - New documentation goes in `.context/`. The legacy `doc/` tree was deleted by ADR-003 and must not
   be recreated.
+- Planning follows the Ontopix Roadmap and Epic Planning metadata, lifecycle and branch conventions
+  registered in [index.md](index.md).
 - Docs must state what actually exists; unimplemented behavior goes in an explicit "Current status" note (this migration exists because `doc/` drifted from the code).
 
 ## Current status

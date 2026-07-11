@@ -49,4 +49,4 @@ app-local layout/UserMenu and placeholder footer/template links.
 ## Related
 
 - [App config composition](app-config-composition.md)
-- [SaaS configuration contract](../epic/20260711-saas-config-contract/spec.md)
+- [SaaS configuration contract](../epics/20260711-saas-config-contract/spec.md)
