@@ -12,6 +12,7 @@ related:
   - .context/patterns/app-config-composition.md
 delivery:
   type: pull-request
+  url: https://github.com/mmshark/starter-nuxt-amplify-saas/pull/16
 ---
 
 # E26 — SaaS configuration contract
