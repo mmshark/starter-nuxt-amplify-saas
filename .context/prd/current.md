@@ -23,31 +23,33 @@ Deliberate architectural commitments (see [roadmap.md](roadmap.md) "Out of scope
 
 - **Teams/solo developers bootstrapping a multi-tenant B2B SaaS on AWS** who want auth,
   tenancy, and billing pre-wired instead of assembled from scratch.
-- **Adopters of the template**: extend `apps/saas` (dashboard) and `apps/landing` (marketing),
-  configure via `apps/saas/app/app.config.ts`.
+- **Adopters of the template**: extend `apps/saas` (dashboard) and `apps/landing` (marketing).
+  Today product facts are split across app config and domain catalogs; roadmap E26–E28 establishes
+  the canonical `saas.config.ts` contract, adapters and initializer.
 - **Layer consumers**: each layer is a workspace package (`@mmshark/<layer>-layer`) reusable
   in other Nuxt 4 projects.
 
 ## Feature pillars and current maturity
 
-Verified against the 2026-07-08 feature audit. Full 26-area implementation/quality scores live
-in the [roadmap state table](roadmap.md#current-state-at-a-glance-audit-2026-07-08) — not duplicated here.
+Originally verified by the 2026-07-08 feature audit and reconciled after completed E01–E03/E05.
+The audit remains historical evidence; the [roadmap](roadmap.md) owns current sequencing.
 
 | Pillar | One-line current maturity |
 |---|---|
 | Authentication | Cognito email+password (sign-up, verify, sign-in, reset) works end-to-end; MFA, social login, and authenticated password change do not exist. |
 | Multi-tenant workspaces | Group-per-workspace isolation and Lambda-mediated writes are solid; the invitation flow is unusable end-to-end (no email delivery, no acceptance page). |
 | Billing (Stripe) | Workspace-scoped Checkout/Portal/webhook flow is operational: seeded public plans, owner-only free→paid Checkout, monthly/yearly pricing, metadata-driven trials, webhook synchronization and portal-backed paid-plan management. |
-| Entitlements / RBAC | Server-side enforcement is real; UI gating (FeatureGate, middlewares) is unconsumed infrastructure, and the client plan always resolves `free` (subscription never hydrated + cookie-name mismatch). |
+| Entitlements / RBAC | Server-side enforcement and workspace subscription hydration are real; reusable client gates/middlewares exist but product pages still use ad-hoc checks instead of consuming them. |
 | i18n | en/es infrastructure is configured but nothing consumes it — all UI strings are hardcoded English, no language switcher. |
-| UI kit / theming | `@nuxt/ui` v4 + Tailwind v4 theme tokens work; two divergent dashboard shells coexist (`layers/saas` vs `apps/saas`) plus Nuxt UI template residue (mock-fed pages). |
+| UI kit / theming | `@nuxt/ui` v4 + Tailwind v4 power one layer-owned dashboard shell; mock/template pages and the parallel app shell were removed by E03. Some decorative config keys remain for E27. |
 | Landing / marketing | Skeleton only — `apps/landing` renders Nuxt's default welcome page; no marketing content, pricing page, or SEO. |
 | DX / docs / tooling | Strongest area (sandbox scripts, seeds, e2e harness), but historical docs claimed unbuilt capabilities — this `.context` migration is the fix. |
 
-**Current status (honest summary)**: the backend core (tenancy model, billing engine, auth) is
-above-average for a starter; the recurring gap is the *last mile* — infrastructure nothing
-consumes, flows broken end-to-end, and template residue that fakes functionality. Phase 0 of the
-[roadmap](roadmap.md) exists to make what is documented true before building new features.
+**Current status (honest summary)**: the backend core, single dashboard shell and free→paid billing
+flow are operational. The next constraint is productization: configuration is duplicated across
+frontend/backend/catalog files, while invitations, account management, i18n and client entitlement
+gating still need their end-to-end product loops completed. See the Now/Next/Later
+[roadmap](roadmap.md).
 
 ## Applications (3)
 

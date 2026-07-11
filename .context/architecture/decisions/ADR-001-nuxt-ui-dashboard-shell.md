@@ -30,7 +30,7 @@ Concretely (all verified in code):
 |---|---|
 | Module registration | `layers/uix/nuxt.config.ts` — registers `@nuxt/ui` once for every consumer, bundles `lucide` icons server-side |
 | Design tokens | `layers/uix/assets/css/main.css` — `@theme` (Public Sans font, brand green palette, dark-mode `--ui-bg` override) |
-| Dashboard shell | `apps/saas/app/layouts/default.vue` — `UDashboardGroup` + collapsible/resizable `UDashboardSidebar` + `UDashboardSearch` + `UNavigationMenu`, fed from the `saas.navigation` app-config namespace |
+| Dashboard shell | `layers/saas/layouts/default.vue` — layer-owned `UDashboardGroup` shell fed from composed navigation config |
 | Version | `"@nuxt/ui": "^4.9.0"` in `apps/saas/package.json`, `layers/uix/package.json`, `layers/saas/package.json` |
 
 Any documentation referring to "Nuxt UI Pro" as part of this stack is documentation drift.
@@ -46,20 +46,12 @@ The documents that asserted it were discarded during the `.context/` migration
   all through the `uix` foundation layer (see [../../patterns/layers.md](../../patterns/layers.md)).
 - Components are auto-imported and tree-shaken; theming is plain Tailwind v4 `@theme` tokens.
 
-**Costs / current status (verified against the 2026-07-08 audit)**
+**Costs / current status**
 
-- **Template residue remains.** Bootstrapping from the Pro dashboard template left outbound
-  links to Nuxt UI Pro properties ("Upgrade to Pro", "View page source" →
-  `github.com/nuxt-ui-pro/dashboard`) in `apps/saas/app/app.config.ts` and
-  `apps/saas/app/layouts/default.vue`, placeholder Feedback/Help links in
-  `layers/saas/config/navigation.ts`, and demo pages fed by mock endpoints (customers, inbox,
-  home charts). Removal is scheduled as roadmap Phase 0 epic **E03 template-cleanup**
-  ([../../prd/roadmap.md](../../prd/roadmap.md)).
-- **Two shells coexist.** The meta-layer ships a hand-made shell
-  (`layers/saas/layouts/dashboard.vue` + `AppHeader`/`AppSidebar`), while `apps/saas` shadows
-  it with the `UDashboard*` shell above, including two divergent `UserMenu` components
-  (`layers/saas/components/UserMenu.vue` vs `apps/saas/app/components/UserMenu.vue`).
-  One must be deleted (E03); see [ADR-002](./ADR-002-saas-meta-layer.md).
+- E03 completed the decision by moving the chosen Nuxt UI shell into `layers/saas` and deleting the
+  parallel app shell, template pages/endpoints and outbound template links.
+- Brand color configuration is not yet coherent: `saas.theme.colors` has no reader while effective
+  Nuxt UI colors live under `ui.colors`. E26/E27 establish and project the product color contract.
 - **The uix layer is minimal today**: module registration + CSS tokens only, no components or
   composables of its own. The larger design system described in
   [../../prd/uix.md](../../prd/uix.md) (layout primitives, empty/loading/error states,

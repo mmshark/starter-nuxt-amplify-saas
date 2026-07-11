@@ -65,18 +65,14 @@ these were **never built** (the shell is `AppHeader` + `AppSidebar` inside
   must fall back to manual composition.
 - Opinionated shell; deep divergence means shadowing many files.
 
-**Current status / known debt (verified against the 2026-07-08 audit)**
+**Current status / known debt**
 
-- **The reference app defeats the layer's purpose today**: `apps/saas` shadows the meta-layer
-  shell with its own Nuxt-UI-template shell (`apps/saas/app/layouts/default.vue`,
-  `app/pages/index.vue`, `app/components/UserMenu.vue`), so two divergent shells coexist and
-  the meta-layer's shell is barely exercised. Roadmap Phase 0 epic **E03** picks one and
-  deletes the other ([../../prd/roadmap.md](../../prd/roadmap.md)).
+- E03 consolidated the shell into `layers/saas`; the reference app no longer shadows it with an
+  `apps/saas/app/` tree. The meta-layer is now the exercised product shell.
 - The `onboarding` layout is used by no page, and the `saas.features.onboarding` flag has no
-  readers — onboarding is a future feature (roadmap E15), not a shipped one.
-- Some shipped pages contain non-functional forms (`pages/profile/security.vue` password
-  change / account deletion, `pages/profile/notifications.vue` preferences) — being defused in
-  roadmap E02 and properly built in E07/E14.
+  readers — E27 removes decorative config and E15 owns the future product flow.
+- Password/delete stopgaps no longer pretend to work; notification preferences still discard
+  changes and remain E14 scope. E07 owns real account management.
 - The original ADR's performance benchmarks (FCP < 1.5s, bundle < 300KB) were **targets, never
   measured**; its "future enhancements" (theme variants, multi-brand, plugin system) are not
   built and are not currently on the roadmap.

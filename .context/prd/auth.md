@@ -70,7 +70,7 @@ Audit 2026-07-08, sections `auth` (impl 3/5, quality 4/5) and `profile` (impl 2/
 |---|---|---|
 | Signup + email verification + resend (F1) | **Working** | `layers/auth/components/Authenticator.vue`; E2E does *real* email verification via Gmail IMAP (`apps/saas/tests/e2e/helpers/auth.js`, `verifyEmail`) |
 | Post-confirmation provisioning (F2) | **Working, fragile** | `apps/backend/amplify/auth/post-confirmation/handler.ts` — creates profile/workspace/groups/Stripe customer, idempotent on groups; swallows all errors (see risks) |
-| Signin / signout (F3) | **Working** | Signout wired in product UI: `layers/saas/components/UserMenu.vue`, `apps/saas/app/components/UserMenu.vue` |
+| Signin / signout (F3) | **Working** | Signout wired in the single layer-owned `layers/saas/components/UserMenu.vue` |
 | Password recovery (F4) | **Working** | `layers/saas/pages/auth/forgot-password.vue` with real submit handlers for both steps |
 | SSR-safe `useUser()`/`useUserServer()` | **Working** | `layers/auth/composables/useUser.ts` |
 | `auth`/`guest` middleware (F9) | **Working** | `layers/auth/middleware/auth.ts`, `guest.ts` |
@@ -92,13 +92,14 @@ Audit 2026-07-08, sections `auth` (impl 3/5, quality 4/5) and `profile` (impl 2/
 
 - **Tokens in JS-readable cookies**: Cognito tokens, including the refresh token, are stored in non-HttpOnly cookies (inherent to the Amplify JS SSR adapter). An XSS exfiltrates the full session. Mitigation is CSP/hardening (roadmap E12), not a storage change.
 - **Silent provisioning failure**: the post-confirmation handler catches and swallows every error so registration never fails — a user can end up confirmed with no `UserProfile`, workspace, or Stripe customer, with no retry/compensation mechanism.
-- **UI that lies**: the email-change form reports success for a flow that cannot complete (no attribute verification), and the password-change/delete-account forms do nothing. Users can believe they changed their password. Phase 0 policy: disable/remove the lying surfaces (E02); the real features land in E07.
+- **Account-management gap**: E02 disabled/removed misleading email/password/delete controls. The
+  authenticated password change, verified email change and account deletion flows remain E07 scope.
 - **Unbranded Cognito emails**: verification/reset emails use Cognito defaults (no SES sender, no CustomMessage trigger) — E04.
 - **MFA gap**: MFA is absent and no roadmap epic currently covers it; if it becomes a requirement it needs to be added to the roadmap (natural fit: E12 security-hardening).
 
 ## Related
 
-- [Roadmap](../prd/roadmap.md) — epics covering the gaps above: **E02 fix-broken-wiring** (Phase 0: neutralize the email-change and ghost password/delete forms), **E04 transactional-email** (branded Cognito emails), **E07 account-management** (password change, account deletion, avatar upload, verified email change), **E12 security-hardening** (CSP, rate limiting).
+- [Roadmap](../prd/roadmap.md) — completed E02 neutralized the ghost controls; Next epics E04, E07 and E12 own branded emails, account management and security hardening.
 - Layer API reference: `layers/auth/README.md`.
 - Backend auth resource: `apps/backend/amplify/auth/resource.ts`; provisioning trigger: `apps/backend/amplify/auth/post-confirmation/handler.ts`.
 - Superseded source: `doc/prd/auth.md` (contains the drift corrected here).

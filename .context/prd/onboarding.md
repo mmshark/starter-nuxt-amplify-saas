@@ -115,6 +115,6 @@ Audit (2026-07): implementation 2/5, quality 2/5, effort M–L, priority medium.
 
 ## Related
 
-- [Roadmap](../prd/roadmap.md) — Phase 2, epic **E15 — onboarding** (wizard + persistence + middleware); Phase 2 exit criteria require onboarding to be a real feature.
+- [Roadmap](../prd/roadmap.md) — Next epic E15 owns the wizard, persistence and middleware; the feature remains explicitly future until its acceptance criteria pass.
 - Sibling PRDs: auth and workspaces PRDs are not yet migrated to `.context/prd/`; legacy versions live at `doc/prd/auth.md` and `doc/prd/workspaces.md` (contain drift — verify before relying on them).
 - Patterns: [layers](../patterns/layers.md) (the planned `layers/onboarding/` follows the standard layer structure), [composables](../patterns/composables.md) (`useOnboarding()` conventions), [api-server](../patterns/api-server.md) (if persistence goes through a server route).

@@ -51,7 +51,7 @@ interface NotificationPreferences {
 ### API surface
 
 - **Server utility** `notify.send({ userId, type, payload })` — validates payload against the event's template, checks preferences, dispatches to email provider (email) and DynamoDB (in-app). Event types come from a type-safe registry; email sending must not block the request (async/queued).
-- **Authenticated Nitro endpoints** replacing the current mock: list notifications, mark-as-read, mark-all-as-read — following [../patterns/api-server.md](../patterns/api-server.md) and [../patterns/error-handling.md](../patterns/error-handling.md).
+- **Authenticated Nitro endpoints** for list, mark-as-read and mark-all-as-read, following [../patterns/api-server.md](../patterns/api-server.md) and [../patterns/error-handling.md](../patterns/error-handling.md).
 - **Composable** `useNotifications()` — `notifications`, `unreadCount` (computed), `markAsRead(id)`, `markAllAsRead()` — following [../patterns/composables.md](../patterns/composables.md).
 
 ### Layer structure (target)
@@ -75,9 +75,9 @@ Delivery is polling-based initially; live push via AppSync `observeQuery` is def
 | Area | Status | Evidence |
 |---|---|---|
 | Feedback toasts | **Working** — `useToast()` from @nuxt/ui, used consistently across auth, workspaces and billing layers | e.g. `layers/auth/components/Authenticator.vue`, `layers/workspaces/components/CreateWorkspaceModal.vue`, `layers/billing/composables/useBilling.ts` |
-| Notification center UI | **Mock only** — Nuxt UI Dashboard template leftover; slideover opened from the bell icon and the `n` shortcut, rendering fake data | `apps/saas/app/components/NotificationsSlideover.vue`, `apps/saas/app/pages/index.vue`, `apps/saas/app/composables/useDashboard.ts` |
+| Notification center UI | **Missing** — E03 removed the former template mock/slideover rather than presenting it as product functionality | E03 changelog/spec |
 | Notifications API | **Mock, unauthenticated** — returns 27 hardcoded entries with external `i.pravatar.cc` avatars; no session check | `apps/saas/server/api/notifications.ts` |
-| Unread badge | **Fake** — the bell's `UChip` is rendered unconditionally, never tied to unread state | `apps/saas/app/pages/index.vue` (line 45) |
+| Unread badge | **Missing** — it must be reintroduced only when backed by real unread state | E14 |
 | Mark as read | **Missing** — no endpoint, no UI action | — |
 | Preferences page | **Dead stub** — hardcoded local reactive state; `onChange()` is an empty `// TODO`, changes are silently discarded | `layers/saas/pages/profile/notifications.vue` |
 | Preference persistence | **Missing** — no write path; `UserProfile` grants owner only `read` (see risks) | `apps/backend/amplify/data/resource.ts` |
@@ -86,7 +86,8 @@ Delivery is polling-based initially; live push via AppSync `observeQuery` is def
 
 ## Open issues & risks
 
-- **Unauthenticated mock endpoint**: `/api/notifications` validates no session. The only server auth middleware (`layers/workspaces/server/middleware/auth.ts`) returns early for any route not under `/api/workspaces`, so this endpoint is fully open. Its `i.pravatar.cc` avatar URLs add an external image dependency (privacy/CSP concern) if it ever ships.
+- The former unauthenticated `/api/notifications` mock and external placeholder avatars were deleted
+  by E03; E14 starts from no fake notification API/UI.
 - **Silent data loss in preferences**: users toggling e.g. "marketing" off in `layers/saas/pages/profile/notifications.vue` believe they opted out; nothing is saved. A compliance risk once real marketing email exists (epic E21 depends on E14 for honoring consent).
 - **Misleading "sent" messaging**: workspace invitations report "Invitation sent successfully" — hardcoded in both the Lambda (`apps/backend/amplify/functions/workspace-membership/handler.ts`) and the toast in `layers/workspaces/components/InviteWorkspaceMemberModal.vue` — but no email is ever sent.
 - **Preference persistence needs an auth-model change**: in `apps/backend/amplify/data/resource.ts`, `UserProfile` gives the owner only `read` (`allow.ownerDefinedIn('userId').to(['read'])`); the only writer is the post-confirmation trigger. Persisting preferences requires widening this auth rule or adding a dedicated write path.
@@ -94,7 +95,7 @@ Delivery is polling-based initially; live push via AppSync `observeQuery` is def
 
 ## Related
 
-- [../prd/roadmap.md](../prd/roadmap.md) — **E14 notifications** (this PRD, Phase 2); **E23 realtime** (live delivery over AppSync `observeQuery`); **E21 email-marketing** (consent/unsubscribe honoring these preferences); **E10 observability** and **E12 security-hardening** (endpoint auth posture).
+- [../prd/roadmap.md](../prd/roadmap.md) — Next E14 owns this PRD; Later E23/E21 add realtime delivery and lifecycle marketing; E10/E12 provide observability/security foundations.
 - [../patterns/api-server.md](../patterns/api-server.md) — pattern the authenticated notification endpoints must follow.
 - [../patterns/error-handling.md](../patterns/error-handling.md) — the toast feedback pattern that is the only working notification mechanism today.
 - [../patterns/composables.md](../patterns/composables.md) — conventions for the future `useNotifications()`.

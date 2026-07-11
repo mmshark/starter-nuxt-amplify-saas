@@ -22,13 +22,12 @@ A consistent structure and a single operational interface keep onboarding cheap 
 │   ├── i18n/     uix/   saas/     debug/
 ├── scripts/                  # Repo tooling (layer publishing to GitHub Packages)
 ├── .context/                 # Agent/contributor documentation tree (see below)
-├── doc/                      # LEGACY documentation — being migrated into .context/; do not add new docs here
 ├── .github/workflows/        # ci.yml, publish-layers.yml, publish-on-tag.yml
 ├── AGENTS.md                 # Single source of truth for AI/contributor context
 ├── CLAUDE.md                 # Pointer to AGENTS.md (one line, nothing else)
 ├── .cursor/rules             # Pointer to AGENTS.md (one line, nothing else)
-├── taskfile.yaml             # Thin Task helper for sandbox/env housekeeping
-├── package.json              # Root scripts = primary command interface
+├── taskfile.yaml             # Single operational interface (Taskfile as Contract)
+├── package.json              # Underlying scripts invoked by Taskfile tasks
 ├── pnpm-workspace.yaml       # packages: apps/*, layers/*
 ├── eslint.config.mjs         # Flat ESLint config (root `pnpm lint`)
 └── vitest.config.ts          # Root unit-test config (`pnpm test`)
@@ -48,11 +47,15 @@ Verified current state: both `CLAUDE.md` and `.cursor/rules` contain exactly one
 
 If a change contradicts `AGENTS.md`, update `AGENTS.md` in the same change (its "Coherence Principle").
 
-## 2. Command interface — `package.json` scripts first, `taskfile.yaml` as helper
+## 2. Command interface — Taskfile as Contract
 
-Root `package.json` scripts are the **primary** interface. [Task](https://taskfile.dev/) (`taskfile.yaml`) is a **companion helper** for workflows that benefit from precondition checks and composition (env-var validation, multi-step sandbox setup). It wraps the pnpm scripts; it does not replace them.
+[`taskfile.yaml`](../../taskfile.yaml) is the **single operational interface** for contributors and
+agents. Tasks use colon-separated `namespace:action[:target]` names, each has a description, and
+multi-step/env-sensitive workflows encode their preconditions there. Root/workspace `package.json`
+scripts remain the implementation behind tasks and are available only for ad-hoc slicing when no
+task represents the operation.
 
-Primary pnpm scripts (root `package.json`):
+Underlying pnpm scripts (root `package.json`):
 
 | Group | Scripts |
 |---|---|
@@ -63,24 +66,24 @@ Primary pnpm scripts (root `package.json`):
 | E2E | `saas:test:e2e` (+ `:auth`, `:billing`, `:headed`, `:ui`, `:clean`, `:setup`) |
 | Tooling | `lint`, `lint:fix`, `test` (vitest) |
 
-Actual tasks in `taskfile.yaml` (complete list, verified):
+Task namespaces in `taskfile.yaml` (discover the current complete list with `task --list`):
 
 | Task | Purpose |
 |---|---|
-| `clean` (+ `clean.nuxt`, `clean.amplify`, `clean.test`, `clean.logs`, `clean.node`) | Reset working directory to a clean state |
-| `amplify.checks` | Precondition check: `AWS_PROFILE`, `SANDBOX_STACK_NAME` set |
-| `amplify.install` | `clean` + `corepack enable` + `pnpm install` |
-| `amplify.sandbox.init` / `amplify.sandbox.delete` | Provision / destroy the Amplify sandbox |
-| `amplify.sandbox.secrets` | Push sandbox secrets (requires `STRIPE_SECRET_KEY`) |
-| `amplify.sandbox.generate` | Generate `amplify_outputs` + typed GraphQL client code |
-| `amplify.sandbox.seed` | Seed sandbox (data, plans, users) |
-| `amplify.saas.dev` | Checks, then `pnpm saas:dev` |
+| `setup:*` | Prepare env and install dependencies |
+| `dev:*` / `build:*` | Run or build SaaS and landing apps |
+| `lint:*` / `test:*` / `ci:*` | Quality gates and the local CI mirror |
+| `sandbox:*` | Check, deploy, generate, seed, set secrets and delete the Amplify cloud sandbox |
+| `billing:*` | Stripe CLI login, listener and fixture operations |
+| `clean:*` | Remove generated artifacts by category |
 
 Rules:
 
-- Add new everyday commands as root `package.json` scripts (delegating to the owning workspace via `pnpm --filter`).
-- Add a `task` wrapper only when the workflow needs preconditions or multi-step composition.
-- CI (`.github/workflows/ci.yml`) uses the pnpm interface only: `pnpm lint`, `pnpm test`, saas `typecheck` + `build`, landing `generate`.
+- Add or update the owning package script first, then expose every supported contributor workflow as
+  a discoverable task.
+- Agents MUST use a Taskfile task when one exists. Direct package commands are limited to narrower
+  diagnostic/test slices that have no task.
+- CI calls Taskfile tasks; `task ci:all` is the local contract for the complete CI pipeline.
 
 ## 3. Infrastructure — colocated Amplify Gen2, no separate infra tree
 
@@ -108,7 +111,8 @@ Agent-facing documentation lives in `.context/`, per the org-level `repository-c
 
 Rules:
 
-- New documentation goes in `.context/`, not `doc/`. `doc/` is the legacy tree being migrated; subdirectories are created in `.context/` as content lands.
+- New documentation goes in `.context/`. The legacy `doc/` tree was deleted by ADR-003 and must not
+  be recreated.
 - Docs must state what actually exists; unimplemented behavior goes in an explicit "Current status" note (this migration exists because `doc/` drifted from the code).
 
 ## Current status

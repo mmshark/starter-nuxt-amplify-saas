@@ -219,7 +219,8 @@ export default defineAppConfig({
 })
 ```
 
-See `apps/saas/app/app.config.ts` in this repo for a complete working example, including composing the exported building blocks from `@mmshark/saas-layer/config/navigation` (`settingsSidebar`, `footerNavigation`, `userMenuItems`).
+See `apps/saas/app/app.config.ts` for the working example, including composition of
+`settingsSidebar` and `userMenuItems` from `@mmshark/saas-layer/config/navigation`.
 
 ### Example 2: Authentication Only
 
