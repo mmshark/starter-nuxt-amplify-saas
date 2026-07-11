@@ -179,6 +179,7 @@
       "#email"
     ],
     "cardNumber": [
+      "input[name='number']#Field-numberInput",
       "input[name='cardnumber']",
       "input[data-testid='cardNumber']",
       "input[placeholder*='card']",
@@ -186,6 +187,7 @@
       "#card-number"
     ],
     "cardExpiry": [
+      "input[name='expiry']#Field-expiryInput",
       "input[name='exp-date']",
       "input[data-testid='cardExpiry']",
       "input[placeholder*='MM']",
@@ -193,6 +195,7 @@
       "#card-expiry"
     ],
     "cardCvc": [
+      "input[name='cvc']#Field-cvcInput",
       "input[name='cvc']",
       "input[data-testid='cardCvc']",
       "input[placeholder*='CVC']",
@@ -200,6 +203,7 @@
       "#card-cvc"
     ],
     "cardholderName": [
+      "input[name='billingName']#Field-billingNameInput",
       "input[data-testid='billingName']",
       "input[placeholder*='name']",
       "input[name='billing-name']",

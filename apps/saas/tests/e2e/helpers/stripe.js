@@ -113,13 +113,18 @@ export class StripeHelpers {
    * Fill card number field
    */
   async fillCardNumber(cardNumber) {
-    const cardSelectors = Selectors.get('stripe', 'cardNumber')
+    const cardSelectors = [
+      this.page.getByRole('textbox', { name: 'Card number', exact: true }),
+      ...Selectors.get('stripe', 'cardNumber').map(selector => this.page.locator(selector).first())
+    ]
 
-    for (const selector of cardSelectors) {
+    for (const cardInput of cardSelectors) {
       try {
-        const cardInput = this.page.locator(selector).first()
         if (await cardInput.isVisible({ timeout: 5000 })) {
           await cardInput.fill(cardNumber)
+          await cardInput.blur()
+          const value = (await cardInput.inputValue()).replace(/\s/g, '')
+          if (!value.endsWith(cardNumber.slice(-4)) || await cardInput.getAttribute('aria-invalid') === 'true') continue
           await this.page.waitForTimeout(this.timing.fillDelay || 100)
           console.log('✅ Filled card number')
           return
@@ -136,11 +141,13 @@ export class StripeHelpers {
    * Fill expiry date field
    */
   async fillExpiryDate(expiryDate) {
-    const expirySelectors = Selectors.get('stripe', 'cardExpiry')
+    const expirySelectors = [
+      this.page.getByRole('textbox', { name: 'Expiration', exact: true }),
+      ...Selectors.get('stripe', 'cardExpiry').map(selector => this.page.locator(selector).first())
+    ]
 
-    for (const selector of expirySelectors) {
+    for (const expiryInput of expirySelectors) {
       try {
-        const expiryInput = this.page.locator(selector).first()
         if (await expiryInput.isVisible({ timeout: 3000 })) {
           await expiryInput.fill(expiryDate)
           await this.page.waitForTimeout(this.timing.fillDelay || 100)
@@ -159,11 +166,13 @@ export class StripeHelpers {
    * Fill CVC field
    */
   async fillCVC(cvc) {
-    const cvcSelectors = Selectors.get('stripe', 'cardCvc')
+    const cvcSelectors = [
+      this.page.getByRole('textbox', { name: 'CVC', exact: true }),
+      ...Selectors.get('stripe', 'cardCvc').map(selector => this.page.locator(selector).first())
+    ]
 
-    for (const selector of cvcSelectors) {
+    for (const cvcInput of cvcSelectors) {
       try {
-        const cvcInput = this.page.locator(selector).first()
         if (await cvcInput.isVisible({ timeout: 3000 })) {
           await cvcInput.fill(cvc)
           await this.page.waitForTimeout(this.timing.fillDelay || 100)
@@ -182,11 +191,13 @@ export class StripeHelpers {
    * Fill cardholder name field
    */
   async fillCardholderName(name) {
-    const nameSelectors = Selectors.get('stripe', 'cardholderName')
+    const nameSelectors = [
+      this.page.getByRole('textbox', { name: 'Cardholder name', exact: true }),
+      ...Selectors.get('stripe', 'cardholderName').map(selector => this.page.locator(selector).first())
+    ]
 
-    for (const selector of nameSelectors) {
+    for (const nameInput of nameSelectors) {
       try {
-        const nameInput = this.page.locator(selector).first()
         if (await nameInput.isVisible({ timeout: 2000 })) {
           await nameInput.fill(name)
           await this.page.waitForTimeout(this.timing.fillDelay || 100)
@@ -211,20 +222,40 @@ export class StripeHelpers {
     }
 
     try {
+      // Country controls which address inputs Stripe renders, so select it
+      // before locating the remaining fields.
+      if (address.country) {
+        const country = this.page.getByRole('combobox', { name: /Country or region/i })
+        if (await country.isVisible({ timeout: 2000 })) {
+          await country.selectOption(address.country)
+        } else {
+          await this.selectCountry(address.country)
+        }
+      }
+
+      // Hosted Checkout defaults to an address autocomplete combobox. The
+      // deterministic manual form is stable across locales and CI browsers.
+      const manualAddress = this.page.getByText('Enter address manually', { exact: true })
+      if (await manualAddress.isVisible({ timeout: 1000 })) {
+        await manualAddress.click()
+      }
+
       const billingAddressSelectors = Selectors.get('stripe', 'billingAddress')
       const addressFields = [
-        { selector: billingAddressSelectors.line1, value: address.line1 },
-        { selector: billingAddressSelectors.line2, value: address.line2 },
-        { selector: billingAddressSelectors.city, value: address.city },
-        { selector: billingAddressSelectors.state, value: address.state },
-        { selector: billingAddressSelectors.zip, value: address.postal_code }
+        { selector: billingAddressSelectors.line1, roleName: /^Address( line 1)?$/i, value: address.line1 },
+        { selector: billingAddressSelectors.line2, roleName: /Address line 2/i, value: address.line2 },
+        { selector: billingAddressSelectors.city, roleName: /^City$/i, value: address.city },
+        { selector: billingAddressSelectors.zip, roleName: /ZIP|postal/i, value: address.postal_code }
       ]
 
       for (const field of addressFields) {
         if (!field.value) continue
 
         try {
-          const input = this.page.locator(field.selector).first()
+          const semanticInput = this.page.getByRole('textbox', { name: field.roleName }).first()
+          const input = await semanticInput.isVisible({ timeout: 1000 })
+            ? semanticInput
+            : this.page.locator(field.selector).first()
           if (await input.isVisible({ timeout: 1000 })) {
             await input.fill(field.value)
             await this.page.waitForTimeout(this.timing.fillDelay || 100)
@@ -234,12 +265,18 @@ export class StripeHelpers {
         }
       }
 
-      // Handle country dropdown
-      if (address.country) {
-        await this.selectCountry(address.country)
+      if (address.state) {
+        const stateSelect = this.page.getByRole('combobox', { name: /^State$/i })
+        if (await stateSelect.isVisible({ timeout: 1000 })) {
+          await stateSelect.selectOption(address.state)
+        } else {
+          const stateInput = this.page.getByRole('textbox', { name: /^State$/i })
+          if (await stateInput.isVisible({ timeout: 1000 })) await stateInput.fill(address.state)
+        }
       }
 
       console.log('✅ Filled billing address')
+      await this.page.waitForTimeout(500)
 
     } catch (error) {
       console.log(`ℹ️  Could not fill all billing address fields: ${error.message}`)
@@ -273,6 +310,16 @@ export class StripeHelpers {
    * Submit the checkout form
    */
   async submitCheckoutForm() {
+    // Stripe Checkout exposes this disclosure when browser automation is
+    // detected. Acknowledge it before submitting the test-mode payment.
+    const agentDisclosure = this.page.getByText(
+      'I am an AI agent acting on behalf of someone else',
+      { exact: true }
+    )
+    if (await agentDisclosure.isVisible({ timeout: 1000 })) {
+      await agentDisclosure.evaluate(element => element.click())
+    }
+
     const submitSelectors = Selectors.get('stripe', 'submitButton')
 
     for (const selector of submitSelectors) {

@@ -55,6 +55,10 @@
     "node": ">=22"
   },
   "pnpm": {
+    "overrides": {
+      "@aws-amplify/api-graphql": "4.8.8",
+      "aws-amplify": "6.18.0"
+    },
     "onlyBuiltDependencies": [
       "@parcel/watcher",
       "@tailwindcss/oxide",

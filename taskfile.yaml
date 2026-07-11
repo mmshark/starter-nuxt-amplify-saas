@@ -221,8 +221,6 @@ tasks:
     cmds:
       - task: sandbox:checks
       - pnpm --filter {{.BACKEND}} run seed
-      - pnpm --filter {{.BACKEND}} run seed:plans
-      - pnpm --filter {{.BACKEND}} run seed:users
 
   # ── billing: Stripe operations ─────────────────────────────────────────────
 

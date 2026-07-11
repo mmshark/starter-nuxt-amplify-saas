@@ -8,10 +8,13 @@ interface InputPlan {
   name: string
   description?: string
   price: number
+  monthlyPrice?: number
+  yearlyPrice?: number
   interval: 'monthly' | 'yearly'
   currency?: string
   features?: string[]
   badge?: string
+  trialPeriodDays?: number | null
   stripePriceId?: string // unified field for controlled mode convenience
   stripeMonthlyPriceId?: string
   stripeYearlyPriceId?: string
@@ -25,6 +28,8 @@ interface Props {
   interval?: 'monthly' | 'yearly'
   ctaLabel?: string
   selectedPlanId?: string
+  /** Disable every plan CTA (e.g. read-only catalog for non-owners) */
+  disabled?: boolean
   // All UPricingPlans props - for pass-through mode
   orientation?: 'horizontal' | 'vertical'
   compact?: boolean
@@ -37,6 +42,7 @@ const props = withDefaults(defineProps<Props>(), {
   interval: 'monthly',
   ctaLabel: 'Choose Plan',
   selectedPlanId: undefined,
+  disabled: false,
   orientation: 'horizontal',
   compact: false,
   scale: false
@@ -66,10 +72,13 @@ const fetchPublicPlans = async () => {
       id: p.id,
       name: p.name,
       description: p.description,
-      price: props.interval === 'yearly' ? p.yearlyPrice : p.monthlyPrice,
-      interval: props.interval,
+      price: p.monthlyPrice,
+      monthlyPrice: p.monthlyPrice,
+      yearlyPrice: p.yearlyPrice,
+      interval: 'monthly',
       currency: p.currency,
-      features: [],
+      features: Array.isArray(p.features) ? p.features : [],
+      trialPeriodDays: p.trialPeriodDays ?? null,
       stripeMonthlyPriceId: p.stripeMonthlyPriceId,
       stripeYearlyPriceId: p.stripeYearlyPriceId
     }))
@@ -87,8 +96,12 @@ onMounted(() => {
 })
 
 const effectivePlans = computed<InputPlan[]>(() => {
-  if (props.plans) return props.plans
-  return autonomousPlans.value || []
+  const plans: InputPlan[] = props.plans || autonomousPlans.value || []
+  return plans.map(plan => ({
+    ...plan,
+    price: getPlanPrice(plan, props.interval) ?? 0,
+    interval: props.interval
+  }))
 })
 
 // Helpers
@@ -103,7 +116,7 @@ const uiPlans = computed<any[]>(() => {
   return effectivePlans.value.map((plan) => {
     const priceId = getPriceId(plan)
     const isSelected = props.selectedPlanId === plan.id
-    const disabled = !priceId || effectiveLoading.value
+    const disabled = !priceId || effectiveLoading.value || props.disabled
 
     return {
       title: plan.name,
@@ -111,10 +124,13 @@ const uiPlans = computed<any[]>(() => {
       price: formatPrice(plan.price, plan.currency),
       billingCycle: `/${props.interval}`,
       features: plan.features || [],
-      badge: isSelected ? 'Current Plan' : plan.badge,
+      badge: isSelected
+        ? 'Current Plan'
+        : (plan.trialPeriodDays ? `${plan.trialPeriodDays}-day free trial` : plan.badge),
       highlight: isSelected,
       button: {
         label: isSelected ? 'Current Plan' : (props.ctaLabel || 'Choose plan'),
+        'aria-label': `${isSelected ? 'Current plan' : (props.ctaLabel || 'Choose plan')}: ${plan.name}`,
         size: 'lg',
         block: true,
         loading: inFlightPlanId.value === plan.id,
@@ -148,6 +164,15 @@ const handleSelect = async (plan: InputPlan) => {
 
   try {
     inFlightPlanId.value = plan.id
+
+    // A workspace that already pays cannot start a second subscription — plan
+    // changes go through the Customer Portal (Stripe handles proration). Mirrors
+    // the server-side 409 guard in checkout.post.ts (E05 Phase 3).
+    if (billing.hasActivePaidSubscription.value) {
+      await billing.updateSubscription()
+      return
+    }
+
     const result = await billing.createCheckoutSession({
       priceId,
       planId: plan.id,

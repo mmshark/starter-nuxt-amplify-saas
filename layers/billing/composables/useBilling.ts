@@ -16,6 +16,35 @@ interface InvoicesData {
   totalCount: number
 }
 
+interface BillingWorkspaceState {
+  isPortalLoading: boolean
+  subscription: SubscriptionData | null
+  invoices: InvoicesData | null
+  subscriptionLoading: boolean
+  invoicesLoading: boolean
+  subscriptionError: string | null
+  invoicesError: string | null
+  initialized: boolean
+  inFlight: Record<'init' | 'subscription' | 'invoices' | 'portal', boolean>
+}
+
+const createBillingWorkspaceState = (): BillingWorkspaceState => ({
+  isPortalLoading: false,
+  subscription: null,
+  invoices: null,
+  subscriptionLoading: false,
+  invoicesLoading: false,
+  subscriptionError: null,
+  invoicesError: null,
+  initialized: false,
+  inFlight: {
+    init: false,
+    subscription: false,
+    invoices: false,
+    portal: false
+  }
+})
+
 // Core logic: Environment-agnostic where possible
 export const useBilling = (workspaceId?: string | Ref<string>) => {
   const id = computed(() => {
@@ -28,24 +57,33 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
       return ''
     }
   })
-  const key = computed(() => `billing:${id.value}`)
+  // Keep independent SSR-safe state per workspace. Computed refs follow the
+  // active id, so a workspace switch never reuses another tenant's billing UI.
+  const workspaceStates = useState<Record<string, BillingWorkspaceState>>(
+    'billing:workspace-states',
+    () => ({})
+  )
+  const getWorkspaceState = () => {
+    const workspaceKey = id.value || '__pending__'
+    workspaceStates.value[workspaceKey] ??= createBillingWorkspaceState()
+    return workspaceStates.value[workspaceKey]
+  }
+  const stateField = <K extends keyof BillingWorkspaceState>(field: K) => computed({
+    get: () => getWorkspaceState()[field],
+    set: (value: BillingWorkspaceState[K]) => {
+      getWorkspaceState()[field] = value
+    }
+  })
 
-  // State keyed by workspaceId
-  const isPortalLoading = useState<boolean>(`${key.value}:isPortalLoading`, () => false)
-  const subscription = useState<SubscriptionData | null>(`${key.value}:subscription`, () => null)
-  const invoices = useState<InvoicesData | null>(`${key.value}:invoices`, () => null)
-  const subscriptionLoading = useState<boolean>(`${key.value}:subscriptionLoading`, () => false)
-  const invoicesLoading = useState<boolean>(`${key.value}:invoicesLoading`, () => false)
-  const subscriptionError = useState<string | null>(`${key.value}:subscriptionError`, () => null)
-  const invoicesError = useState<string | null>(`${key.value}:invoicesError`, () => null)
-  const initialized = useState<boolean>(`${key.value}:initialized`, () => false)
-
-  const inFlight = useState<Record<string, boolean>>(`${key.value}:inFlight`, () => ({
-    init: false,
-    subscription: false,
-    invoices: false,
-    portal: false
-  }))
+  const isPortalLoading = stateField('isPortalLoading')
+  const subscription = stateField('subscription')
+  const invoices = stateField('invoices')
+  const subscriptionLoading = stateField('subscriptionLoading')
+  const invoicesLoading = stateField('invoicesLoading')
+  const subscriptionError = stateField('subscriptionError')
+  const invoicesError = stateField('invoicesError')
+  const initialized = stateField('initialized')
+  const inFlight = stateField('inFlight')
 
   // Computed loading state
   const isLoading = computed(() =>
@@ -59,7 +97,7 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
 
   // Computed subscription state helpers
   const hasActivePaidSubscription = computed(() => {
-    return subscription.value?.subscription?.status === 'active' &&
+    return isPortalManagedSubscription(subscription.value?.subscription?.status) &&
            subscription.value?.plan?.price > 0
   })
 
@@ -180,8 +218,8 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
   }
 
   // Data fetching methods
-  const fetchSubscription = async () => {
-    if (subscriptionLoading.value || inFlight.value.subscription) return
+  const fetchSubscription = async (): Promise<boolean> => {
+    if (subscriptionLoading.value || inFlight.value.subscription) return false
 
     try {
       subscriptionLoading.value = true
@@ -192,6 +230,7 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
 
       if (response.success) {
         subscription.value = response.data as SubscriptionData
+        return true
       } else {
         throw new Error('Failed to fetch subscription data')
       }
@@ -205,14 +244,15 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
         description: subscriptionError.value ?? undefined,
         color: 'error'
       })
+      return false
     } finally {
       subscriptionLoading.value = false
       inFlight.value.subscription = false
     }
   }
 
-  const fetchInvoices = async (options: { limit?: number, startingAfter?: string } = {}) => {
-    if (invoicesLoading.value || inFlight.value.invoices) return
+  const fetchInvoices = async (options: { limit?: number, startingAfter?: string } = {}): Promise<boolean> => {
+    if (invoicesLoading.value || inFlight.value.invoices) return false
 
     try {
       invoicesLoading.value = true
@@ -235,6 +275,7 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
           // Replace invoices (initial load)
           invoices.value = response.data
         }
+        return true
       } else {
         throw new Error('Failed to fetch invoices')
       }
@@ -248,6 +289,7 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
         description: invoicesError.value ?? undefined,
         color: 'error'
       })
+      return false
     } finally {
       invoicesLoading.value = false
       inFlight.value.invoices = false
@@ -314,15 +356,22 @@ export const useBilling = (workspaceId?: string | Ref<string>) => {
     }
     try {
       inFlight.value.init = true
-      await Promise.all([
+      const results = await Promise.all([
         fetchSubscription(),
         fetchInvoices({ limit: 10 })
       ])
-      initialized.value = true
+      initialized.value = results.every(Boolean)
     } finally {
       inFlight.value.init = false
     }
   }
+
+  // Billing components commonly outlive the selected workspace. Initialize the
+  // new cache entry on switch; shared in-flight flags deduplicate consumers.
+  watch(id, (workspaceId, previousWorkspaceId) => {
+    if (!workspaceId || workspaceId === previousWorkspaceId) return
+    void ensureInitialized()
+  })
 
   // Clear errors manually
   const clearError = () => {
