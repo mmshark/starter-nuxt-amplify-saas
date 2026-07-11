@@ -18,6 +18,7 @@ version: '3'
 dotenv: ['.env']
 
 vars:
+  CONFIG: '@mmshark/saas-config'
   SAAS: '@starter-nuxt-amplify-saas/saas'
   LANDING: '@starter-nuxt-amplify-saas/landing'
   BACKEND: '@starter-nuxt-amplify-saas/backend'
@@ -97,9 +98,10 @@ tasks:
       - pnpm exec eslint . --fix
 
   lint:types:
-    desc: "Type-check the SaaS app (nuxt typecheck)"
+    desc: "Type-check the SaaS config contract and app"
     deps: [sandbox:outputs:stub]
     cmds:
+      - pnpm --filter {{.CONFIG}} run typecheck
       - pnpm --filter {{.SAAS}} run typecheck
 
   lint:all:
