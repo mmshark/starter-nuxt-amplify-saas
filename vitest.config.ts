@@ -11,7 +11,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    include: ['layers/**/__tests__/**/*.test.ts', 'apps/**/__tests__/**/*.test.ts'],
+    include: ['config/**/__tests__/**/*.test.ts', 'layers/**/__tests__/**/*.test.ts', 'apps/**/__tests__/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/tests/e2e/**'],
   },
 })

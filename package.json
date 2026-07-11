@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
+    "config",
     "apps/*",
     "layers/*"
   ],
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@aws-amplify/backend-cli": "^1.8.3",
+    "@mmshark/saas-config": "workspace:*",
     "@nuxt/eslint-config": "^1.16.0",
     "dotenv": "^17.2.3",
     "eslint": "^10.6.0",

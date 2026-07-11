@@ -24,8 +24,8 @@ Deliberate architectural commitments (see the [productization roadmap](../roadma
 - **Teams/solo developers bootstrapping a multi-tenant B2B SaaS on AWS** who want auth,
   tenancy, and billing pre-wired instead of assembled from scratch.
 - **Adopters of the template**: extend `apps/saas` (dashboard) and `apps/landing` (marketing).
-  Product facts are currently split across app config and domain catalogs; active E26 and planned
-  E27–E28 establish the canonical `saas.config.ts` contract, adapters and initializer.
+  Active E26 introduces the canonical validated `saas.config.ts`; planned E27 migrates runtime
+  consumers away from duplicated catalogs and E28 automates initialization.
 - **Layer consumers**: each layer is a workspace package (`@mmshark/<layer>-layer`) reusable
   in other Nuxt 4 projects.
 
@@ -43,11 +43,11 @@ The audit remains historical evidence; the [roadmap](../roadmaps/20260711-saas-b
 | i18n | en/es infrastructure is configured but nothing consumes it — all UI strings are hardcoded English, no language switcher. |
 | UI kit / theming | `@nuxt/ui` v4 + Tailwind v4 power one layer-owned dashboard shell; mock/template pages and the parallel app shell were removed by E03. Some decorative config keys remain for E27. |
 | Landing / marketing | Skeleton only — `apps/landing` renders Nuxt's default welcome page; no marketing content, pricing page, or SEO. |
-| DX / docs / tooling | Strongest area (sandbox scripts, seeds, e2e harness), but historical docs claimed unbuilt capabilities — this `.context` migration is the fix. |
+| DX / docs / tooling | Taskfile contract, green offline CI, reproducible seeds/E2E and an additive typed product manifest; runtime projection and initialization remain E27/E28. |
 
 **Current status (honest summary)**: the backend core, single dashboard shell and free→paid billing
-flow are operational. The next constraint is productization: configuration is duplicated across
-frontend/backend/catalog files, while invitations, account management, i18n and client entitlement
+flow are operational. The next constraint is productization: E26 defines a canonical manifest but
+runtime configuration remains duplicated until E27; invitations, account management, i18n and client entitlement
 gating still need their end-to-end product loops completed. See the Now/Next/Later
 [roadmap](../roadmaps/20260711-saas-boilerplate-productization.md).
 

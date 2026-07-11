@@ -735,6 +735,25 @@ Each layer includes detailed documentation with specific implementation details:
 
 ## ⚙️ Configuration
 
+### Product facts vs. app presentation vs. secrets
+
+Stable, non-secret product facts are declared once in root [`saas.config.ts`](saas.config.ts) and
+validated by the [`@mmshark/saas-config`](config/README.md) workspace package:
+
+- product identity and public URLs;
+- brand assets and Nuxt UI palette names;
+- locales/default currency;
+- plan marketing catalog, limits and entitlement mapping;
+- auth policy declarations and shell capabilities.
+
+Keep navigation arrays and other app-specific presentation in `apps/saas/app/app.config.ts`. Keep
+AWS/Stripe identifiers, deploy-stage values and all secrets in environment variables, Nuxt runtime
+config, Amplify outputs/secrets or the provider itself.
+
+E26 establishes this contract without changing runtime behavior. E27 will project the manifest into
+the existing frontend/backend consumers and remove duplicated catalogs; until then, the current app
+config, Stripe fixture, entitlements and i18n files remain runtime sources.
+
 ### Dashboard Menu Configuration
 
 Customize the navigation menu in `apps/saas/app/app.config.ts`:
@@ -791,7 +810,9 @@ export default defineAppConfig({
 
 ### Theme Configuration
 
-Semantic color mappings (`primary`/`neutral`, Tailwind palette names understood by Nuxt UI v4) live in `layers/saas/app.config.ts` under `saas.theme.colors`, and can be overridden per-instance the same way as navigation (`apps/saas/app/app.config.ts`):
+The intended semantic colors live in `saas.config.ts`. Runtime projection to Nuxt UI's `ui.colors`
+is E27 scope; the existing `saas.theme.colors` key is decorative and should not be treated as the
+effective runtime theme.
 
 ```typescript
 export default defineAppConfig({
@@ -811,8 +832,8 @@ Underlying design tokens (spacing, radii, base CSS variables) live in `layers/ui
 ### Billing Plans
 
 Billing plans are **not** configured in a local JSON file — Stripe is the source of truth. The backend syncs `SubscriptionPlan` rows FROM your Stripe account's Products/Prices (reading `app_plan_id`/`monthly_price`/`yearly_price`/`currency`/`features` metadata). To add or modify plans:
-1. Create/edit Products and Prices in Stripe (or adjust the `apps/backend/amplify/seed/data/stripe.json` fixture and re-run `pnpm billing:sandbox:stripe:seed`)
-2. Run `pnpm backend:sandbox:seed:plans` to sync `SubscriptionPlan` rows
+1. Create/edit Products and Prices in Stripe (or adjust the current fixture and run `task billing:stripe:seed`)
+2. Run `task sandbox:seed` to sync `SubscriptionPlan` rows and test users
 3. Restart your development server if the UI caches plan data
 
 See the "Configure Stripe Integration" section above for the full sandbox flow.

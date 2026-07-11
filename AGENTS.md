@@ -17,7 +17,7 @@ This document must remain the single source of truth. Any deviation must result 
 
 ## Tech Stack
 - **Package Manager**: pnpm@10.13.1 (use `corepack enable`).
-- **Runtime**: Node.js ≥20.19 (Amplify Console: Node 22 override).
+- **Runtime**: Node.js ≥22 (Amplify Console: Node 22 override).
 - **Frontend**: Nuxt 4.x + TypeScript.
 - **Backend**: AWS Amplify Gen2 (Cognito, DynamoDB, AppSync).
 - **Billing**: Stripe (portal-first approach).
@@ -25,14 +25,24 @@ This document must remain the single source of truth. Any deviation must result 
 
 ## Architecture
 
-This repository is a pnpm monorepo that composes Nuxt 4 apps from Nuxt Layers and an AWS Amplify Gen2 backend. The architecture optimizes for reuse, SSR safety, and clean contracts between layers and apps.
+This repository is a pnpm monorepo that composes Nuxt 4 apps from Nuxt Layers, a framework-neutral
+SaaS configuration contract and an AWS Amplify Gen2 backend. The architecture optimizes for reuse,
+SSR safety, and clean contracts between configuration, layers and apps.
 
 ### Monorepo
 - Managed with `pnpm` and workspaces.
 - Share code via packages.
-- Prefer package imports over relative paths (`../..`). Layer packages are named `@mmshark/<layer>-layer` (e.g. `@mmshark/auth-layer`, `@mmshark/billing-layer`); the three apps are `@starter-nuxt-amplify-saas/{backend,saas,landing}`.
+- Prefer package imports over relative paths (`../..`). Layer packages are named `@mmshark/<layer>-layer`; the configuration package is `@mmshark/saas-config`; the three apps are `@starter-nuxt-amplify-saas/{backend,saas,landing}`.
 - Strict TypeScript typing enforced across all workspaces.
-- Align with Node ≥20.19; use `corepack enable` for pnpm.
+- Align with Node ≥22; use `corepack enable` for pnpm.
+
+### SaaS Configuration Contract (`config/` + `saas.config.ts`)
+
+- `@mmshark/saas-config` is framework-neutral and owns the Zod schema, `defineSaasConfig()` and inferred types.
+- Root `saas.config.ts` is the canonical manifest for stable, non-secret product facts.
+- `apps/*/app.config.ts` remains responsible for app presentation such as navigation arrays and layout choices.
+- Environment-specific values, AWS/Stripe identifiers and secrets remain in `.env`, Nuxt runtime config, Amplify outputs/secrets or provider systems — never in `saas.config.ts`.
+- E26 defines the contract only. Until E27 migrates adapters, existing runtime catalogs/config remain authoritative for application behavior.
 
 ### Apps (apps/)
 - There are two types of applications: frontend and backend.
@@ -62,6 +72,8 @@ This repository is a pnpm monorepo that composes Nuxt 4 apps from Nuxt Layers an
 ### Repository Structure
 ```
 starter-nuxt-amplify-saas/
+├── config/                  # @mmshark/saas-config schema, types and tests
+├── saas.config.ts           # Canonical non-secret product manifest
 ├── apps/
 │   ├── backend/             # AWS Amplify Gen2 backend
 │   │   └── amplify/         # Entry: backend.ts, auth/resource.ts, data/resource.ts
@@ -310,7 +322,7 @@ task dev:saas                     # http://localhost:3000
 2. **Plan**: Determine if feature belongs in a layer (reusable) or app (instance-specific)
 3. **Develop**: Use layers for composables/components, `apps/saas/app/` for pages
 4. **Protect**: Add `definePageMeta({ middleware: 'auth' })` to protected pages
-5. **Configure**: Update `apps/saas/app/app.config.ts` for instance-specific settings
+5. **Configure**: Update `saas.config.ts` for product facts and `apps/saas/app/app.config.ts` for app presentation
 6. **Test**: Run `pnpm saas:dev` and verify functionality
 7. **Validate**: Ensure implementation matches PRD specifications and follows patterns
 
@@ -403,7 +415,8 @@ pnpm saas:dev
 - **Project setup & deployment**: `README.md`
 - **Layer documentation**: `layers/*/README.md`
 - **Build configs**: `apps/*/amplify.yml`
-- **Instance configuration**: `apps/saas/app/app.config.ts`
+- **Product configuration contract**: `saas.config.ts` + `config/README.md`
+- **App presentation configuration**: `apps/saas/app/app.config.ts`
 - **Product Requirements**: `.context/prd/*.md` - Feature specifications by layer
 - **Architecture**: `.context/architecture/` - Overview, decision records (`decisions/`), and the tech-debt ledger
 - **Code Patterns**: `.context/patterns/*.md` - Mandatory implementation patterns (index: `.context/patterns/index.md`)
